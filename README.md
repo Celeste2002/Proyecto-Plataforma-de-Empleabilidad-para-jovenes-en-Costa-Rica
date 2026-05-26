@@ -1,9 +1,5 @@
 # Plataforma de Empleabilidad para Jovenes en Costa Rica
 
-Implementacion inicial de la HU1 del Sprint 1:
-
-> Como joven de 18 a 30 anos quiero registrarme en la plataforma con mis datos personales, nivel educativo y zona geografica para crear un perfil que me permita postularme a empleos formales.
-
 ## Estructura
 
 - `backend/api`: endpoints HTTP, CORS y middleware.
@@ -14,8 +10,8 @@ Implementacion inicial de la HU1 del Sprint 1:
 
 ## Correr backend
 
-```powershell
-dotnet run --project backend\api\api.csproj --urls http://localhost:5000
+```comand prompt
+\GitHub\Proyecto-Plataforma-de-Empleabilidad-para-jovenes-en-Costa-Rica\backend\api>dotnet run
 ```
 
 Endpoints principales:
@@ -24,9 +20,9 @@ Endpoints principales:
 - `GET /api/employers/candidates`
 - `GET /api/health`
 
-El backend lee variables desde el `.env` mas cercano al proyecto. Puedes dejarlo en la raiz del repositorio o en `backend/api`. Usa `.env.example` como guia.
+El backend lee variables desde el `.env` más cercano al proyecto.
 
-Para correo real, cambia en `.env`:
+Para correo real, crear el `.env` y copiar de whatsapp:
 
 ```env
 Email__Provider=Smtp
@@ -40,19 +36,16 @@ La aplicacion no guarda correos localmente. SMTP debe estar configurado para com
 La conexion local a SQL Server queda en:
 
 ```env
-ConnectionStrings__DefaultConnection=Server=localhost;Database=EmployabilityPlatform;Trusted_Connection=True;TrustServerCertificate=True;
+ConnectionStrings__DefaultConnection=Server=.;Database=Plataforma_Empleabilidad_BD;Integrated Security=True;TrustServerCertificate=True;Encrypt=False
 ```
 
 El script inicial de SQL Server esta en `database/scripts/001_initial_candidate_registration.sql`.
 
-La HU1 persiste en SQL Server usando `dbo.CandidateProfiles`. Si `ConnectionStrings__DefaultConnection` no existe, el backend falla de forma explicita porque no se permite guardar datos localmente.
 
 ## Correr frontend
 
-```powershell
-cd frontend
-npm install
-npm run dev
+```comand prompt
+\GitHub\Proyecto-Plataforma-de-Empleabilidad-para-jovenes-en-Costa-Rica\frontend>npm run dev
 ```
 
 La app espera la API en `http://localhost:5000`. Si cambia, definir:
@@ -61,20 +54,3 @@ La app espera la API en `http://localhost:5000`. Si cambia, definir:
 $env:VITE_API_BASE_URL="http://localhost:5000"
 ```
 
-## Idea recomendada para base de datos en la nube
-
-Para evitar pelear con scripts locales, usaria **Supabase Postgres** como base cloud durante el curso:
-
-- Tiene plan gratuito y consola web para ver datos.
-- Es PostgreSQL real, entonces despues se puede usar con Entity Framework Core y migraciones.
-- Permite compartir una sola base entre integrantes sin instalar SQL Server local.
-- Para DevOps, el backend solo necesitaria una variable `ConnectionStrings__DefaultConnection`.
-
-Camino sugerido:
-
-1. Mantener la interfaz `ICandidateRepository` como contrato.
-2. Reemplazar `SqlCandidateRepository` por un `PostgresCandidateRepository` o por EF Core cuando definan la DB final.
-3. Ejecutar migraciones desde CI/CD, no desde maquinas personales.
-4. Usar ambientes separados: `Development`, `Staging` y `Production`.
-
-Si el equipo prefiere Microsoft, la alternativa natural es **Azure SQL Database**, pero para un proyecto academico Supabase suele ser mas rapido y menos pesado de administrar.
