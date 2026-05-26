@@ -38,6 +38,9 @@ ScaffoldingReadMe.txt
 
 # dotenv environment variables file
 .env
+frontend/node_modules/
+frontend/dist/
+backend/api/data/
 
 # Others
 ~$*
