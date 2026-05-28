@@ -58,3 +58,6 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+/frontend/frontend-Admin/node_modules
+*.node
+*.exe
