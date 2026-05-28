@@ -98,7 +98,7 @@ public sealed class SmtpEmailConfirmationSender(EmailSettings emailSettings) : I
 
         if (missingSettings.Count > 0)
         {
-            throw new InvalidOperationException(
+            throw new EmailDeliveryException(
                 $"Faltan variables SMTP obligatorias: {string.Join(", ", missingSettings)}.");
         }
     }

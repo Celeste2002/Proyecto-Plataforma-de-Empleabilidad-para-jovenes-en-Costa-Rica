@@ -4,6 +4,8 @@ public sealed record CandidateProfile
 {
     public required Guid Id { get; init; }
 
+    public required Guid UserId { get; init; }
+
     public required string FullName { get; init; }
 
     public required int Age { get; init; }
@@ -12,11 +14,13 @@ public sealed record CandidateProfile
 
     public required string EducationLevel { get; init; }
 
+    // Populado desde Users.Email via JOIN — no se almacena en CandidateProfiles
     public required string Email { get; init; }
 
     public required DateTime CreatedAtUtc { get; init; }
 
     public bool IsVisibleToPartnerEmployers { get; init; } = true;
 
+    // Populado desde Users.EmailConfirmed via JOIN — no se almacena en CandidateProfiles
     public bool EmailConfirmationSent { get; init; }
 }
