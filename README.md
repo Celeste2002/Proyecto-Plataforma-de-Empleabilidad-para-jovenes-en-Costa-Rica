@@ -6,7 +6,10 @@
 - `backend/domain`: entidades y catalogos del negocio.
 - `backend/services`: casos de uso, contratos, DTOs y validaciones.
 - `backend/infrastructure`: repositorio SQL Server y envio de correo SMTP.
-- `frontend`: aplicacion React modular para registro y vista de empleadores aliados.
+- `frontend/shared`: contexto de autenticacion, componentes y estilos compartidos entre las 3 apps.
+- `frontend/frontend-Candidato`: app React para jovenes candidatos (puerto 5173).
+- `frontend/frontend-Empleador`: app React para empleadores aliados (puerto 5174).
+- `frontend/frontend-Admin`: app React para administradores de la plataforma (puerto 5175).
 
 ## Correr backend
 
@@ -44,13 +47,32 @@ El script inicial de SQL Server esta en `database/scripts/001_initial_candidate_
 
 ## Correr frontend
 
-```comand prompt
-\GitHub\Proyecto-Plataforma-de-Empleabilidad-para-jovenes-en-Costa-Rica\frontend>npm run dev
+El frontend esta dividido en 3 aplicaciones independientes segun el rol. Cada una debe levantarse en su propia terminal.
+
+**Terminal 1 — Candidatos** → `http://127.0.0.1:5173`
+```
+cd frontend\frontend-Candidato
+npm install
+npm run dev
 ```
 
-La app espera la API en `http://localhost:5000`. Si cambia, definir:
+**Terminal 2 — Empleadores** → `http://127.0.0.1:5174`
+```
+cd frontend\frontend-Empleador
+npm install
+npm run dev
+```
 
-```powershell
-$env:VITE_API_BASE_URL="http://localhost:5000"
+**Terminal 3 — Administracion** → `http://127.0.0.1:5175`
+```
+cd frontend\frontend-Admin
+npm install
+npm run dev
+```
+
+Cada app espera la API en `http://localhost:5000`. Si cambia, editar el archivo `.env` dentro de la carpeta correspondiente:
+
+```env
+VITE_API_BASE_URL=http://localhost:5000
 ```
 

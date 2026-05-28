@@ -23,6 +23,22 @@ public sealed class ErrorHandlingMiddleware(
                 errors = requestValidationException.ValidationErrors
             });
         }
+        catch (AuthenticationException authenticationException)
+        {
+            httpContext.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
+            await httpContext.Response.WriteAsJsonAsync(new
+            {
+                message = authenticationException.Message
+            });
+        }
+        catch (NotFoundException notFoundException)
+        {
+            httpContext.Response.StatusCode = (int)HttpStatusCode.NotFound;
+            await httpContext.Response.WriteAsJsonAsync(new
+            {
+                message = notFoundException.Message
+            });
+        }
         catch (EmailDeliveryException emailDeliveryException)
         {
             logger.LogError(emailDeliveryException, "Email delivery failed.");

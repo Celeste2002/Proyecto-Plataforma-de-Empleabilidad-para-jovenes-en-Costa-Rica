@@ -10,33 +10,34 @@ public sealed class SqlCandidateRepository(string connectionString) : ICandidate
     {
         const string query = """
             SELECT TOP (1)
-                Id,
-                FullName,
-                Age,
-                Province,
-                EducationLevel,
-                Email,
-                IsVisibleToPartnerEmployers,
-                EmailConfirmationSent,
-                CreatedAtUtc
-            FROM dbo.CandidateProfiles
-            WHERE Email = @Email;
+                cp.Id,
+                cp.UserId,
+                cp.FullName,
+                cp.Age,
+                cp.Province,
+                cp.EducationLevel,
+                cp.IsVisibleToPartnerEmployers,
+                cp.CreatedAtUtc,
+                u.Email,
+                u.EmailConfirmed
+            FROM dbo.CandidateProfiles cp
+            INNER JOIN dbo.Users u ON cp.UserId = u.Id
+            WHERE u.Email = @Email;
             """;
 
-        await using SqlConnection sqlConnection = new(connectionString);
-        await sqlConnection.OpenAsync(cancellationToken);
+        await using SqlConnection connection = new(connectionString);
+        await connection.OpenAsync(cancellationToken);
 
-        await using SqlCommand sqlCommand = new(query, sqlConnection);
-        sqlCommand.Parameters.AddWithValue("@Email", email);
+        await using SqlCommand command = new(query, connection);
+        command.Parameters.AddWithValue("@Email", email);
 
-        await using SqlDataReader sqlDataReader = await sqlCommand.ExecuteReaderAsync(cancellationToken);
+        await using SqlDataReader reader = await command.ExecuteReaderAsync(cancellationToken);
 
-        return await sqlDataReader.ReadAsync(cancellationToken)
-            ? MapCandidateProfile(sqlDataReader)
-            : null;
+        return await reader.ReadAsync(cancellationToken) ? MapCandidateProfile(reader) : null;
     }
 
-    public async Task<IReadOnlyCollection<CandidateProfile>> GetVisibleToPartnerEmployersAsync(CancellationToken cancellationToken)
+    public async Task<IReadOnlyCollection<CandidateProfile>> GetVisibleToPartnerEmployersAsync(
+        CancellationToken cancellationToken)
     {
         const string query = """
             SELECT
@@ -46,8 +47,7 @@ public sealed class SqlCandidateRepository(string connectionString) : ICandidate
                 Province,
                 EducationLevel,
                 Email,
-                CAST(1 AS bit) AS IsVisibleToPartnerEmployers,
-                EmailConfirmationSent,
+                EmailConfirmed,
                 CreatedAtUtc
             FROM dbo.PartnerEmployerVisibleCandidateProfiles
             ORDER BY CreatedAtUtc DESC;
@@ -55,15 +55,15 @@ public sealed class SqlCandidateRepository(string connectionString) : ICandidate
 
         List<CandidateProfile> candidateProfiles = [];
 
-        await using SqlConnection sqlConnection = new(connectionString);
-        await sqlConnection.OpenAsync(cancellationToken);
+        await using SqlConnection connection = new(connectionString);
+        await connection.OpenAsync(cancellationToken);
 
-        await using SqlCommand sqlCommand = new(query, sqlConnection);
-        await using SqlDataReader sqlDataReader = await sqlCommand.ExecuteReaderAsync(cancellationToken);
+        await using SqlCommand command = new(query, connection);
+        await using SqlDataReader reader = await command.ExecuteReaderAsync(cancellationToken);
 
-        while (await sqlDataReader.ReadAsync(cancellationToken))
+        while (await reader.ReadAsync(cancellationToken))
         {
-            candidateProfiles.Add(MapCandidateProfile(sqlDataReader));
+            candidateProfiles.Add(MapCandidateProfileFromView(reader));
         }
 
         return candidateProfiles;
@@ -71,80 +71,97 @@ public sealed class SqlCandidateRepository(string connectionString) : ICandidate
 
     public async Task SaveAsync(CandidateProfile candidateProfile, CancellationToken cancellationToken)
     {
-        const string command = """
+        const string sql = """
             INSERT INTO dbo.CandidateProfiles
             (
                 Id,
+                UserId,
                 FullName,
                 Age,
                 Province,
                 EducationLevel,
-                Email,
                 IsVisibleToPartnerEmployers,
-                EmailConfirmationSent,
                 CreatedAtUtc
             )
             VALUES
             (
                 @Id,
+                @UserId,
                 @FullName,
                 @Age,
                 @Province,
                 @EducationLevel,
-                @Email,
                 @IsVisibleToPartnerEmployers,
-                @EmailConfirmationSent,
                 @CreatedAtUtc
             );
             """;
 
-        await using SqlConnection sqlConnection = new(connectionString);
-        await sqlConnection.OpenAsync(cancellationToken);
+        await using SqlConnection connection = new(connectionString);
+        await connection.OpenAsync(cancellationToken);
 
-        await using SqlCommand sqlCommand = new(command, sqlConnection);
-        sqlCommand.Parameters.AddWithValue("@Id", candidateProfile.Id);
-        sqlCommand.Parameters.AddWithValue("@FullName", candidateProfile.FullName);
-        sqlCommand.Parameters.AddWithValue("@Age", candidateProfile.Age);
-        sqlCommand.Parameters.AddWithValue("@Province", candidateProfile.Province);
-        sqlCommand.Parameters.AddWithValue("@EducationLevel", candidateProfile.EducationLevel);
-        sqlCommand.Parameters.AddWithValue("@Email", candidateProfile.Email);
-        sqlCommand.Parameters.AddWithValue("@IsVisibleToPartnerEmployers", candidateProfile.IsVisibleToPartnerEmployers);
-        sqlCommand.Parameters.AddWithValue("@EmailConfirmationSent", candidateProfile.EmailConfirmationSent);
-        sqlCommand.Parameters.AddWithValue("@CreatedAtUtc", candidateProfile.CreatedAtUtc);
+        await using SqlCommand command = new(sql, connection);
+        command.Parameters.AddWithValue("@Id", candidateProfile.Id);
+        command.Parameters.AddWithValue("@UserId", candidateProfile.UserId);
+        command.Parameters.AddWithValue("@FullName", candidateProfile.FullName);
+        command.Parameters.AddWithValue("@Age", candidateProfile.Age);
+        command.Parameters.AddWithValue("@Province", candidateProfile.Province);
+        command.Parameters.AddWithValue("@EducationLevel", candidateProfile.EducationLevel);
+        command.Parameters.AddWithValue("@IsVisibleToPartnerEmployers", candidateProfile.IsVisibleToPartnerEmployers);
+        command.Parameters.AddWithValue("@CreatedAtUtc", candidateProfile.CreatedAtUtc);
 
-        await sqlCommand.ExecuteNonQueryAsync(cancellationToken);
+        await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
     public async Task MarkEmailConfirmationSentAsync(Guid candidateProfileId, CancellationToken cancellationToken)
     {
-        const string command = """
-            UPDATE dbo.CandidateProfiles
-            SET EmailConfirmationSent = 1
-            WHERE Id = @Id;
+        const string sql = """
+            UPDATE u
+            SET u.EmailConfirmed = 1
+            FROM dbo.Users u
+            INNER JOIN dbo.CandidateProfiles cp ON u.Id = cp.UserId
+            WHERE cp.Id = @Id;
             """;
 
-        await using SqlConnection sqlConnection = new(connectionString);
-        await sqlConnection.OpenAsync(cancellationToken);
+        await using SqlConnection connection = new(connectionString);
+        await connection.OpenAsync(cancellationToken);
 
-        await using SqlCommand sqlCommand = new(command, sqlConnection);
-        sqlCommand.Parameters.AddWithValue("@Id", candidateProfileId);
+        await using SqlCommand command = new(sql, connection);
+        command.Parameters.AddWithValue("@Id", candidateProfileId);
 
-        await sqlCommand.ExecuteNonQueryAsync(cancellationToken);
+        await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
-    private static CandidateProfile MapCandidateProfile(SqlDataReader sqlDataReader)
+    private static CandidateProfile MapCandidateProfile(SqlDataReader reader)
     {
         return new CandidateProfile
         {
-            Id = sqlDataReader.GetGuid(sqlDataReader.GetOrdinal("Id")),
-            FullName = sqlDataReader.GetString(sqlDataReader.GetOrdinal("FullName")),
-            Age = sqlDataReader.GetInt32(sqlDataReader.GetOrdinal("Age")),
-            Province = sqlDataReader.GetString(sqlDataReader.GetOrdinal("Province")),
-            EducationLevel = sqlDataReader.GetString(sqlDataReader.GetOrdinal("EducationLevel")),
-            Email = sqlDataReader.GetString(sqlDataReader.GetOrdinal("Email")),
-            IsVisibleToPartnerEmployers = sqlDataReader.GetBoolean(sqlDataReader.GetOrdinal("IsVisibleToPartnerEmployers")),
-            EmailConfirmationSent = sqlDataReader.GetBoolean(sqlDataReader.GetOrdinal("EmailConfirmationSent")),
-            CreatedAtUtc = sqlDataReader.GetDateTime(sqlDataReader.GetOrdinal("CreatedAtUtc"))
+            Id = reader.GetGuid(reader.GetOrdinal("Id")),
+            UserId = reader.GetGuid(reader.GetOrdinal("UserId")),
+            FullName = reader.GetString(reader.GetOrdinal("FullName")),
+            Age = reader.GetInt32(reader.GetOrdinal("Age")),
+            Province = reader.GetString(reader.GetOrdinal("Province")),
+            EducationLevel = reader.GetString(reader.GetOrdinal("EducationLevel")),
+            IsVisibleToPartnerEmployers = reader.GetBoolean(reader.GetOrdinal("IsVisibleToPartnerEmployers")),
+            CreatedAtUtc = reader.GetDateTime(reader.GetOrdinal("CreatedAtUtc")),
+            Email = reader.GetString(reader.GetOrdinal("Email")),
+            EmailConfirmationSent = reader.GetBoolean(reader.GetOrdinal("EmailConfirmed"))
+        };
+    }
+
+    private static CandidateProfile MapCandidateProfileFromView(SqlDataReader reader)
+    {
+        return new CandidateProfile
+        {
+            Id = reader.GetGuid(reader.GetOrdinal("Id")),
+            UserId = Guid.Empty, // No disponible en la vista; solo se usa para lecturas de empleadores
+            FullName = reader.GetString(reader.GetOrdinal("FullName")),
+            Age = reader.GetInt32(reader.GetOrdinal("Age")),
+            Province = reader.GetString(reader.GetOrdinal("Province")),
+            EducationLevel = reader.GetString(reader.GetOrdinal("EducationLevel")),
+            IsVisibleToPartnerEmployers = true,
+            CreatedAtUtc = reader.GetDateTime(reader.GetOrdinal("CreatedAtUtc")),
+            Email = reader.GetString(reader.GetOrdinal("Email")),
+            EmailConfirmationSent = reader.GetBoolean(reader.GetOrdinal("EmailConfirmed"))
         };
     }
 }

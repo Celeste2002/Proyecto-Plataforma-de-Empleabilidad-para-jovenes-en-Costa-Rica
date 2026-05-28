@@ -1,6 +1,7 @@
 using System.Net.Mail;
 using domain.constants;
 using domain.entities;
+using Microsoft.Extensions.Logging;
 using services.dtos;
 using services.exceptions;
 using services.interfaces;
@@ -9,7 +10,9 @@ namespace services;
 
 public sealed class CandidateRegistrationService(
     ICandidateRepository candidateRepository,
-    IEmailConfirmationSender emailConfirmationSender) : ICandidateRegistrationService
+    IUserRepository userRepository,
+    IEmailConfirmationSender emailConfirmationSender,
+    ILogger<CandidateRegistrationService> logger) : ICandidateRegistrationService
 {
     public async Task<CandidateRegistrationResponse> RegisterAsync(
         RegisterCandidateRequest registerCandidateRequest,
@@ -18,42 +21,71 @@ public sealed class CandidateRegistrationService(
         ValidateRegisterCandidateRequest(registerCandidateRequest);
 
         string normalizedEmail = registerCandidateRequest.Email.Trim().ToLowerInvariant();
-        CandidateProfile? existingCandidateProfile = await candidateRepository.FindByEmailAsync(
-            normalizedEmail,
-            cancellationToken);
 
-        if (existingCandidateProfile is not null)
+        User? existingUser = await userRepository.FindByEmailAsync(normalizedEmail, cancellationToken);
+
+        if (existingUser is not null)
         {
             throw new RequestValidationException(["Ya existe un candidato registrado con este correo."]);
         }
 
+        DateTime createdAt = DateTime.UtcNow;
+
+        User newUser = new()
+        {
+            Id = Guid.NewGuid(),
+            Email = normalizedEmail,
+            Role = UserRoles.Candidate,
+            IsActive = true,
+            EmailConfirmed = false,
+            CreatedAtUtc = createdAt
+        };
+
+        await userRepository.SaveAsync(newUser, cancellationToken);
+
         CandidateProfile candidateProfile = new()
         {
             Id = Guid.NewGuid(),
+            UserId = newUser.Id,
             FullName = registerCandidateRequest.FullName.Trim(),
             Age = registerCandidateRequest.Age,
             Province = registerCandidateRequest.Province.Trim(),
             EducationLevel = registerCandidateRequest.EducationLevel.Trim(),
             Email = normalizedEmail,
-            CreatedAtUtc = DateTime.UtcNow,
+            CreatedAtUtc = createdAt,
             IsVisibleToPartnerEmployers = true,
             EmailConfirmationSent = false
         };
 
         await candidateRepository.SaveAsync(candidateProfile, cancellationToken);
 
-        await emailConfirmationSender.SendRegistrationConfirmationAsync(candidateProfile, cancellationToken);
+        bool emailSent = false;
 
-        CandidateProfile confirmedCandidateProfile = candidateProfile with
+        try
         {
-            EmailConfirmationSent = true
+            await emailConfirmationSender.SendRegistrationConfirmationAsync(candidateProfile, cancellationToken);
+            await candidateRepository.MarkEmailConfirmationSentAsync(candidateProfile.Id, cancellationToken);
+            emailSent = true;
+        }
+        catch (EmailDeliveryException emailDeliveryException)
+        {
+            logger.LogWarning(emailDeliveryException,
+                "No se pudo enviar el correo de confirmacion al candidato {CandidateId}. El perfil fue guardado.",
+                candidateProfile.Id);
+        }
+
+        CandidateProfile savedCandidateProfile = candidateProfile with
+        {
+            EmailConfirmationSent = emailSent
         };
 
-        await candidateRepository.MarkEmailConfirmationSentAsync(confirmedCandidateProfile.Id, cancellationToken);
+        string message = emailSent
+            ? "Registro completado. Se envio un correo de confirmacion."
+            : "Registro completado. No se pudo enviar el correo de confirmacion (SMTP no configurado).";
 
         return new CandidateRegistrationResponse(
-            MapCandidateProfileResponse(confirmedCandidateProfile),
-            "Registro completado. Se envio un correo de confirmacion.");
+            MapCandidateProfileResponse(savedCandidateProfile),
+            message);
     }
 
     public async Task<IReadOnlyCollection<CandidateProfileResponse>> GetProfilesVisibleToPartnerEmployersAsync(
