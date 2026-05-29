@@ -8,7 +8,7 @@ public sealed record CandidateProfile
 
     public required string FullName { get; init; }
 
-    public required int Age { get; init; }
+    public required DateOnly DateOfBirth { get; init; }
 
     public required string Province { get; init; }
 

@@ -42,16 +42,16 @@ export function ForgotPasswordPage() {
 
         <div className="section-heading">
           <p className="eyebrow">Recuperar acceso</p>
-          <h2>Olvide mi contrasena</h2>
+          <h2>Olvidé mi contraseña</h2>
           <p className="section-description">
-            Ingresa tu correo registrado y te enviaremos un enlace para restablecer tu contrasena.
+            Ingresa tu correo registrado y te enviaremos un enlace para restablecer tu contraseña.
           </p>
         </div>
 
         <form onSubmit={handleSubmit}>
           <div className="auth-fields">
             <label>
-              Correo electronico
+              Correo electrónico
               <input
                 autoComplete="email"
                 name="email"
@@ -75,7 +75,7 @@ export function ForgotPasswordPage() {
 
         <div className="auth-footer">
           <p>
-            <Link to="/login">Volver al inicio de sesion</Link>
+            <Link to="/login">Volver al inicio de sesión</Link>
           </p>
         </div>
       </div>

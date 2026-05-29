@@ -130,9 +130,15 @@ button:disabled {
 }
 
 .registration-layout {
+  align-items: start;
   display: grid;
-  gap: 22px;
-  grid-template-columns: minmax(0, 1.35fr) minmax(300px, 0.65fr);
+  gap: 24px;
+  grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.8fr);
+  margin: 0 auto;
+  max-width: 1240px;
+  min-height: 100vh;
+  padding: 28px;
+  width: 100%;
 }
 
 .registration-form,
@@ -146,11 +152,41 @@ button:disabled {
 
 .registration-form,
 .employer-view {
-  padding: 28px;
+  padding: 30px;
+}
+
+.registration-form {
+  display: grid;
+  gap: 22px;
+}
+
+.registration-header {
+  align-items: flex-start;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 18px;
+  padding-bottom: 22px;
+}
+
+.registration-header__icon {
+  align-items: center;
+  background: var(--primary-soft);
+  border-radius: 8px;
+  color: var(--primary);
+  display: flex;
+  flex-shrink: 0;
+  height: 58px;
+  justify-content: center;
+  width: 58px;
 }
 
 .section-heading {
   margin-bottom: 22px;
+}
+
+.registration-header .section-heading,
+.registration-form .section-heading {
+  margin-bottom: 0;
 }
 
 .section-description {
@@ -178,6 +214,24 @@ button:disabled {
   display: grid;
   gap: 18px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.form-section-title {
+  align-items: center;
+  color: var(--primary-strong);
+  display: flex;
+  font-size: 0.82rem;
+  font-weight: 900;
+  gap: 12px;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.form-section-title::after {
+  background: var(--border);
+  content: "";
+  flex: 1;
+  height: 1px;
 }
 
 label {
@@ -210,11 +264,33 @@ button:focus-visible {
   outline-offset: 2px;
 }
 
+input.input-invalid,
+select.input-invalid {
+  background: #fff8f7;
+  border-color: var(--error);
+  box-shadow: 0 0 0 1px rgb(180 35 24 / 0.12);
+}
+
+.form-hint {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.35;
+  min-height: 1.1rem;
+}
+
+.form-hint--error {
+  color: var(--error);
+}
+
+.form-hint--success {
+  color: var(--success);
+}
+
 .primary-action {
   background: var(--primary);
   color: #ffffff;
   justify-content: center;
-  margin-top: 20px;
   padding: 0 18px;
   width: 100%;
 }
@@ -232,7 +308,6 @@ button:focus-visible {
 .status-message,
 .field-error {
   border-radius: 6px;
-  margin-top: 16px;
   padding: 12px;
 }
 
@@ -263,7 +338,7 @@ button:focus-visible {
 }
 
 .profile-preview {
-  align-self: start;
+  align-self: center;
   background:
     linear-gradient(140deg, rgb(3 64 111 / 0.94), rgb(7 90 156 / 0.9)),
     var(--primary);
@@ -292,6 +367,26 @@ button:focus-visible {
   display: grid;
   gap: 14px;
   margin: 22px 0 0;
+}
+
+.preview-secure {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+}
+
+.preview-security-note {
+  align-items: center;
+  background: rgb(255 255 255 / 0.14);
+  border: 1px solid rgb(255 255 255 / 0.18);
+  border-radius: 8px;
+  display: flex;
+  font-size: 0.9rem;
+  font-weight: 700;
+  gap: 10px;
+  line-height: 1.35;
+  margin-top: 24px;
+  padding: 12px;
 }
 
 .profile-preview dl div,
@@ -557,8 +652,22 @@ dd {
   text-decoration: none;
 }
 
+.profile-update-form {
+  display: grid;
+  gap: 22px;
+  max-width: 760px;
+}
+
+.profile-security-section {
+  margin-top: 24px;
+}
+
 @media (max-width: 860px) {
   .application-shell {
+    padding: 18px;
+  }
+
+  .registration-layout {
     padding: 18px;
   }
 

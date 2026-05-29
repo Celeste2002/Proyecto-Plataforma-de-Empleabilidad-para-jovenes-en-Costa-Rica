@@ -36,13 +36,13 @@ public sealed class SmtpPasswordResetSender(EmailSettings emailSettings, string 
         using MailMessage mailMessage = new()
         {
             From = new MailAddress(fromAddress, fromName),
-            Subject = "Recuperacion de contrasena - Sinergia",
+            Subject = "Recuperación de contraseña - Sinergia",
             Body = $"""
                 Hola,
 
-                Recibimos una solicitud para recuperar tu contrasena en Sinergia.
+                Recibimos una solicitud para recuperar tu contraseña en Sinergia.
 
-                Haz clic en el siguiente enlace para establecer una nueva contrasena:
+                Haz clic en el siguiente enlace para establecer una nueva contraseña:
                 {resetLink}
 
                 Este enlace es valido por 1 hora.
@@ -63,7 +63,7 @@ public sealed class SmtpPasswordResetSender(EmailSettings emailSettings, string 
         catch (SmtpException smtpException)
         {
             throw new EmailDeliveryException(
-                "No se pudo enviar el correo de recuperacion de contrasena.",
+                "No se pudo enviar el correo de recuperación de contraseña.",
                 smtpException);
         }
     }

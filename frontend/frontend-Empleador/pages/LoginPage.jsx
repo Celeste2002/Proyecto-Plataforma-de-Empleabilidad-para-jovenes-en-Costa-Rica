@@ -58,13 +58,13 @@ export function LoginPage() {
 
         <div className="section-heading">
           <p className="eyebrow">Bienvenido de vuelta</p>
-          <h2>Iniciar sesion</h2>
+          <h2>Iniciar sesión</h2>
         </div>
 
         <form onSubmit={handleSubmit}>
           <div className="auth-fields">
             <label>
-              Correo electronico
+              Correo electrónico
               <input
                 autoComplete="email"
                 name="email"
@@ -77,12 +77,12 @@ export function LoginPage() {
             </label>
 
             <label>
-              Contrasena
+              Contraseña
               <input
                 autoComplete="current-password"
                 name="password"
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Tu contrasena"
+                placeholder="Tu contraseña"
                 required
                 type="password"
                 value={password}
@@ -91,7 +91,7 @@ export function LoginPage() {
           </div>
 
           <div className="auth-forgot">
-            <Link to="/recuperar-contrasena">¿Olvidaste tu contrasena?</Link>
+            <Link to="/recuperar-contrasena">¿Olvidaste tu contraseña?</Link>
           </div>
 
           <StatusMessage message={errorMessage} tone="error" />

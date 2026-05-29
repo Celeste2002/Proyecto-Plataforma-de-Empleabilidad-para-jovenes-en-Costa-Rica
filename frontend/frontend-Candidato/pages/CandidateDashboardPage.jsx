@@ -25,11 +25,11 @@ export function CandidateDashboardPage() {
             <h1>Sinergia</h1>
           </div>
         </div>
-        <nav className="dashboard-nav" aria-label="Navegacion del candidato">
+        <nav className="dashboard-nav" aria-label="Navegación del candidato">
           <span className="dashboard-user-email">{user?.email}</span>
           <button className="secondary-action" onClick={handleLogout} type="button">
             <LogOut aria-hidden="true" size={16} />
-            Cerrar sesion
+            Cerrar sesión
           </button>
         </nav>
       </header>
@@ -56,13 +56,13 @@ export function CandidateDashboardPage() {
           </article>
 
           <article className="dashboard-card dashboard-card--info">
-            <h3>Proximamente</h3>
-            <p>Ofertas de empleo, postulaciones y mas funcionalidades estaran disponibles pronto.</p>
+            <h3>Próximamente</h3>
+            <p>Ofertas de empleo, postulaciones y más funcionalidades estarán disponibles pronto.</p>
           </article>
         </div>
 
         <div className="dashboard-actions">
-          <Link className="secondary-action" to="/registro">
+          <Link className="secondary-action" to="/candidato/actualizar-registro">
             Actualizar registro
           </Link>
         </div>

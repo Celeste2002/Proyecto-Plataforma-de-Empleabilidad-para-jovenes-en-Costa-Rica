@@ -13,7 +13,7 @@ public sealed class SqlCandidateRepository(string connectionString) : ICandidate
                 cp.Id,
                 cp.UserId,
                 cp.FullName,
-                cp.Age,
+                cp.DateOfBirth,
                 cp.Province,
                 cp.EducationLevel,
                 cp.IsVisibleToPartnerEmployers,
@@ -36,6 +36,36 @@ public sealed class SqlCandidateRepository(string connectionString) : ICandidate
         return await reader.ReadAsync(cancellationToken) ? MapCandidateProfile(reader) : null;
     }
 
+    public async Task<CandidateProfile?> FindByUserIdAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        const string query = """
+            SELECT TOP (1)
+                cp.Id,
+                cp.UserId,
+                cp.FullName,
+                cp.DateOfBirth,
+                cp.Province,
+                cp.EducationLevel,
+                cp.IsVisibleToPartnerEmployers,
+                cp.CreatedAtUtc,
+                u.Email,
+                u.EmailConfirmed
+            FROM dbo.CandidateProfiles cp
+            INNER JOIN dbo.Users u ON cp.UserId = u.Id
+            WHERE cp.UserId = @UserId;
+            """;
+
+        await using SqlConnection connection = new(connectionString);
+        await connection.OpenAsync(cancellationToken);
+
+        await using SqlCommand command = new(query, connection);
+        command.Parameters.AddWithValue("@UserId", userId);
+
+        await using SqlDataReader reader = await command.ExecuteReaderAsync(cancellationToken);
+
+        return await reader.ReadAsync(cancellationToken) ? MapCandidateProfile(reader) : null;
+    }
+
     public async Task<IReadOnlyCollection<CandidateProfile>> GetVisibleToPartnerEmployersAsync(
         CancellationToken cancellationToken)
     {
@@ -43,6 +73,7 @@ public sealed class SqlCandidateRepository(string connectionString) : ICandidate
             SELECT
                 Id,
                 FullName,
+                DateOfBirth,
                 Age,
                 Province,
                 EducationLevel,
@@ -77,7 +108,7 @@ public sealed class SqlCandidateRepository(string connectionString) : ICandidate
                 Id,
                 UserId,
                 FullName,
-                Age,
+                DateOfBirth,
                 Province,
                 EducationLevel,
                 IsVisibleToPartnerEmployers,
@@ -88,7 +119,7 @@ public sealed class SqlCandidateRepository(string connectionString) : ICandidate
                 @Id,
                 @UserId,
                 @FullName,
-                @Age,
+                @DateOfBirth,
                 @Province,
                 @EducationLevel,
                 @IsVisibleToPartnerEmployers,
@@ -103,11 +134,37 @@ public sealed class SqlCandidateRepository(string connectionString) : ICandidate
         command.Parameters.AddWithValue("@Id", candidateProfile.Id);
         command.Parameters.AddWithValue("@UserId", candidateProfile.UserId);
         command.Parameters.AddWithValue("@FullName", candidateProfile.FullName);
-        command.Parameters.AddWithValue("@Age", candidateProfile.Age);
+        command.Parameters.AddWithValue("@DateOfBirth", candidateProfile.DateOfBirth.ToDateTime(TimeOnly.MinValue));
         command.Parameters.AddWithValue("@Province", candidateProfile.Province);
         command.Parameters.AddWithValue("@EducationLevel", candidateProfile.EducationLevel);
         command.Parameters.AddWithValue("@IsVisibleToPartnerEmployers", candidateProfile.IsVisibleToPartnerEmployers);
         command.Parameters.AddWithValue("@CreatedAtUtc", candidateProfile.CreatedAtUtc);
+
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    public async Task UpdateAsync(CandidateProfile candidateProfile, CancellationToken cancellationToken)
+    {
+        const string sql = """
+            UPDATE dbo.CandidateProfiles
+            SET FullName = @FullName,
+                DateOfBirth = @DateOfBirth,
+                Province = @Province,
+                EducationLevel = @EducationLevel
+            WHERE Id = @Id
+                AND UserId = @UserId;
+            """;
+
+        await using SqlConnection connection = new(connectionString);
+        await connection.OpenAsync(cancellationToken);
+
+        await using SqlCommand command = new(sql, connection);
+        command.Parameters.AddWithValue("@Id", candidateProfile.Id);
+        command.Parameters.AddWithValue("@UserId", candidateProfile.UserId);
+        command.Parameters.AddWithValue("@FullName", candidateProfile.FullName);
+        command.Parameters.AddWithValue("@DateOfBirth", candidateProfile.DateOfBirth.ToDateTime(TimeOnly.MinValue));
+        command.Parameters.AddWithValue("@Province", candidateProfile.Province);
+        command.Parameters.AddWithValue("@EducationLevel", candidateProfile.EducationLevel);
 
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
@@ -138,7 +195,7 @@ public sealed class SqlCandidateRepository(string connectionString) : ICandidate
             Id = reader.GetGuid(reader.GetOrdinal("Id")),
             UserId = reader.GetGuid(reader.GetOrdinal("UserId")),
             FullName = reader.GetString(reader.GetOrdinal("FullName")),
-            Age = reader.GetInt32(reader.GetOrdinal("Age")),
+            DateOfBirth = DateOnly.FromDateTime(reader.GetDateTime(reader.GetOrdinal("DateOfBirth"))),
             Province = reader.GetString(reader.GetOrdinal("Province")),
             EducationLevel = reader.GetString(reader.GetOrdinal("EducationLevel")),
             IsVisibleToPartnerEmployers = reader.GetBoolean(reader.GetOrdinal("IsVisibleToPartnerEmployers")),
@@ -155,7 +212,7 @@ public sealed class SqlCandidateRepository(string connectionString) : ICandidate
             Id = reader.GetGuid(reader.GetOrdinal("Id")),
             UserId = Guid.Empty, // No disponible en la vista; solo se usa para lecturas de empleadores
             FullName = reader.GetString(reader.GetOrdinal("FullName")),
-            Age = reader.GetInt32(reader.GetOrdinal("Age")),
+            DateOfBirth = DateOnly.FromDateTime(reader.GetDateTime(reader.GetOrdinal("DateOfBirth"))),
             Province = reader.GetString(reader.GetOrdinal("Province")),
             EducationLevel = reader.GetString(reader.GetOrdinal("EducationLevel")),
             IsVisibleToPartnerEmployers = true,

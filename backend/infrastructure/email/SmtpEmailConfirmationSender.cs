@@ -22,7 +22,7 @@ public sealed class SmtpEmailConfirmationSender(EmailSettings emailSettings) : I
         using MailMessage mailMessage = new()
         {
             From = new MailAddress(senderAddress, senderName),
-            Subject = "Confirmacion de registro",
+            Subject = "Confirmación de registro",
             Body = BuildEmailBody(candidateProfile),
             IsBodyHtml = false
         };
@@ -42,7 +42,7 @@ public sealed class SmtpEmailConfirmationSender(EmailSettings emailSettings) : I
         catch (SmtpException smtpException)
         {
             throw new EmailDeliveryException(
-                "El perfil fue guardado en SQL Server, pero el proveedor SMTP rechazo el envio del correo de confirmacion.",
+                "El perfil fue guardado en SQL Server, pero el proveedor SMTP rechazó el envío del correo de confirmación.",
                 smtpException);
         }
     }
