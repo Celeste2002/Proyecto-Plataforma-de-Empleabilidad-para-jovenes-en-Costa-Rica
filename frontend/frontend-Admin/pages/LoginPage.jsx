@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { login } from '../../shared/api/authApi.js';
 import { StatusMessage } from '../../shared/components/StatusMessage.jsx';
+import { AUTH_ROUTES } from '../../shared/constants/authRoutes.js';
 import { useAuth } from '../../shared/context/AuthContext.jsx';
 
 export function LoginPage() {
@@ -91,7 +92,7 @@ export function LoginPage() {
           </div>
 
           <div className="auth-forgot">
-            <Link to="/recuperar-contrasena">¿Olvidaste tu contrasena?</Link>
+            <Link to={AUTH_ROUTES.recoverPassword}>¿Olvidaste tu contrasena?</Link>
           </div>
 
           <StatusMessage message={errorMessage} tone="error" />

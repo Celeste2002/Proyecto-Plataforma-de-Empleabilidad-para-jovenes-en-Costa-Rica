@@ -4,6 +4,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { resetPassword } from '../api/authApi.js';
 import { FieldError } from '../components/FieldError.jsx';
 import { StatusMessage } from '../components/StatusMessage.jsx';
+import { AUTH_ROUTES } from '../constants/authRoutes.js';
 
 export function ResetPasswordPage() {
   const [searchParams] = useSearchParams();
@@ -38,7 +39,7 @@ export function ResetPasswordPage() {
     try {
       await resetPassword(token, newPassword);
       setSuccessMessage('Contrasena restablecida. Puedes iniciar sesion ahora.');
-      setTimeout(() => navigate('/login'), 2500);
+      setTimeout(() => navigate(AUTH_ROUTES.login), 2500);
     } catch (error) {
       setErrors(error.validationErrors?.length ? error.validationErrors : [error.message]);
     } finally {
@@ -52,7 +53,7 @@ export function ResetPasswordPage() {
         <div className="auth-card">
           <StatusMessage message="El enlace de recuperacion no es valido." tone="error" />
           <div className="auth-footer">
-            <p><Link to="/recuperar-contrasena">Solicitar un nuevo enlace</Link></p>
+            <p><Link to={AUTH_ROUTES.recoverPassword}>Solicitar un nuevo enlace</Link></p>
           </div>
         </div>
       </div>
@@ -116,7 +117,7 @@ export function ResetPasswordPage() {
         </form>
 
         <div className="auth-footer">
-          <p><Link to="/login">Volver al inicio de sesion</Link></p>
+          <p><Link to={AUTH_ROUTES.login}>Volver al inicio de sesion</Link></p>
         </div>
       </div>
     </div>

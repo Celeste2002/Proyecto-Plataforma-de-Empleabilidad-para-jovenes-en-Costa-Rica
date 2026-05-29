@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using domain.constants;
 using domain.entities;
 using services.dtos;
@@ -12,6 +13,9 @@ public sealed class AuthService(
     ITokenService tokenService,
     IPasswordResetSender passwordResetSender) : IAuthService
 {
+    private const int PasswordResetTokenByteLength = 32;
+    private static readonly TimeSpan PasswordResetTokenLifetime = TimeSpan.FromHours(1);
+
     public async Task<LoginResponse> LoginAsync(LoginRequest loginRequest, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(loginRequest.Email) || string.IsNullOrWhiteSpace(loginRequest.Password))
@@ -62,8 +66,8 @@ public sealed class AuthService(
             return;
         }
 
-        string resetToken = Guid.NewGuid().ToString("N");
-        DateTime expiresAt = DateTime.UtcNow.AddHours(1);
+        string resetToken = GeneratePasswordResetToken();
+        DateTime expiresAt = DateTime.UtcNow.Add(PasswordResetTokenLifetime);
 
         await userRepository.SavePasswordResetTokenAsync(user.Id, resetToken, expiresAt, cancellationToken);
         await passwordResetSender.SendPasswordResetAsync(user.Email, resetToken, cancellationToken);
@@ -88,9 +92,11 @@ public sealed class AuthService(
             throw new RequestValidationException(validationErrors);
         }
 
-        User? user = await userRepository.FindByPasswordResetTokenAsync(request.Token, cancellationToken);
+        User? user = await userRepository.FindByPasswordResetTokenAsync(request.Token.Trim(), cancellationToken);
 
-        if (user is null || user.PasswordResetTokenExpiresAtUtc < DateTime.UtcNow)
+        if (user is null ||
+            user.PasswordResetTokenExpiresAtUtc is null ||
+            user.PasswordResetTokenExpiresAtUtc <= DateTime.UtcNow)
         {
             throw new RequestValidationException(["El enlace de recuperacion es invalido o ha expirado."]);
         }
@@ -99,5 +105,11 @@ public sealed class AuthService(
 
         await userRepository.UpdatePasswordAsync(user.Id, passwordHash, cancellationToken);
         await userRepository.ClearPasswordResetTokenAsync(user.Id, cancellationToken);
+    }
+
+    private static string GeneratePasswordResetToken()
+    {
+        byte[] randomBytes = RandomNumberGenerator.GetBytes(PasswordResetTokenByteLength);
+        return Convert.ToHexString(randomBytes).ToLowerInvariant();
     }
 }

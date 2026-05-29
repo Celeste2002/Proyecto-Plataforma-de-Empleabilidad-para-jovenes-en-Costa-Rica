@@ -7,35 +7,30 @@ namespace infrastructure.email;
 
 public sealed class SmtpPasswordResetSender(EmailSettings emailSettings, string frontendUrl) : IPasswordResetSender
 {
+    private const string ResetPasswordPath = "/restablecer-contrasena";
+
     public async Task SendPasswordResetAsync(string email, string resetToken, CancellationToken cancellationToken)
     {
-        string resetLink = $"{frontendUrl}/nueva-contrasena?token={resetToken}";
+        string resetLink = BuildResetLink(resetToken);
 
-        string host = emailSettings.SmtpHost ?? emailSettings.Host
-            ?? throw new InvalidOperationException("SMTP host no configurado.");
-
+        string senderAddress = GetFirstConfiguredValue(emailSettings.SenderAddress, emailSettings.FromAddress);
+        string senderName = GetFirstConfiguredValue(emailSettings.SenderName, emailSettings.FromName);
+        string smtpHost = GetFirstConfiguredValue(emailSettings.SmtpHost, emailSettings.Host);
+        string smtpUsername = GetFirstConfiguredValue(emailSettings.SmtpUsername, emailSettings.Username);
+        string smtpPassword = GetFirstConfiguredValue(emailSettings.SmtpPassword, emailSettings.Password);
         int port = emailSettings.SmtpPort != 587 ? emailSettings.SmtpPort : emailSettings.Port;
 
-        string username = emailSettings.SmtpUsername ?? emailSettings.Username
-            ?? throw new InvalidOperationException("SMTP username no configurado.");
+        ValidateSmtpSettings(senderAddress, smtpHost, smtpUsername, smtpPassword);
 
-        string password = emailSettings.SmtpPassword ?? emailSettings.Password
-            ?? throw new InvalidOperationException("SMTP password no configurado.");
-
-        string fromAddress = emailSettings.SenderAddress ?? emailSettings.FromAddress
-            ?? throw new InvalidOperationException("Direccion de remitente no configurada.");
-
-        string fromName = emailSettings.SenderName ?? emailSettings.FromName ?? "Plataforma de Empleabilidad";
-
-        using SmtpClient smtpClient = new(host, port)
+        using SmtpClient smtpClient = new(smtpHost, port)
         {
             EnableSsl = emailSettings.EnableSsl,
-            Credentials = new NetworkCredential(username, password),
+            Credentials = new NetworkCredential(smtpUsername, smtpPassword),
         };
 
         using MailMessage mailMessage = new()
         {
-            From = new MailAddress(fromAddress, fromName),
+            From = new MailAddress(senderAddress, senderName),
             Subject = "Recuperacion de contrasena - Sinergia",
             Body = $"""
                 Hola,
@@ -65,6 +60,56 @@ public sealed class SmtpPasswordResetSender(EmailSettings emailSettings, string 
             throw new EmailDeliveryException(
                 "No se pudo enviar el correo de recuperacion de contrasena.",
                 smtpException);
+        }
+    }
+
+    private string BuildResetLink(string resetToken)
+    {
+        string normalizedFrontendUrl = frontendUrl.TrimEnd('/');
+        string encodedResetToken = Uri.EscapeDataString(resetToken);
+
+        return $"{normalizedFrontendUrl}{ResetPasswordPath}?token={encodedResetToken}";
+    }
+
+    private static string GetFirstConfiguredValue(string primaryValue, string fallbackValue)
+    {
+        return string.IsNullOrWhiteSpace(primaryValue) || primaryValue.EndsWith("example.com", StringComparison.OrdinalIgnoreCase)
+            ? fallbackValue
+            : primaryValue;
+    }
+
+    private static void ValidateSmtpSettings(
+        string senderAddress,
+        string smtpHost,
+        string smtpUsername,
+        string smtpPassword)
+    {
+        List<string> missingSettings = [];
+
+        if (string.IsNullOrWhiteSpace(senderAddress))
+        {
+            missingSettings.Add("Smtp__FromAddress");
+        }
+
+        if (string.IsNullOrWhiteSpace(smtpHost))
+        {
+            missingSettings.Add("Smtp__Host");
+        }
+
+        if (string.IsNullOrWhiteSpace(smtpUsername))
+        {
+            missingSettings.Add("Smtp__Username");
+        }
+
+        if (string.IsNullOrWhiteSpace(smtpPassword))
+        {
+            missingSettings.Add("Smtp__Password");
+        }
+
+        if (missingSettings.Count > 0)
+        {
+            throw new EmailDeliveryException(
+                $"Faltan variables SMTP obligatorias: {string.Join(", ", missingSettings)}.");
         }
     }
 }

@@ -116,11 +116,20 @@ builder.Services.AddSingleton<IPasswordResetSender>(_ =>
         .GetSection("Email")
         .Get<EmailSettings>() ?? new EmailSettings();
 
+    EmailSettings smtpSettings = builder.Configuration
+        .GetSection("Smtp")
+        .Get<EmailSettings>() ?? new EmailSettings();
+
+    bool smtpSectionIsConfigured = !string.IsNullOrWhiteSpace(smtpSettings.Host) ||
+        !string.IsNullOrWhiteSpace(smtpSettings.SmtpHost);
+
+    EmailSettings passwordResetEmailSettings = smtpSectionIsConfigured ? smtpSettings : emailSettings;
+
     string frontendUrl = builder.Configuration["App:FrontendUrl"]
         ?? builder.Configuration["App__FrontendUrl"]
         ?? "http://localhost:5173";
 
-    return new SmtpPasswordResetSender(emailSettings, frontendUrl);
+    return new SmtpPasswordResetSender(passwordResetEmailSettings, frontendUrl);
 });
 
 builder.Services.AddSingleton<ITokenService>(_ => new JwtTokenService(jwtSettings));

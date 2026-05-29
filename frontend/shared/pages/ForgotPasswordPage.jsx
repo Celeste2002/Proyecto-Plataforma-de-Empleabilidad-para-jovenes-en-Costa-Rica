@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { forgotPassword } from '../api/authApi.js';
 import { StatusMessage } from '../components/StatusMessage.jsx';
+import { AUTH_ROUTES } from '../constants/authRoutes.js';
 
 export function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -75,7 +76,7 @@ export function ForgotPasswordPage() {
 
         <div className="auth-footer">
           <p>
-            <Link to="/login">Volver al inicio de sesion</Link>
+            <Link to={AUTH_ROUTES.login}>Volver al inicio de sesion</Link>
           </p>
         </div>
       </div>
