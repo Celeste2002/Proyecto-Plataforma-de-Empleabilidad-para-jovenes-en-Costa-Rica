@@ -23,10 +23,10 @@ export function ResetPasswordPage() {
 
     const localErrors = [];
     if (newPassword.length < 8) {
-      localErrors.push('La contrasena debe tener al menos 8 caracteres.');
+      localErrors.push('La contraseña debe tener al menos 8 caracteres.');
     }
     if (newPassword !== confirmPassword) {
-      localErrors.push('Las contrasenas no coinciden.');
+      localErrors.push('Las contraseñas no coinciden.');
     }
     if (localErrors.length > 0) {
       setErrors(localErrors);
@@ -37,7 +37,7 @@ export function ResetPasswordPage() {
 
     try {
       await resetPassword(token, newPassword);
-      setSuccessMessage('Contrasena restablecida. Puedes iniciar sesion ahora.');
+      setSuccessMessage('Contraseña restablecida. Puedes iniciar sesión ahora.');
       setTimeout(() => navigate('/login'), 2500);
     } catch (error) {
       setErrors(error.validationErrors?.length ? error.validationErrors : [error.message]);
@@ -50,7 +50,7 @@ export function ResetPasswordPage() {
     return (
       <div className="auth-page">
         <div className="auth-card">
-          <StatusMessage message="El enlace de recuperacion no es valido." tone="error" />
+          <StatusMessage message="El enlace de recuperación no es válido." tone="error" />
           <div className="auth-footer">
             <p><Link to="/recuperar-contrasena">Solicitar un nuevo enlace</Link></p>
           </div>
@@ -73,32 +73,32 @@ export function ResetPasswordPage() {
         </div>
 
         <div className="section-heading">
-          <p className="eyebrow">Nueva contrasena</p>
-          <h2>Restablecer contrasena</h2>
+          <p className="eyebrow">Nueva contraseña</p>
+          <h2>Restablecer contraseña</h2>
         </div>
 
         <form onSubmit={handleSubmit}>
           <div className="auth-fields">
             <label>
-              Nueva contrasena
+              Nueva contraseña
               <input
                 autoComplete="new-password"
                 minLength={8}
                 name="newPassword"
                 onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Minimo 8 caracteres"
+                placeholder="Mínimo 8 caracteres"
                 required
                 type="password"
                 value={newPassword}
               />
             </label>
             <label>
-              Confirmar contrasena
+              Confirmar contraseña
               <input
                 autoComplete="new-password"
                 name="confirmPassword"
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Repite la contrasena"
+                placeholder="Repite la contraseña"
                 required
                 type="password"
                 value={confirmPassword}
@@ -111,12 +111,12 @@ export function ResetPasswordPage() {
 
           <button className="primary-action" disabled={isSubmitting || !!successMessage} type="submit">
             <KeyRound aria-hidden="true" size={18} />
-            {isSubmitting ? 'Guardando...' : 'Guardar contrasena'}
+            {isSubmitting ? 'Guardando...' : 'Guardar contraseña'}
           </button>
         </form>
 
         <div className="auth-footer">
-          <p><Link to="/login">Volver al inicio de sesion</Link></p>
+          <p><Link to="/login">Volver al inicio de sesión</Link></p>
         </div>
       </div>
     </div>

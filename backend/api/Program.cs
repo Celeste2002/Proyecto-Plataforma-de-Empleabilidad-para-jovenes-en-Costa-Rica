@@ -1,4 +1,6 @@
 using System.Text;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using api.configuration;
 using api.middleware;
 using domain.constants;
@@ -154,6 +156,46 @@ candidateRoutes.MapPost("/register", async (
         candidateRegistrationResponse);
 });
 
+candidateRoutes.MapGet("/me", async (
+    ClaimsPrincipal user,
+    ICandidateRegistrationService candidateRegistrationService,
+    CancellationToken cancellationToken) =>
+{
+    CandidateProfileResponse candidateProfileResponse =
+        await candidateRegistrationService.GetProfileByUserIdAsync(GetAuthenticatedUserId(user), cancellationToken);
+
+    return Results.Ok(candidateProfileResponse);
+}).RequireAuthorization();
+
+candidateRoutes.MapPut("/me", async (
+    ClaimsPrincipal user,
+    UpdateCandidateProfileRequest updateCandidateProfileRequest,
+    ICandidateRegistrationService candidateRegistrationService,
+    CancellationToken cancellationToken) =>
+{
+    CandidateProfileResponse candidateProfileResponse =
+        await candidateRegistrationService.UpdateProfileAsync(
+            GetAuthenticatedUserId(user),
+            updateCandidateProfileRequest,
+            cancellationToken);
+
+    return Results.Ok(candidateProfileResponse);
+}).RequireAuthorization();
+
+candidateRoutes.MapPut("/me/password", async (
+    ClaimsPrincipal user,
+    UpdateCandidatePasswordRequest updateCandidatePasswordRequest,
+    ICandidateRegistrationService candidateRegistrationService,
+    CancellationToken cancellationToken) =>
+{
+    await candidateRegistrationService.UpdatePasswordAsync(
+        GetAuthenticatedUserId(user),
+        updateCandidatePasswordRequest,
+        cancellationToken);
+
+    return Results.Ok(new { message = "Contraseña actualizada correctamente." });
+}).RequireAuthorization();
+
 // -- Rutas de empleadores --
 
 RouteGroupBuilder employerRoutes = app.MapGroup("/api/employers");
@@ -188,7 +230,7 @@ authRoutes.MapPost("/forgot-password", async (
 {
     await authService.RequestPasswordResetAsync(forgotPasswordRequest, cancellationToken);
     // Siempre responder 200 para no revelar si el correo existe
-    return Results.Ok(new { message = "Si el correo esta registrado, recibiras un enlace para restablecer tu contrasena." });
+    return Results.Ok(new { message = "Si el correo está registrado, recibirás un enlace para restablecer tu contraseña." });
 });
 
 authRoutes.MapPost("/reset-password", async (
@@ -197,7 +239,7 @@ authRoutes.MapPost("/reset-password", async (
     CancellationToken cancellationToken) =>
 {
     await authService.ResetPasswordAsync(resetPasswordRequest, cancellationToken);
-    return Results.Ok(new { message = "Contrasena restablecida exitosamente." });
+    return Results.Ok(new { message = "Contraseña restablecida exitosamente." });
 });
 
 // -- Rutas de administrador --
@@ -249,3 +291,16 @@ if (app.Environment.IsDevelopment())
 }
 
 app.Run();
+
+static Guid GetAuthenticatedUserId(ClaimsPrincipal user)
+{
+    string? userId = user.FindFirstValue(JwtRegisteredClaimNames.Sub) ??
+        user.FindFirstValue(ClaimTypes.NameIdentifier);
+
+    if (!Guid.TryParse(userId, out Guid parsedUserId))
+    {
+        throw new UnauthorizedAccessException("Token de usuario invalido.");
+    }
+
+    return parsedUserId;
+}

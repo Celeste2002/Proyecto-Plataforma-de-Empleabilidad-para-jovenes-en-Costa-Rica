@@ -50,11 +50,11 @@ export function EmployerDashboardPage() {
             <h1>Sinergia</h1>
           </div>
         </div>
-        <nav className="dashboard-nav" aria-label="Navegacion del empleador">
+        <nav className="dashboard-nav" aria-label="Navegación del empleador">
           <span className="dashboard-user-email">{user?.email}</span>
           <button className="secondary-action" onClick={handleLogout} type="button">
             <LogOut aria-hidden="true" size={16} />
-            Cerrar sesion
+            Cerrar sesión
           </button>
         </nav>
       </header>
@@ -76,7 +76,7 @@ export function EmployerDashboardPage() {
         {isLoading ? (
           <p className="empty-state">Cargando perfiles...</p>
         ) : candidateProfiles.length === 0 ? (
-          <p className="empty-state">Aun no hay perfiles registrados.</p>
+          <p className="empty-state">Aún no hay perfiles registrados.</p>
         ) : (
           <div className="candidate-list">
             {candidateProfiles.map((candidateProfile) => (
@@ -102,7 +102,7 @@ export function EmployerDashboardPage() {
                     <dd>{candidateProfile.email}</dd>
                   </div>
                   <div>
-                    <dt>Confirmacion</dt>
+                    <dt>Confirmación</dt>
                     <dd>{candidateProfile.emailConfirmationSent ? 'Enviada' : 'Pendiente'}</dd>
                   </div>
                 </dl>

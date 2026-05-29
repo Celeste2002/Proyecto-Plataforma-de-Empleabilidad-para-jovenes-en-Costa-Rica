@@ -5,6 +5,7 @@ import { ResetPasswordPage } from '../shared/pages/ResetPasswordPage.jsx';
 import { ProtectedRoute } from './components/ProtectedRoute.jsx';
 import { LoginPage } from './pages/LoginPage.jsx';
 import { CandidateDashboardPage } from './pages/CandidateDashboardPage.jsx';
+import { CandidateProfileUpdatePage } from './pages/CandidateProfileUpdatePage.jsx';
 import { CandidateRegistrationPage } from './pages/CandidateRegistrationPage.jsx';
 
 export function App() {
@@ -21,6 +22,14 @@ export function App() {
             element={
               <ProtectedRoute>
                 <CandidateDashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/candidato/actualizar-registro"
+            element={
+              <ProtectedRoute>
+                <CandidateProfileUpdatePage />
               </ProtectedRoute>
             }
           />

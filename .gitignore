@@ -59,7 +59,6 @@ CodeCoverage/
 TestResult.xml
 nunit-*.xml
 
-/frontend/frontend/node_modules/
-/frontend/frontend/frontend-Admin/node_modules/   
-/frontend/frontend/frontend-Candidato/node_modules/
-/frontend/frontend/frontend-Empleador/node_modules/
+frontend/frontend-Admin/node_modules
+frontend/frontend-Candidato/node_modules
+frontend/frontend-Empleador/node_modules

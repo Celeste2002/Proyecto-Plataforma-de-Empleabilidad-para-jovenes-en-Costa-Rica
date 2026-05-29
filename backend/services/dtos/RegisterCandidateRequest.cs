@@ -2,7 +2,8 @@ namespace services.dtos;
 
 public sealed record RegisterCandidateRequest(
     string FullName,
-    int Age,
+    DateOnly DateOfBirth,
     string Province,
     string EducationLevel,
-    string Email);
+    string Email,
+    string Password);
