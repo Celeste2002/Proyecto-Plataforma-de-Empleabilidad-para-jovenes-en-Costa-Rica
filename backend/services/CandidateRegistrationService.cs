@@ -12,6 +12,7 @@ public sealed class CandidateRegistrationService(
     ICandidateRepository candidateRepository,
     IUserRepository userRepository,
     IEmailConfirmationSender emailConfirmationSender,
+    IPasswordHasher passwordHasher,
     ILogger<CandidateRegistrationService> logger) : ICandidateRegistrationService
 {
     public async Task<CandidateRegistrationResponse> RegisterAsync(
@@ -30,11 +31,13 @@ public sealed class CandidateRegistrationService(
         }
 
         DateTime createdAt = DateTime.UtcNow;
+        string passwordHash = passwordHasher.Hash(registerCandidateRequest.Password);
 
         User newUser = new()
         {
             Id = Guid.NewGuid(),
             Email = normalizedEmail,
+            PasswordHash = passwordHash,
             Role = UserRoles.Candidate,
             IsActive = true,
             EmailConfirmed = false,
@@ -48,7 +51,7 @@ public sealed class CandidateRegistrationService(
             Id = Guid.NewGuid(),
             UserId = newUser.Id,
             FullName = registerCandidateRequest.FullName.Trim(),
-            Age = registerCandidateRequest.Age,
+            DateOfBirth = registerCandidateRequest.DateOfBirth,
             Province = registerCandidateRequest.Province.Trim(),
             EducationLevel = registerCandidateRequest.EducationLevel.Trim(),
             Email = normalizedEmail,
@@ -70,7 +73,7 @@ public sealed class CandidateRegistrationService(
         catch (EmailDeliveryException emailDeliveryException)
         {
             logger.LogWarning(emailDeliveryException,
-                "No se pudo enviar el correo de confirmacion al candidato {CandidateId}. El perfil fue guardado.",
+                "No se pudo enviar el correo de confirmación al candidato {CandidateId}. El perfil fue guardado.",
                 candidateProfile.Id);
         }
 
@@ -80,8 +83,8 @@ public sealed class CandidateRegistrationService(
         };
 
         string message = emailSent
-            ? "Registro completado. Se envio un correo de confirmacion."
-            : "Registro completado. No se pudo enviar el correo de confirmacion (SMTP no configurado).";
+            ? "Registro completado. Se envió un correo de confirmación."
+            : "Registro completado. No se pudo enviar el correo de confirmación (SMTP no configurado).";
 
         return new CandidateRegistrationResponse(
             MapCandidateProfileResponse(savedCandidateProfile),
@@ -100,38 +103,165 @@ public sealed class CandidateRegistrationService(
             .ToArray();
     }
 
-    private static void ValidateRegisterCandidateRequest(RegisterCandidateRequest registerCandidateRequest)
+    public async Task<CandidateProfileResponse> GetProfileByUserIdAsync(
+        Guid userId,
+        CancellationToken cancellationToken)
+    {
+        CandidateProfile? candidateProfile =
+            await candidateRepository.FindByUserIdAsync(userId, cancellationToken);
+
+        if (candidateProfile is null)
+        {
+            throw new NotFoundException("No se encontro el perfil del candidato.");
+        }
+
+        return MapCandidateProfileResponse(candidateProfile);
+    }
+
+    public async Task<CandidateProfileResponse> UpdateProfileAsync(
+        Guid userId,
+        UpdateCandidateProfileRequest updateCandidateProfileRequest,
+        CancellationToken cancellationToken)
+    {
+        ValidateCandidateProfileData(
+            updateCandidateProfileRequest.FullName,
+            updateCandidateProfileRequest.DateOfBirth,
+            updateCandidateProfileRequest.Province,
+            updateCandidateProfileRequest.EducationLevel);
+
+        CandidateProfile? existingProfile =
+            await candidateRepository.FindByUserIdAsync(userId, cancellationToken);
+
+        if (existingProfile is null)
+        {
+            throw new NotFoundException("No se encontro el perfil del candidato.");
+        }
+
+        CandidateProfile updatedProfile = existingProfile with
+        {
+            FullName = updateCandidateProfileRequest.FullName.Trim(),
+            DateOfBirth = updateCandidateProfileRequest.DateOfBirth,
+            Province = updateCandidateProfileRequest.Province.Trim(),
+            EducationLevel = updateCandidateProfileRequest.EducationLevel.Trim()
+        };
+
+        await candidateRepository.UpdateAsync(updatedProfile, cancellationToken);
+
+        return MapCandidateProfileResponse(updatedProfile);
+    }
+
+    public async Task UpdatePasswordAsync(
+        Guid userId,
+        UpdateCandidatePasswordRequest updateCandidatePasswordRequest,
+        CancellationToken cancellationToken)
     {
         List<string> validationErrors = [];
 
-        if (string.IsNullOrWhiteSpace(registerCandidateRequest.FullName))
+        if (string.IsNullOrWhiteSpace(updateCandidatePasswordRequest.CurrentPassword))
         {
-            validationErrors.Add("El nombre es obligatorio.");
+            validationErrors.Add("La contraseña actual es obligatoria.");
         }
 
-        if (registerCandidateRequest.Age is < 18 or > 30)
+        if (string.IsNullOrWhiteSpace(updateCandidatePasswordRequest.NewPassword) ||
+            updateCandidatePasswordRequest.NewPassword.Length < 8)
         {
-            validationErrors.Add("La edad debe estar entre 18 y 30 anos.");
-        }
-
-        if (!CandidateCatalogs.CostaRicaProvinces.Contains(registerCandidateRequest.Province.Trim(), StringComparer.OrdinalIgnoreCase))
-        {
-            validationErrors.Add("La provincia debe ser una provincia valida de Costa Rica.");
-        }
-
-        if (!CandidateCatalogs.EducationLevels.Contains(registerCandidateRequest.EducationLevel.Trim(), StringComparer.OrdinalIgnoreCase))
-        {
-            validationErrors.Add("El nivel educativo no es valido.");
-        }
-
-        if (!IsValidEmail(registerCandidateRequest.Email))
-        {
-            validationErrors.Add("El correo electronico no tiene un formato valido.");
+            validationErrors.Add("La nueva contraseña debe tener al menos 8 caracteres.");
         }
 
         if (validationErrors.Count > 0)
         {
             throw new RequestValidationException(validationErrors);
+        }
+
+        User? user = await userRepository.FindByIdAsync(userId, cancellationToken);
+
+        if (user is null || !user.IsActive || user.Role != UserRoles.Candidate)
+        {
+            throw new NotFoundException("No se encontro el usuario candidato.");
+        }
+
+        if (user.PasswordHash is null ||
+            !passwordHasher.Verify(updateCandidatePasswordRequest.CurrentPassword, user.PasswordHash))
+        {
+            throw new RequestValidationException(["La contraseña actual no es correcta."]);
+        }
+
+        string newPasswordHash = passwordHasher.Hash(updateCandidatePasswordRequest.NewPassword);
+
+        await userRepository.UpdatePasswordAsync(user.Id, newPasswordHash, cancellationToken);
+    }
+
+    private static void ValidateRegisterCandidateRequest(RegisterCandidateRequest registerCandidateRequest)
+    {
+        List<string> validationErrors = [];
+
+        ValidateCandidateProfileData(
+            registerCandidateRequest.FullName,
+            registerCandidateRequest.DateOfBirth,
+            registerCandidateRequest.Province,
+            registerCandidateRequest.EducationLevel,
+            validationErrors);
+
+        if (!IsValidEmail(registerCandidateRequest.Email))
+        {
+            validationErrors.Add("El correo electrónico no tiene un formato válido.");
+        }
+
+        if (string.IsNullOrWhiteSpace(registerCandidateRequest.Password) ||
+            registerCandidateRequest.Password.Length < 8)
+        {
+            validationErrors.Add("La contraseña debe tener al menos 8 caracteres.");
+        }
+
+        if (validationErrors.Count > 0)
+        {
+            throw new RequestValidationException(validationErrors);
+        }
+    }
+
+    private static void ValidateCandidateProfileData(
+        string fullName,
+        DateOnly dateOfBirth,
+        string province,
+        string educationLevel)
+    {
+        List<string> validationErrors = [];
+
+        ValidateCandidateProfileData(fullName, dateOfBirth, province, educationLevel, validationErrors);
+
+        if (validationErrors.Count > 0)
+        {
+            throw new RequestValidationException(validationErrors);
+        }
+    }
+
+    private static void ValidateCandidateProfileData(
+        string fullName,
+        DateOnly dateOfBirth,
+        string province,
+        string educationLevel,
+        List<string> validationErrors)
+    {
+        if (string.IsNullOrWhiteSpace(fullName))
+        {
+            validationErrors.Add("El nombre es obligatorio.");
+        }
+
+        int age = CalculateAge(dateOfBirth, DateOnly.FromDateTime(DateTime.UtcNow));
+
+        if (age is < 18 or > 30)
+        {
+            validationErrors.Add("La fecha de nacimiento debe corresponder a una edad entre 18 y 30 años.");
+        }
+
+        if (!CandidateCatalogs.CostaRicaProvinces.Contains(province.Trim(), StringComparer.OrdinalIgnoreCase))
+        {
+            validationErrors.Add("La provincia debe ser una provincia valida de Costa Rica.");
+        }
+
+        if (!CandidateCatalogs.EducationLevels.Contains(educationLevel.Trim(), StringComparer.OrdinalIgnoreCase))
+        {
+            validationErrors.Add("El nivel educativo no es valido.");
         }
     }
 
@@ -158,12 +288,25 @@ public sealed class CandidateRegistrationService(
         return new CandidateProfileResponse(
             candidateProfile.Id,
             candidateProfile.FullName,
-            candidateProfile.Age,
+            candidateProfile.DateOfBirth,
+            CalculateAge(candidateProfile.DateOfBirth, DateOnly.FromDateTime(DateTime.UtcNow)),
             candidateProfile.Province,
             candidateProfile.EducationLevel,
             candidateProfile.Email,
             candidateProfile.IsVisibleToPartnerEmployers,
             candidateProfile.EmailConfirmationSent,
             candidateProfile.CreatedAtUtc);
+    }
+
+    private static int CalculateAge(DateOnly dateOfBirth, DateOnly today)
+    {
+        int age = today.Year - dateOfBirth.Year;
+
+        if (dateOfBirth > today.AddYears(-age))
+        {
+            age--;
+        }
+
+        return age;
     }
 }

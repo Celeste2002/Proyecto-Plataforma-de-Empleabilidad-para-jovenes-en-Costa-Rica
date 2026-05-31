@@ -34,8 +34,8 @@ public sealed class AuthService(
         if (user.PasswordHash is null)
         {
             throw new AuthenticationException(
-                "Esta cuenta no tiene una contrasena configurada. " +
-                "Usa 'Olvide mi contrasena' para establecerla.");
+                "Esta cuenta no tiene una contraseña configurada. " +
+                "Usa 'Olvidé mi contraseña' para establecerla.");
         }
 
         bool passwordValid = passwordHasher.Verify(loginRequest.Password, user.PasswordHash);
@@ -84,7 +84,7 @@ public sealed class AuthService(
 
         if (string.IsNullOrWhiteSpace(request.NewPassword) || request.NewPassword.Length < 8)
         {
-            validationErrors.Add("La contrasena debe tener al menos 8 caracteres.");
+            validationErrors.Add("La contraseña debe tener al menos 8 caracteres.");
         }
 
         if (validationErrors.Count > 0)
@@ -98,7 +98,7 @@ public sealed class AuthService(
             user.PasswordResetTokenExpiresAtUtc is null ||
             user.PasswordResetTokenExpiresAtUtc <= DateTime.UtcNow)
         {
-            throw new RequestValidationException(["El enlace de recuperacion es invalido o ha expirado."]);
+            throw new RequestValidationException(["El enlace de recuperación es inválido o ha expirado."]);
         }
 
         string passwordHash = passwordHasher.Hash(request.NewPassword);

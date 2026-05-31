@@ -59,3 +59,10 @@ CodeCoverage/
 TestResult.xml
 nunit-*.xml
 
+frontend/frontend-Admin/node_modules
+frontend/frontend-Candidato/node_modules
+frontend/frontend-Empleador/node_modules
+
+frontend/frontend-Candidato/bun.lock
+frontend/frontend-Admin/bun.lock
+frontend/frontend-Empleador/bun.lock
