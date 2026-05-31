@@ -1,0 +1,20 @@
+{
+  "name": "plataforma-empleabilidad",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "setup": "bun run install:frontends && bun run restore:backend",
+    "install:frontends": "cd frontend/frontend-Candidato && bun install && cd ../frontend-Empleador && bun install && cd ../frontend-Admin && bun install",
+    "restore:backend": "dotnet restore backend/api/api.csproj",
+    "dev:backend": "dotnet run --project backend/api/api.csproj --launch-profile http",
+    "dev:candidato": "cd frontend/frontend-Candidato && bun run dev",
+    "dev:empleador": "cd frontend/frontend-Empleador && bun run dev",
+    "dev:admin": "cd frontend/frontend-Admin && bun run dev",
+    "dev:frontends": "concurrently --kill-others-on-fail -n candidato,empleador,admin -c green,cyan,magenta \"bun run dev:candidato\" \"bun run dev:empleador\" \"bun run dev:admin\"",
+    "dev:all": "concurrently --kill-others-on-fail -n backend,candidato,empleador,admin -c yellow,green,cyan,magenta \"bun run dev:backend\" \"bun run dev:candidato\" \"bun run dev:empleador\" \"bun run dev:admin\"",
+    "build:frontends": "cd frontend/frontend-Candidato && bun run build && cd ../frontend-Empleador && bun run build && cd ../frontend-Admin && bun run build"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

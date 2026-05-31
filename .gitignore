@@ -59,6 +59,3 @@ CodeCoverage/
 TestResult.xml
 nunit-*.xml
 
-# Bun lockfiles
-**/bun.lock
-**/bun.lockb

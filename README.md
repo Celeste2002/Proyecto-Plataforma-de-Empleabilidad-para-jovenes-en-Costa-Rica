@@ -11,7 +11,54 @@
 - `frontend/frontend-Empleador`: app React para empleadores aliados (puerto 5174).
 - `frontend/frontend-Admin`: app React para administradores de la plataforma (puerto 5175).
 
-## Correr backend
+## Requisitos
+
+- Bun.
+- .NET SDK 9.
+- SQL Server local con la base de datos creada desde `database/scripts/001_initial_candidate_registration.sql`.
+
+## Instalacion inicial
+
+Desde la raiz del repositorio:
+
+```bash
+bun install
+bun run setup
+```
+
+`bun install` instala las herramientas del orquestador de la raiz. `bun run setup` instala las dependencias de las 3 apps frontend y restaura el backend .NET.
+
+## Comandos unificados
+
+Desde la raiz del repositorio:
+
+```bash
+# Solo backend
+bun run dev:backend
+
+# Solo los 3 frontends
+bun run dev:frontends
+
+# Backend + los 3 frontends
+bun run dev:all
+```
+
+URLs locales:
+
+- Backend API: `http://localhost:5000`
+- Candidatos: `http://127.0.0.1:5173`
+- Empleadores: `http://127.0.0.1:5174`
+- Administracion: `http://127.0.0.1:5175`
+
+Tambien se pueden correr apps individuales:
+
+```bash
+bun run dev:candidato
+bun run dev:empleador
+bun run dev:admin
+```
+
+## Correr backend manualmente
 
 ```comand prompt
 \GitHub\Proyecto-Plataforma-de-Empleabilidad-para-jovenes-en-Costa-Rica\backend\api>dotnet run
@@ -25,13 +72,15 @@ Endpoints principales:
 
 El backend lee variables desde el `.env` más cercano al proyecto.
 
-Para correo real, crear el `.env` y copiar de whatsapp:
+Para correo real, crear el `.env` con la configuracion SMTP:
 
 ```env
-Email__Provider=Smtp
-Email__SenderAddress=tu-correo@gmail.com
-Email__SmtpUsername=tu-correo@gmail.com
-Email__SmtpPassword=TU_APP_PASSWORD
+Smtp__Host=smtp-relay.sendinblue.com
+Smtp__Port=587
+Smtp__Username=TU_USUARIO_SMTP
+Smtp__Password=TU_SMTP_KEY
+Smtp__FromName=Sinergia
+Smtp__FromAddress=tu-correo-verificado@example.com
 ```
 
 La aplicacion no guarda correos localmente. SMTP debe estar configurado para completar el registro.
@@ -45,29 +94,29 @@ ConnectionStrings__DefaultConnection=Server=.;Database=Plataforma_Empleabilidad_
 El script inicial de SQL Server esta en `database/scripts/001_initial_candidate_registration.sql`.
 
 
-## Correr frontend
+## Correr frontend manualmente
 
 El frontend esta dividido en 3 aplicaciones independientes segun el rol. Cada una debe levantarse en su propia terminal.
 
 **Terminal 1 — Candidatos** → `http://127.0.0.1:5173`
 ```
 cd frontend\frontend-Candidato
-npm install
-npm run dev
+bun install
+bun run dev
 ```
 
 **Terminal 2 — Empleadores** → `http://127.0.0.1:5174`
 ```
 cd frontend\frontend-Empleador
-npm install
-npm run dev
+bun install
+bun run dev
 ```
 
 **Terminal 3 — Administracion** → `http://127.0.0.1:5175`
 ```
 cd frontend\frontend-Admin
-npm install
-npm run dev
+bun install
+bun run dev
 ```
 
 Cada app espera la API en `http://localhost:5000`. Si cambia, editar el archivo `.env` dentro de la carpeta correspondiente:
