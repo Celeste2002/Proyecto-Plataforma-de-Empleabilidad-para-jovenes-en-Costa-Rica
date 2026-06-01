@@ -82,6 +82,9 @@ string defaultConnectionString = builder.Configuration.GetConnectionString("Defa
 builder.Services.AddSingleton<ICandidateRepository>(_ =>
     new SqlCandidateRepository(defaultConnectionString));
 
+builder.Services.AddSingleton<IEmployerRepository>(_ =>
+    new SqlEmployerRepository(defaultConnectionString));
+
 builder.Services.AddSingleton<IUserRepository>(_ =>
     new SqlUserRepository(defaultConnectionString));
 
@@ -112,6 +115,22 @@ builder.Services.AddSingleton<IEmailConfirmationSender>(_ =>
         "La configuracion SMTP es obligatoria. No se permite guardar correos localmente.");
 });
 
+builder.Services.AddSingleton<IEmployerActivationSender>(_ =>
+{
+    EmailSettings emailSettings = builder.Configuration
+        .GetSection("Email")
+        .Get<EmailSettings>() ?? new EmailSettings();
+
+    EmailSettings smtpSettings = builder.Configuration
+        .GetSection("Smtp")
+        .Get<EmailSettings>() ?? new EmailSettings();
+
+    bool smtpSectionIsConfigured = !string.IsNullOrWhiteSpace(smtpSettings.Host) ||
+        !string.IsNullOrWhiteSpace(smtpSettings.SmtpHost);
+
+    return new SmtpEmployerActivationSender(smtpSectionIsConfigured ? smtpSettings : emailSettings);
+});
+
 builder.Services.AddSingleton<IPasswordResetSender>(_ =>
 {
     EmailSettings emailSettings = builder.Configuration
@@ -138,6 +157,7 @@ builder.Services.AddSingleton<ITokenService>(_ => new JwtTokenService(jwtSetting
 builder.Services.AddSingleton<IPasswordHasher, BcryptPasswordHasher>();
 
 builder.Services.AddScoped<ICandidateRegistrationService, CandidateRegistrationService>();
+builder.Services.AddScoped<IEmployerRegistrationService, EmployerRegistrationService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
 
@@ -209,6 +229,30 @@ candidateRoutes.MapPut("/me/password", async (
 
 RouteGroupBuilder employerRoutes = app.MapGroup("/api/employers");
 
+employerRoutes.MapPost("/register", async (
+    RegisterEmployerRequest registerEmployerRequest,
+    IEmployerRegistrationService employerRegistrationService,
+    CancellationToken cancellationToken) =>
+{
+    EmployerRegistrationResponse response =
+        await employerRegistrationService.RegisterAsync(registerEmployerRequest, cancellationToken);
+
+    return Results.Created(
+        $"/api/employers/{response.EmployerProfile.Id}",
+        response);
+});
+
+employerRoutes.MapGet("/me", async (
+    ClaimsPrincipal user,
+    IEmployerRegistrationService employerRegistrationService,
+    CancellationToken cancellationToken) =>
+{
+    EmployerProfileResponse profile =
+        await employerRegistrationService.GetProfileByUserIdAsync(GetAuthenticatedUserId(user), cancellationToken);
+
+    return Results.Ok(profile);
+}).RequireAuthorization();
+
 employerRoutes.MapGet("/candidates", async (
     ICandidateRegistrationService candidateRegistrationService,
     CancellationToken cancellationToken) =>
@@ -273,6 +317,15 @@ adminRoutes.MapPut("/users/{id:guid}/role", async (
 {
     await adminService.UpdateUserRoleAsync(id, updateUserRoleRequest.NewRole, cancellationToken);
     return Results.NoContent();
+});
+
+adminRoutes.MapPost("/employers/{id:guid}/activate", async (
+    Guid id,
+    IEmployerRegistrationService employerRegistrationService,
+    CancellationToken cancellationToken) =>
+{
+    await employerRegistrationService.ActivateAsync(id, cancellationToken);
+    return Results.Ok(new { message = "Empleador activado correctamente." });
 });
 
 // -- Health check --

@@ -197,6 +197,24 @@ public sealed class SqlUserRepository(string connectionString) : IUserRepository
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
+    public async Task SetActiveAsync(Guid userId, bool isActive, CancellationToken cancellationToken)
+    {
+        const string sql = """
+            UPDATE dbo.Users
+            SET IsActive = @IsActive
+            WHERE Id = @Id;
+            """;
+
+        await using SqlConnection connection = new(connectionString);
+        await connection.OpenAsync(cancellationToken);
+
+        await using SqlCommand command = new(sql, connection);
+        command.Parameters.AddWithValue("@IsActive", isActive);
+        command.Parameters.AddWithValue("@Id", userId);
+
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
     private static User MapUser(SqlDataReader reader)
     {
         int resetTokenOrdinal = reader.GetOrdinal("PasswordResetToken");

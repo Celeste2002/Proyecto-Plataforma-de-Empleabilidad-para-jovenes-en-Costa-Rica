@@ -67,3 +67,5 @@ nunit-*.xml
 frontend/frontend-Candidato/bun.lock
 frontend/frontend-Admin/bun.lock
 frontend/frontend-Empleador/bun.lock
+
+.claude

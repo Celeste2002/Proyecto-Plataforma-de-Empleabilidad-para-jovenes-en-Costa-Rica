@@ -104,6 +104,10 @@ export function LoginPage() {
         </form>
 
         <div className="auth-footer">
+          <p>
+            ¿Primera vez?{' '}
+            <Link to="/registro">Registrar mi empresa</Link>
+          </p>
           <p className="auth-coming-soon">
             ¿Buscas empleo? Accede desde el portal de candidatos
           </p>

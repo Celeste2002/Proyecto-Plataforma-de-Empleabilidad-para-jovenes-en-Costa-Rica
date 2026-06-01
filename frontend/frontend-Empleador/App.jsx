@@ -6,6 +6,7 @@ import { ResetPasswordPage } from '../shared/pages/ResetPasswordPage.jsx';
 import { ProtectedRoute } from './components/ProtectedRoute.jsx';
 import { LoginPage } from './pages/LoginPage.jsx';
 import { EmployerDashboardPage } from './pages/EmployerDashboardPage.jsx';
+import { RegisterPage } from './pages/RegisterPage.jsx';
 
 export function App() {
   return (
@@ -13,6 +14,7 @@ export function App() {
       <BrowserRouter>
         <Routes>
           <Route path={AUTH_ROUTES.login} element={<LoginPage />} />
+          <Route path="/registro" element={<RegisterPage />} />
           <Route path={AUTH_ROUTES.recoverPassword} element={<ForgotPasswordPage />} />
           <Route path={AUTH_ROUTES.resetPassword} element={<ResetPasswordPage />} />
           <Route path={AUTH_ROUTES.legacyResetPassword} element={<ResetPasswordPage />} />

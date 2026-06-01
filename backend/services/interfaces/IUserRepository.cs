@@ -13,4 +13,5 @@ public interface IUserRepository
     Task UpdateRoleAsync(Guid userId, string newRole, CancellationToken cancellationToken);
     Task SavePasswordResetTokenAsync(Guid userId, string token, DateTime expiresAtUtc, CancellationToken cancellationToken);
     Task ClearPasswordResetTokenAsync(Guid userId, CancellationToken cancellationToken);
+    Task SetActiveAsync(Guid userId, bool isActive, CancellationToken cancellationToken);
 }
