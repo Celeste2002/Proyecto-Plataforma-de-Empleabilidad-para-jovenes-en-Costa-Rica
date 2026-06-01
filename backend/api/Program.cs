@@ -239,7 +239,7 @@ authRoutes.MapPost("/forgot-password", async (
 {
     await authService.RequestPasswordResetAsync(forgotPasswordRequest, cancellationToken);
     // Siempre responder 200 para no revelar si el correo existe
-    return Results.Ok(new { message = "Si el correo está registrado, recibirás un enlace para restablecer tu contraseña." });
+    return Results.Ok(new { message = "Si tu correo está registrado, recibirás un enlace seguro para restablecer tu contraseña." });
 });
 
 authRoutes.MapPost("/reset-password", async (
@@ -248,7 +248,7 @@ authRoutes.MapPost("/reset-password", async (
     CancellationToken cancellationToken) =>
 {
     await authService.ResetPasswordAsync(resetPasswordRequest, cancellationToken);
-    return Results.Ok(new { message = "Contraseña restablecida exitosamente." });
+    return Results.Ok(new { message = "Tu contraseña fue restablecida correctamente." });
 });
 
 // -- Rutas de administrador --
