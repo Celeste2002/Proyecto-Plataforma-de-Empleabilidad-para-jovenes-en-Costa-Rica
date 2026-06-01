@@ -109,6 +109,7 @@ public sealed class SqlCandidateRepository(string connectionString) : ICandidate
                 UserId,
                 FullName,
                 DateOfBirth,
+                Age,
                 Province,
                 EducationLevel,
                 IsVisibleToPartnerEmployers,
@@ -120,6 +121,7 @@ public sealed class SqlCandidateRepository(string connectionString) : ICandidate
                 @UserId,
                 @FullName,
                 @DateOfBirth,
+                @Age,
                 @Province,
                 @EducationLevel,
                 @IsVisibleToPartnerEmployers,
@@ -135,6 +137,7 @@ public sealed class SqlCandidateRepository(string connectionString) : ICandidate
         command.Parameters.AddWithValue("@UserId", candidateProfile.UserId);
         command.Parameters.AddWithValue("@FullName", candidateProfile.FullName);
         command.Parameters.AddWithValue("@DateOfBirth", candidateProfile.DateOfBirth.ToDateTime(TimeOnly.MinValue));
+        command.Parameters.AddWithValue("@Age", CalculateAge(candidateProfile.DateOfBirth));
         command.Parameters.AddWithValue("@Province", candidateProfile.Province);
         command.Parameters.AddWithValue("@EducationLevel", candidateProfile.EducationLevel);
         command.Parameters.AddWithValue("@IsVisibleToPartnerEmployers", candidateProfile.IsVisibleToPartnerEmployers);
@@ -149,6 +152,7 @@ public sealed class SqlCandidateRepository(string connectionString) : ICandidate
             UPDATE dbo.CandidateProfiles
             SET FullName = @FullName,
                 DateOfBirth = @DateOfBirth,
+                Age = @Age,
                 Province = @Province,
                 EducationLevel = @EducationLevel
             WHERE Id = @Id
@@ -163,6 +167,7 @@ public sealed class SqlCandidateRepository(string connectionString) : ICandidate
         command.Parameters.AddWithValue("@UserId", candidateProfile.UserId);
         command.Parameters.AddWithValue("@FullName", candidateProfile.FullName);
         command.Parameters.AddWithValue("@DateOfBirth", candidateProfile.DateOfBirth.ToDateTime(TimeOnly.MinValue));
+        command.Parameters.AddWithValue("@Age", CalculateAge(candidateProfile.DateOfBirth));
         command.Parameters.AddWithValue("@Province", candidateProfile.Province);
         command.Parameters.AddWithValue("@EducationLevel", candidateProfile.EducationLevel);
 
@@ -203,6 +208,19 @@ public sealed class SqlCandidateRepository(string connectionString) : ICandidate
             Email = reader.GetString(reader.GetOrdinal("Email")),
             EmailConfirmationSent = reader.GetBoolean(reader.GetOrdinal("EmailConfirmed"))
         };
+    }
+
+    private static int CalculateAge(DateOnly dateOfBirth)
+    {
+        DateOnly today = DateOnly.FromDateTime(DateTime.UtcNow);
+        int age = today.Year - dateOfBirth.Year;
+
+        if (dateOfBirth > today.AddYears(-age))
+        {
+            age--;
+        }
+
+        return age;
     }
 
     private static CandidateProfile MapCandidateProfileFromView(SqlDataReader reader)

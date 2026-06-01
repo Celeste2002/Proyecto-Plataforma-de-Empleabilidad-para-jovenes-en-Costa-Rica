@@ -31,6 +31,19 @@ BEGIN
 END;
 GO
 
+IF EXISTS (
+    SELECT 1
+    FROM sys.columns
+    WHERE object_id = OBJECT_ID(N'dbo.CandidateProfiles')
+        AND name = N'Age'
+        AND is_nullable = 0
+)
+BEGIN
+    ALTER TABLE dbo.CandidateProfiles
+        ALTER COLUMN Age INT NULL;
+END;
+GO
+
 CREATE OR ALTER VIEW dbo.PartnerEmployerVisibleCandidateProfiles
 AS
 SELECT

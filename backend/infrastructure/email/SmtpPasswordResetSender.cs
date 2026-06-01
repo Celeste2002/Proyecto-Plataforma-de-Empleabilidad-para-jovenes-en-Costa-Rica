@@ -30,7 +30,7 @@ public sealed class SmtpPasswordResetSender(EmailSettings emailSettings, string 
 
         using MailMessage mailMessage = new()
         {
-            From = new MailAddress(fromAddress, fromName),
+            From = new MailAddress(senderAddress, senderName),
             Subject = "Recuperación de contraseña - Sinergia",
             Body = $"""
                 Hola,

@@ -24,32 +24,51 @@ public sealed class CandidateRegistrationService(
         string normalizedEmail = registerCandidateRequest.Email.Trim().ToLowerInvariant();
 
         User? existingUser = await userRepository.FindByEmailAsync(normalizedEmail, cancellationToken);
+        string passwordHash = passwordHasher.Hash(registerCandidateRequest.Password);
+        DateTime createdAt = DateTime.UtcNow;
+        User registrationUser;
 
         if (existingUser is not null)
         {
-            throw new RequestValidationException(["Ya existe un candidato registrado con este correo."]);
+            CandidateProfile? existingCandidateProfile =
+                await candidateRepository.FindByEmailAsync(normalizedEmail, cancellationToken);
+
+            if (existingCandidateProfile is not null || existingUser.Role != UserRoles.Candidate)
+            {
+                throw new RequestValidationException(["Ya existe un candidato registrado con este correo."]);
+            }
+
+            if (!existingUser.IsActive)
+            {
+                throw new RequestValidationException(["Este correo esta asociado a una cuenta inactiva."]);
+            }
+
+            await userRepository.UpdatePasswordAsync(existingUser.Id, passwordHash, cancellationToken);
+            registrationUser = existingUser with
+            {
+                PasswordHash = passwordHash
+            };
         }
-
-        DateTime createdAt = DateTime.UtcNow;
-        string passwordHash = passwordHasher.Hash(registerCandidateRequest.Password);
-
-        User newUser = new()
+        else
         {
-            Id = Guid.NewGuid(),
-            Email = normalizedEmail,
-            PasswordHash = passwordHash,
-            Role = UserRoles.Candidate,
-            IsActive = true,
-            EmailConfirmed = false,
-            CreatedAtUtc = createdAt
-        };
+            registrationUser = new User
+            {
+                Id = Guid.NewGuid(),
+                Email = normalizedEmail,
+                PasswordHash = passwordHash,
+                Role = UserRoles.Candidate,
+                IsActive = true,
+                EmailConfirmed = false,
+                CreatedAtUtc = createdAt
+            };
 
-        await userRepository.SaveAsync(newUser, cancellationToken);
+            await userRepository.SaveAsync(registrationUser, cancellationToken);
+        }
 
         CandidateProfile candidateProfile = new()
         {
             Id = Guid.NewGuid(),
-            UserId = newUser.Id,
+            UserId = registrationUser.Id,
             FullName = registerCandidateRequest.FullName.Trim(),
             DateOfBirth = registerCandidateRequest.DateOfBirth,
             Province = registerCandidateRequest.Province.Trim(),

@@ -61,7 +61,9 @@ BEGIN
 
         FullName NVARCHAR(160) NOT NULL,
 
-        Age INT NOT NULL
+        DateOfBirth DATE NOT NULL,
+
+        Age INT NULL
             CONSTRAINT CK_CandidateProfiles_Age
                 CHECK (Age BETWEEN 18 AND 30),
 
@@ -110,7 +112,14 @@ BEGIN
         SELECT
             cp.Id,
             cp.FullName,
-            cp.Age,
+            cp.DateOfBirth,
+            DATEDIFF(YEAR, cp.DateOfBirth, CAST(SYSUTCDATETIME() AS DATE))
+                - CASE
+                    WHEN DATEADD(YEAR, DATEDIFF(YEAR, cp.DateOfBirth, CAST(SYSUTCDATETIME() AS DATE)), cp.DateOfBirth)
+                        > CAST(SYSUTCDATETIME() AS DATE)
+                    THEN 1
+                    ELSE 0
+                END AS Age,
             cp.Province,
             cp.EducationLevel,
             u.Email,
