@@ -39,7 +39,7 @@ public sealed class EmployerRegistrationService(
             Email = normalizedEmail,
             PasswordHash = passwordHash,
             Role = UserRoles.Employer,
-            IsActive = false,
+            IsActive = true,
             EmailConfirmed = false,
             CreatedAtUtc = createdAt
         };
@@ -57,7 +57,7 @@ public sealed class EmployerRegistrationService(
             ContactPhone = request.ContactPhone.Trim(),
             Location = request.Location.Trim(),
             Email = normalizedEmail,
-            Status = EmployerStatus.PendingVerification,
+            Status = EmployerStatus.Active,
             CreatedAtUtc = createdAt,
             ActivationEmailSent = false
         };
@@ -77,7 +77,7 @@ public sealed class EmployerRegistrationService(
 
         return new EmployerRegistrationResponse(
             MapResponse(employerProfile),
-            "Registro completado. Recibirás un correo de confirmación en la dirección registrada.");
+            "Registro completado. Ya puedes iniciar sesión con tus credenciales.");
     }
 
     public async Task<EmployerProfileResponse> GetProfileByUserIdAsync(

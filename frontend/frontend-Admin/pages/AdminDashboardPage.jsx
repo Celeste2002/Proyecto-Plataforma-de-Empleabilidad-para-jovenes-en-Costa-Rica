@@ -136,7 +136,6 @@ export function AdminDashboardPage() {
                     <th>Correo</th>
                     <th>Rol actual</th>
                     <th>Cambiar rol</th>
-                    <th>Confirmado</th>
                     <th>Registrado</th>
                     <th></th>
                   </tr>
@@ -162,11 +161,6 @@ export function AdminDashboardPage() {
                               <option key={r} value={r}>{ROLE_LABELS[r]}</option>
                             ))}
                           </select>
-                        </td>
-                        <td>
-                          <span className={`admin-confirmed admin-confirmed--${u.emailConfirmed ? 'yes' : 'no'}`}>
-                            {u.emailConfirmed ? 'Si' : 'No'}
-                          </span>
                         </td>
                         <td className="admin-table__date">
                           {new Date(u.createdAtUtc).toLocaleDateString('es-CR')}
