@@ -102,8 +102,8 @@ public sealed class CandidateRegistrationService(
         };
 
         string message = emailSent
-            ? "Registro completado. Se envió un correo de confirmación."
-            : "Registro completado. No se pudo enviar el correo de confirmación (SMTP no configurado).";
+            ? "Registro completado correctamente. Te enviamos un correo de confirmación."
+            : "Registro completado correctamente. No se pudo enviar el correo de confirmación, pero tu perfil fue guardado.";
 
         return new CandidateRegistrationResponse(
             MapCandidateProfileResponse(savedCandidateProfile),

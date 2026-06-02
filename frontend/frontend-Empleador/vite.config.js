@@ -14,5 +14,5 @@ export default defineConfig({
       'react-router-dom': localDependency('react-router-dom'),
     },
   },
-  server: { port: 5174 },
+  server: { port: 5171, strictPort: true },
 });

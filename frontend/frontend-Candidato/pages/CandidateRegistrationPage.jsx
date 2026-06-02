@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { registerCandidate } from '../api/candidatesApi.js';
 import { FieldError } from '../../shared/components/FieldError.jsx';
 import { StatusMessage } from '../../shared/components/StatusMessage.jsx';
+import { AUTH_ROUTES } from '../../shared/constants/authRoutes.js';
 import { costaRicaProvinces, educationLevels } from '../constants/candidateCatalogs.js';
 
 const initialFormValues = {
@@ -244,7 +245,10 @@ export function CandidateRegistrationPage() {
         </button>
 
         <p className="registration-login-link">
-          ¿Ya tienes cuenta? <Link to="/login">Inicia sesión</Link>
+          <span>¿Ya tienes cuenta?</span>
+          <Link to={AUTH_ROUTES.login}>Inicia sesión</Link>
+          <span className="registration-login-link__separator">|</span>
+          <Link to={AUTH_ROUTES.recoverPassword}>Restablecer contraseña</Link>
         </p>
       </form>
 

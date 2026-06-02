@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "scripts": {
     "setup": "bun run install:frontends && bun run restore:backend",
-    "install:frontends": "cd frontend/frontend-Candidato && bun install && cd ../frontend-Empleador && bun install && cd ../frontend-Admin && bun install",
+    "install:frontends": "cd frontend/frontend-Candidato && npm install --no-package-lock && cd ../frontend-Empleador && npm install --no-package-lock && cd ../frontend-Admin && npm install --no-package-lock",
     "restore:backend": "dotnet restore backend/api/api.csproj",
     "dev:backend": "dotnet run --project backend/api/api.csproj --launch-profile http",
     "dev:candidato": "cd frontend/frontend-Candidato && bun run dev",

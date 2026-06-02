@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Mail;
+using System.Text;
 using domain.entities;
 using services.exceptions;
 using services.interfaces;
@@ -22,9 +23,11 @@ public sealed class SmtpEmailConfirmationSender(EmailSettings emailSettings) : I
         using MailMessage mailMessage = new()
         {
             From = new MailAddress(senderAddress, senderName),
-            Subject = "Confirmación de registro",
+            Subject = "Registro confirmado en Sinergia",
             Body = BuildEmailBody(candidateProfile),
-            IsBodyHtml = false
+            IsBodyHtml = true,
+            BodyEncoding = Encoding.UTF8,
+            SubjectEncoding = Encoding.UTF8
         };
 
         mailMessage.To.Add(candidateProfile.Email);
@@ -49,16 +52,10 @@ public sealed class SmtpEmailConfirmationSender(EmailSettings emailSettings) : I
 
     private static string BuildEmailBody(CandidateProfile candidateProfile)
     {
-        return $"""
-        Hola {candidateProfile.FullName},
-
-        Tu perfil de candidato fue creado correctamente en la plataforma de empleabilidad.
-
-        Provincia: {candidateProfile.Province}
-        Nivel educativo: {candidateProfile.EducationLevel}
-
-        Tu perfil ya es visible para empleadores aliados.
-        """;
+        return ProfessionalEmailTemplate.BuildRegistrationConfirmation(
+            candidateProfile.FullName,
+            candidateProfile.Province,
+            candidateProfile.EducationLevel);
     }
 
     private static string GetFirstConfiguredValue(string primaryValue, string fallbackValue)

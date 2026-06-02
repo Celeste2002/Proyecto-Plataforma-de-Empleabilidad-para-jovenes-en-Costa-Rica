@@ -1,4 +1,4 @@
-import { KeyRound } from 'lucide-react';
+import { KeyRound, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { resetPassword } from '../api/authApi.js';
@@ -39,7 +39,7 @@ export function ResetPasswordPage() {
     try {
       await resetPassword(token, newPassword);
       setSuccessMessage('Contraseña restablecida. Puedes iniciar sesión ahora.');
-      setTimeout(() => navigate('/login'), 2500);
+      setTimeout(() => navigate(AUTH_ROUTES.login), 2500);
     } catch (error) {
       setErrors(error.validationErrors?.length ? error.validationErrors : [error.message]);
     } finally {
@@ -50,7 +50,7 @@ export function ResetPasswordPage() {
   if (!token) {
     return (
       <div className="auth-page">
-        <div className="auth-card">
+        <div className="auth-card auth-card--recovery">
           <StatusMessage message="El enlace de recuperación no es válido." tone="error" />
           <div className="auth-footer">
             <p><Link to={AUTH_ROUTES.recoverPassword}>Solicitar un nuevo enlace</Link></p>
@@ -62,8 +62,8 @@ export function ResetPasswordPage() {
 
   return (
     <div className="auth-page">
-      <div className="auth-card">
-        <div className="auth-brand">
+      <div className="auth-card auth-card--recovery">
+        <div className="auth-brand auth-brand--spacious">
           <img
             alt="Sinergia"
             className="brand-logo"
@@ -73,13 +73,25 @@ export function ResetPasswordPage() {
           <h1>Sinergia</h1>
         </div>
 
-        <div className="section-heading">
+        <div className="section-heading auth-heading">
           <p className="eyebrow">Nueva contraseña</p>
           <h2>Restablecer contraseña</h2>
+          <p className="section-description">
+            Crea una contraseña nueva para volver a ingresar a tu cuenta de Sinergia.
+          </p>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className="auth-fields">
+        <form className="auth-form auth-form--spacious" noValidate onSubmit={handleSubmit}>
+          <div className="auth-helper">
+            <span className="auth-helper__icon" aria-hidden="true">
+              <ShieldCheck size={20} />
+            </span>
+            <p>
+              Usa al menos 8 caracteres. Cuando guardes el cambio, podrás iniciar sesión con tu nueva contraseña.
+            </p>
+          </div>
+
+          <div className="auth-fields auth-fields--spacious">
             <label>
               Nueva contraseña
               <input
@@ -117,7 +129,7 @@ export function ResetPasswordPage() {
         </form>
 
         <div className="auth-footer">
-          <p><Link to="/login">Volver al inicio de sesión</Link></p>
+          <p><Link to={AUTH_ROUTES.login}>Volver al inicio de sesión</Link></p>
         </div>
       </div>
     </div>

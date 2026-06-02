@@ -1,5 +1,20 @@
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5000';
 
+async function sendApiRequest(url, options) {
+  try {
+    const response = await fetch(url, options);
+    return readApiResponse(response);
+  } catch (error) {
+    if (error instanceof TypeError) {
+      throw new Error(
+        `No se pudo conectar con el servidor. Verifica que el backend esté ejecutándose en ${apiBaseUrl}.`,
+      );
+    }
+
+    throw error;
+  }
+}
+
 async function readApiResponse(response) {
   const responseText = await response.text();
   const responseBody = responseText ? JSON.parse(responseText) : {};
@@ -13,23 +28,21 @@ async function readApiResponse(response) {
 }
 
 export async function registerCandidate(candidateRegistrationRequest) {
-  const response = await fetch(`${apiBaseUrl}/api/candidates/register`, {
+  return sendApiRequest(`${apiBaseUrl}/api/candidates/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(candidateRegistrationRequest),
   });
-  return readApiResponse(response);
 }
 
 export async function getMyCandidateProfile(token) {
-  const response = await fetch(`${apiBaseUrl}/api/candidates/me`, {
+  return sendApiRequest(`${apiBaseUrl}/api/candidates/me`, {
     headers: { Authorization: `Bearer ${token}` },
   });
-  return readApiResponse(response);
 }
 
 export async function updateMyCandidateProfile(token, candidateProfileRequest) {
-  const response = await fetch(`${apiBaseUrl}/api/candidates/me`, {
+  return sendApiRequest(`${apiBaseUrl}/api/candidates/me`, {
     method: 'PUT',
     headers: {
       Authorization: `Bearer ${token}`,
@@ -37,11 +50,10 @@ export async function updateMyCandidateProfile(token, candidateProfileRequest) {
     },
     body: JSON.stringify(candidateProfileRequest),
   });
-  return readApiResponse(response);
 }
 
 export async function updateMyCandidatePassword(token, passwordRequest) {
-  const response = await fetch(`${apiBaseUrl}/api/candidates/me/password`, {
+  return sendApiRequest(`${apiBaseUrl}/api/candidates/me/password`, {
     method: 'PUT',
     headers: {
       Authorization: `Bearer ${token}`,
@@ -49,5 +61,4 @@ export async function updateMyCandidatePassword(token, passwordRequest) {
     },
     body: JSON.stringify(passwordRequest),
   });
-  return readApiResponse(response);
 }

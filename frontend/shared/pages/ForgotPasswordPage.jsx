@@ -1,4 +1,4 @@
-import { MailCheck } from 'lucide-react';
+import { MailCheck, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { forgotPassword } from '../api/authApi.js';
@@ -18,7 +18,7 @@ export function ForgotPasswordPage() {
     setIsSubmitting(true);
 
     try {
-      const response = await forgotPassword(email);
+      const response = await forgotPassword(email.trim());
       setSuccessMessage(response.message);
       setEmail('');
     } catch (error) {
@@ -30,8 +30,8 @@ export function ForgotPasswordPage() {
 
   return (
     <div className="auth-page">
-      <div className="auth-card">
-        <div className="auth-brand">
+      <div className="auth-card auth-card--recovery">
+        <div className="auth-brand auth-brand--spacious">
           <img
             alt="Sinergia"
             className="brand-logo"
@@ -41,7 +41,7 @@ export function ForgotPasswordPage() {
           <h1>Sinergia</h1>
         </div>
 
-        <div className="section-heading">
+        <div className="section-heading auth-heading">
           <p className="eyebrow">Recuperar acceso</p>
           <h2>Olvidé mi contraseña</h2>
           <p className="section-description">
@@ -49,8 +49,17 @@ export function ForgotPasswordPage() {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className="auth-fields">
+        <form className="auth-form auth-form--spacious" noValidate onSubmit={handleSubmit}>
+          <div className="auth-helper">
+            <span className="auth-helper__icon" aria-hidden="true">
+              <ShieldCheck size={20} />
+            </span>
+            <p>
+              Te enviaremos un enlace seguro al correo asociado con tu cuenta. El enlace vence en 1 hora.
+            </p>
+          </div>
+
+          <div className="auth-fields auth-fields--spacious">
             <label>
               Correo electrónico
               <input
@@ -76,7 +85,7 @@ export function ForgotPasswordPage() {
 
         <div className="auth-footer">
           <p>
-            <Link to="/login">Volver al inicio de sesión</Link>
+            <Link to={AUTH_ROUTES.login}>Volver al inicio de sesión</Link>
           </p>
         </div>
       </div>

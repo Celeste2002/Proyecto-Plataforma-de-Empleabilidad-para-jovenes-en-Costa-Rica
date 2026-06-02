@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Mail;
+using System.Text;
 using services.exceptions;
 using services.interfaces;
 
@@ -31,22 +32,11 @@ public sealed class SmtpPasswordResetSender(EmailSettings emailSettings, string 
         using MailMessage mailMessage = new()
         {
             From = new MailAddress(senderAddress, senderName),
-            Subject = "Recuperación de contraseña - Sinergia",
-            Body = $"""
-                Hola,
-
-                Recibimos una solicitud para recuperar tu contraseña en Sinergia.
-
-                Haz clic en el siguiente enlace para establecer una nueva contraseña:
-                {resetLink}
-
-                Este enlace es valido por 1 hora.
-
-                Si no solicitaste este cambio, puedes ignorar este correo.
-
-                Sinergia - Plataforma de Empleabilidad
-                """,
-            IsBodyHtml = false,
+            Subject = "Restablece tu contraseña en Sinergia",
+            Body = ProfessionalEmailTemplate.BuildPasswordReset(resetLink, email),
+            IsBodyHtml = true,
+            BodyEncoding = Encoding.UTF8,
+            SubjectEncoding = Encoding.UTF8,
         };
 
         mailMessage.To.Add(email);
