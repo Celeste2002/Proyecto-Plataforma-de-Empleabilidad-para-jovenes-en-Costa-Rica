@@ -1,7 +1,9 @@
-import { LogOut, Shield, Users } from 'lucide-react';
+import { KeyRound, LogOut, Shield, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { getUsers, updateUserRole } from '../api/adminApi.js';
 import { StatusMessage } from '../../shared/components/StatusMessage.jsx';
+import { AUTH_ROUTES } from '../../shared/constants/authRoutes.js';
 import { useAuth } from '../../shared/context/AuthContext.jsx';
 
 const ROLES = ['CANDIDATE', 'EMPLOYER', 'ADMINISTRATOR'];
@@ -80,6 +82,10 @@ export function AdminDashboardPage() {
         </div>
         <div className="admin-header__user">
           <span className="admin-header__email">{user?.email}</span>
+          <Link className="admin-header__link" to={AUTH_ROUTES.recoverPassword}>
+            <KeyRound size={16} />
+            Restablecer contraseña
+          </Link>
           <button className="admin-logout" onClick={logout} type="button">
             <LogOut size={16} />
             Salir

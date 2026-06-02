@@ -7,9 +7,9 @@
 - `backend/services`: casos de uso, contratos, DTOs y validaciones.
 - `backend/infrastructure`: repositorio SQL Server y envio de correo SMTP.
 - `frontend/shared`: contexto de autenticacion, componentes y estilos compartidos entre las 3 apps.
-- `frontend/frontend-Candidato`: app React para jovenes candidatos (puerto 5173).
-- `frontend/frontend-Empleador`: app React para empleadores aliados (puerto 5174).
-- `frontend/frontend-Admin`: app React para administradores de la plataforma (puerto 5175).
+- `frontend/frontend-Candidato`: app React para jovenes candidatos (puerto 5170).
+- `frontend/frontend-Empleador`: app React para empleadores aliados (puerto 5171).
+- `frontend/frontend-Admin`: app React para administradores de la plataforma (puerto 5172).
 
 ## Requisitos
 
@@ -46,9 +46,9 @@ bun run dev:all
 URLs locales:
 
 - Backend API: `http://localhost:5000`
-- Candidatos: `http://127.0.0.1:5173`
-- Empleadores: `http://127.0.0.1:5174`
-- Administracion: `http://127.0.0.1:5175`
+- Candidatos: `http://127.0.0.1:5170`
+- Empleadores: `http://127.0.0.1:5171`
+- Administracion: `http://127.0.0.1:5172`
 
 Tambien se pueden correr apps individuales:
 
@@ -98,21 +98,21 @@ El script inicial de SQL Server esta en `database/scripts/001_initial_candidate_
 
 El frontend esta dividido en 3 aplicaciones independientes segun el rol. Cada una debe levantarse en su propia terminal.
 
-**Terminal 1 — Candidatos** → `http://127.0.0.1:5173`
+**Terminal 1 — Candidatos** → `http://127.0.0.1:5170`
 ```
 cd frontend\frontend-Candidato
 bun install
 bun run dev
 ```
 
-**Terminal 2 — Empleadores** → `http://127.0.0.1:5174`
+**Terminal 2 — Empleadores** → `http://127.0.0.1:5171`
 ```
 cd frontend\frontend-Empleador
 bun install
 bun run dev
 ```
 
-**Terminal 3 — Administracion** → `http://127.0.0.1:5175`
+**Terminal 3 — Administracion** → `http://127.0.0.1:5172`
 ```
 cd frontend\frontend-Admin
 bun install

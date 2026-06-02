@@ -33,7 +33,7 @@ public sealed class SmtpPasswordResetSender(EmailSettings emailSettings, string 
         {
             From = new MailAddress(senderAddress, senderName),
             Subject = "Restablece tu contraseña en Sinergia",
-            Body = ProfessionalEmailTemplate.BuildPasswordReset(resetLink),
+            Body = ProfessionalEmailTemplate.BuildPasswordReset(resetLink, email),
             IsBodyHtml = true,
             BodyEncoding = Encoding.UTF8,
             SubjectEncoding = Encoding.UTF8,

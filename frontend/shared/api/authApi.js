@@ -1,5 +1,20 @@
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5000';
 
+async function sendJsonRequest(url, options) {
+  try {
+    const response = await fetch(url, options);
+    return readApiResponse(response);
+  } catch (error) {
+    if (error instanceof TypeError) {
+      throw new Error(
+        `No se pudo conectar con el servidor. Verifica que el backend esté ejecutándose en ${apiBaseUrl}.`,
+      );
+    }
+
+    throw error;
+  }
+}
+
 async function readApiResponse(response) {
   const body = await response.json().catch(() => ({}));
   if (!response.ok) {
@@ -11,28 +26,25 @@ async function readApiResponse(response) {
 }
 
 export async function login(email, password) {
-  const response = await fetch(`${apiBaseUrl}/api/auth/login`, {
+  return sendJsonRequest(`${apiBaseUrl}/api/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
   });
-  return readApiResponse(response);
 }
 
 export async function forgotPassword(email) {
-  const response = await fetch(`${apiBaseUrl}/api/auth/forgot-password`, {
+  return sendJsonRequest(`${apiBaseUrl}/api/auth/forgot-password`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email }),
   });
-  return readApiResponse(response);
 }
 
 export async function resetPassword(token, newPassword) {
-  const response = await fetch(`${apiBaseUrl}/api/auth/reset-password`, {
+  return sendJsonRequest(`${apiBaseUrl}/api/auth/reset-password`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ token, newPassword }),
   });
-  return readApiResponse(response);
 }

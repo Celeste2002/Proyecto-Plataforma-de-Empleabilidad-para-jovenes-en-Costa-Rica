@@ -1,4 +1,4 @@
-import { ArrowLeft, Save, UserRoundCog } from 'lucide-react';
+import { ArrowLeft, KeyRound, Save, UserRoundCog } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -9,6 +9,7 @@ import {
 import { costaRicaProvinces, educationLevels } from '../constants/candidateCatalogs.js';
 import { FieldError } from '../../shared/components/FieldError.jsx';
 import { StatusMessage } from '../../shared/components/StatusMessage.jsx';
+import { AUTH_ROUTES } from '../../shared/constants/authRoutes.js';
 import { useAuth } from '../../shared/context/AuthContext.jsx';
 
 const emptyProfileValues = {
@@ -191,10 +192,16 @@ export function CandidateProfileUpdatePage() {
             <h1>Sinergia</h1>
           </div>
         </div>
-        <Link className="secondary-action" to="/candidato">
-          <ArrowLeft aria-hidden="true" size={16} />
-          Volver
-        </Link>
+        <nav className="dashboard-nav" aria-label="Acciones de perfil">
+          <Link className="secondary-action" to={AUTH_ROUTES.recoverPassword}>
+            <KeyRound aria-hidden="true" size={16} />
+            Restablecer contraseña
+          </Link>
+          <Link className="secondary-action" to="/candidato">
+            <ArrowLeft aria-hidden="true" size={16} />
+            Volver
+          </Link>
+        </nav>
       </header>
 
       <section className="employer-view">

@@ -1,5 +1,6 @@
-import { BriefcaseBusiness, LogOut, UserRound } from 'lucide-react';
+import { BriefcaseBusiness, KeyRound, LogOut, UserRound } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import { AUTH_ROUTES } from '../../shared/constants/authRoutes.js';
 import { useAuth } from '../../shared/context/AuthContext.jsx';
 
 export function CandidateDashboardPage() {
@@ -27,6 +28,10 @@ export function CandidateDashboardPage() {
         </div>
         <nav className="dashboard-nav" aria-label="Navegación del candidato">
           <span className="dashboard-user-email">{user?.email}</span>
+          <Link className="secondary-action" to={AUTH_ROUTES.recoverPassword}>
+            <KeyRound aria-hidden="true" size={16} />
+            Restablecer contraseña
+          </Link>
           <button className="secondary-action" onClick={handleLogout} type="button">
             <LogOut aria-hidden="true" size={16} />
             Cerrar sesión

@@ -39,9 +39,10 @@ internal static class ProfessionalEmailTemplate
             """);
     }
 
-    public static string BuildPasswordReset(string resetLink)
+    public static string BuildPasswordReset(string resetLink, string email)
     {
         string safeResetLink = WebUtility.HtmlEncode(resetLink);
+        string safeEmail = WebUtility.HtmlEncode(email);
 
         return BuildLayout(
             $"Recuperación de contraseña | {BrandName}",
@@ -50,20 +51,19 @@ internal static class ProfessionalEmailTemplate
             <p style="margin:0 0 16px 0;">
                 Recibimos una solicitud para restablecer el acceso a tu cuenta en <strong>{BrandName}</strong>.
             </p>
-            <p style="margin:0 0 24px 0;">
+            <div style="margin:24px 0;padding:16px;border-radius:14px;background:#F1F5F9;border:1px solid #E2E8F0;">
+                <p style="margin:0 0 8px 0;"><strong>Solicitud de seguridad</strong></p>
+                <p style="margin:0;color:{MutedTextColor};">Cuenta: {safeEmail}</p>
+                <p style="margin:6px 0 0 0;color:{MutedTextColor};">Vigencia del enlace: 1 hora</p>
+            </div>
+            <p style="margin:0 0 20px 0;">
                 Haz clic en el siguiente botón para crear una nueva contraseña:
             </p>
-            <div style="text-align:center;margin:0 0 24px 0;">
+            <div style="text-align:center;margin:0 0 28px 0;">
                 <a href="{safeResetLink}"
-                   style="display:inline-block;background:{PrimaryColor};color:#FFFFFF;text-decoration:none;font-weight:700;padding:14px 28px;border-radius:999px;">
+                   style="display:inline-block;background:{PrimaryColor};color:#FFFFFF;text-decoration:none;font-weight:700;padding:14px 28px;border-radius:10px;">
                     Restablecer contraseña
                 </a>
-            </div>
-            <div style="margin:24px 0;padding:16px;border-radius:14px;background:#FFF7ED;border:1px solid #FED7AA;">
-                <p style="margin:0;color:#9A3412;font-weight:700;">Importante</p>
-                <p style="margin:8px 0 0 0;color:#9A3412;">
-                    Este enlace tiene una vigencia de 1 hora.
-                </p>
             </div>
             <p style="margin:0 0 16px 0;">
                 Si no solicitaste este cambio, puedes ignorar este mensaje y tu contraseña seguirá igual.

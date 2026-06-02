@@ -92,7 +92,7 @@ export function LoginPage() {
           </div>
 
           <div className="auth-forgot">
-            <Link to="/recuperar-contrasena">¿Olvidaste tu contraseña?</Link>
+            <Link to={AUTH_ROUTES.recoverPassword}>¿Olvidaste tu contraseña?</Link>
           </div>
 
           <StatusMessage message={errorMessage} tone="error" />
