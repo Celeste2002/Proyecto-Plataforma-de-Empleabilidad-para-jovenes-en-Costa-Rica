@@ -88,6 +88,12 @@ builder.Services.AddSingleton<IEmployerRepository>(_ =>
 builder.Services.AddSingleton<IUserRepository>(_ =>
     new SqlUserRepository(defaultConnectionString));
 
+builder.Services.AddSingleton<IVacanteRepository>(_ =>
+    new SqlVacanteRepository(defaultConnectionString));
+
+builder.Services.AddSingleton<IPostulacionRepository>(_ =>
+    new SqlPostulacionRepository(defaultConnectionString));
+
 builder.Services.AddSingleton<IEmailConfirmationSender>(_ =>
 {
     EmailSettings emailSettings = builder.Configuration
@@ -160,6 +166,7 @@ builder.Services.AddScoped<ICandidateRegistrationService, CandidateRegistrationS
 builder.Services.AddScoped<IEmployerRegistrationService, EmployerRegistrationService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
+builder.Services.AddScoped<IVacanteService, VacanteService>();
 
 WebApplication app = builder.Build();
 
@@ -327,6 +334,43 @@ adminRoutes.MapPost("/employers/{id:guid}/activate", async (
     await employerRegistrationService.ActivateAsync(id, cancellationToken);
     return Results.Ok(new { message = "Empleador activado correctamente." });
 });
+
+// -- Rutas de vacantes y postulaciones --
+
+RouteGroupBuilder vacanteRoutes = app.MapGroup("/api/vacantes");
+
+vacanteRoutes.MapGet("/", async (
+    IVacanteService vacanteService,
+    CancellationToken cancellationToken) =>
+{
+    IReadOnlyCollection<VacanteResponse> vacantes =
+        await vacanteService.GetActiveVacantesAsync(cancellationToken);
+
+    return Results.Ok(vacantes);
+}).RequireAuthorization();
+
+RouteGroupBuilder postulacionRoutes = app.MapGroup("/api/postulaciones");
+
+postulacionRoutes.MapPost("/", async (
+    ClaimsPrincipal user,
+    ApplyToVacanteRequest applyToVacanteRequest,
+    IVacanteService vacanteService,
+    CancellationToken cancellationToken) =>
+{
+    await vacanteService.ApplyAsync(GetAuthenticatedUserId(user), applyToVacanteRequest, cancellationToken);
+    return Results.Created("/api/postulaciones", new { message = "Postulación enviada correctamente." });
+}).RequireAuthorization();
+
+candidateRoutes.MapGet("/me/postulaciones", async (
+    ClaimsPrincipal user,
+    IVacanteService vacanteService,
+    CancellationToken cancellationToken) =>
+{
+    IReadOnlyCollection<PostulacionResponse> postulaciones =
+        await vacanteService.GetMyPostulacionesAsync(GetAuthenticatedUserId(user), cancellationToken);
+
+    return Results.Ok(postulaciones);
+}).RequireAuthorization();
 
 // -- Health check --
 

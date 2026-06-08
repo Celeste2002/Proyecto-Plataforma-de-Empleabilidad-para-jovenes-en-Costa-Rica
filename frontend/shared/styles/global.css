@@ -818,6 +818,264 @@ dd {
   }
 }
 
+/* -- Vacantes -- */
+
+.vacantes-filters {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.vacantes-filters__grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.vacantes-filters__clear {
+  margin-top: 14px;
+  width: auto;
+}
+
+.vacantes-count {
+  color: var(--muted);
+  font-size: 0.88rem;
+  font-weight: 700;
+  margin: 0 0 12px;
+}
+
+.vacante-list {
+  display: grid;
+  gap: 14px;
+}
+
+.vacante-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+}
+
+.vacante-card__header {
+  align-items: flex-start;
+  display: flex;
+  gap: 14px;
+}
+
+.vacante-card__icon {
+  align-items: center;
+  background: var(--primary-soft);
+  border-radius: 8px;
+  color: var(--primary);
+  display: flex;
+  flex-shrink: 0;
+  height: 48px;
+  justify-content: center;
+  width: 48px;
+}
+
+.vacante-card__title-area {
+  flex: 1;
+}
+
+.vacante-card__title {
+  font-size: 1.05rem;
+  margin: 0 0 4px;
+}
+
+.vacante-card__company {
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.vacante-card__meta {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.vacante-badge {
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 3px 10px;
+}
+
+.vacante-badge--modality {
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+}
+
+.vacante-badge--experience {
+  background: #e6f5ed;
+  color: var(--success);
+}
+
+.vacante-card__details {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+}
+
+.vacante-card__description {
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin: 0;
+  padding-top: 12px;
+}
+
+.vacante-card__footer {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.vacante-card__result {
+  flex: 1;
+  font-size: 0.88rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.vacante-card__result--success {
+  color: var(--success);
+}
+
+.vacante-card__result--error {
+  color: var(--error);
+}
+
+.vacante-card__apply-btn {
+  width: auto;
+}
+
+/* -- Postulaciones -- */
+
+.postulacion-list {
+  display: grid;
+  gap: 14px;
+}
+
+.postulaciones-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.postulacion-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+}
+
+.postulacion-card__header {
+  align-items: flex-start;
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+}
+
+.postulacion-card__title {
+  font-size: 1.05rem;
+  margin: 0 0 4px;
+}
+
+.postulacion-card__company {
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.postulacion-card__details {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+}
+
+.postulacion-status {
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 4px 12px;
+  white-space: nowrap;
+}
+
+.postulacion-status--enviada {
+  background: #e0f0ff;
+  color: #075a9c;
+}
+
+.postulacion-status--revision {
+  background: #fef9c3;
+  color: #854d0e;
+}
+
+.postulacion-status--entrevista {
+  background: #ede9fe;
+  color: #6d28d9;
+}
+
+.postulacion-status--finalizada {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+@media (max-width: 860px) {
+  .vacantes-filters__grid,
+  .vacante-card__details,
+  .postulacion-card__details {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .vacante-card__header {
+    flex-wrap: wrap;
+  }
+
+  .vacante-card__meta {
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  .postulacion-card__header {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .vacante-card__footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .vacante-card__apply-btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 560px) {
+  .vacantes-filters__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .vacante-card__details,
+  .postulacion-card__details {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* -- Admin panel -- */
 
 .admin-shell {

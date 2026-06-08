@@ -8,6 +8,8 @@ import { LoginPage } from './pages/LoginPage.jsx';
 import { CandidateDashboardPage } from './pages/CandidateDashboardPage.jsx';
 import { CandidateProfileUpdatePage } from './pages/CandidateProfileUpdatePage.jsx';
 import { CandidateRegistrationPage } from './pages/CandidateRegistrationPage.jsx';
+import { VacantesPage } from './pages/VacantesPage.jsx';
+import { PostulacionesPage } from './pages/PostulacionesPage.jsx';
 
 export function App() {
   return (
@@ -32,6 +34,22 @@ export function App() {
             element={
               <ProtectedRoute>
                 <CandidateProfileUpdatePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/candidato/vacantes"
+            element={
+              <ProtectedRoute>
+                <VacantesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/candidato/postulaciones"
+            element={
+              <ProtectedRoute>
+                <PostulacionesPage />
               </ProtectedRoute>
             }
           />

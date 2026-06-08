@@ -1,0 +1,14 @@
+namespace domain.entities;
+
+public sealed class Postulacion
+{
+    public required Guid Id { get; init; }
+    public required Guid VacanteId { get; init; }
+    public required Guid CandidateProfileId { get; init; }
+    public required string Status { get; init; }
+    public DateTime AppliedAt { get; init; }
+    public DateTime UpdatedAtUtc { get; init; }
+    public string JobTitle { get; init; } = string.Empty;
+    public string CompanyName { get; init; } = string.Empty;
+    public string Province { get; init; } = string.Empty;
+}

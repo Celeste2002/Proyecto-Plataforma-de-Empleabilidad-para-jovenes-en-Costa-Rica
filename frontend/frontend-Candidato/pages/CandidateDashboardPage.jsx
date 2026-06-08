@@ -1,4 +1,4 @@
-import { BriefcaseBusiness, KeyRound, LogOut, UserRound } from 'lucide-react';
+import { BriefcaseBusiness, ClipboardList, KeyRound, LogOut, UserRound } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AUTH_ROUTES } from '../../shared/constants/authRoutes.js';
 import { useAuth } from '../../shared/context/AuthContext.jsx';
@@ -56,17 +56,28 @@ export function CandidateDashboardPage() {
             <div className="dashboard-card-icon">
               <BriefcaseBusiness aria-hidden="true" size={28} />
             </div>
-            <h3>Mi perfil</h3>
-            <p>Tu perfil es visible para los empleadores aliados de la plataforma.</p>
+            <h3>Buscar vacantes</h3>
+            <p>Explora ofertas de empleo y filtra por provincia, sector, modalidad y experiencia.</p>
           </article>
 
-          <article className="dashboard-card dashboard-card--info">
-            <h3>Próximamente</h3>
-            <p>Ofertas de empleo, postulaciones y más funcionalidades estarán disponibles pronto.</p>
+          <article className="dashboard-card">
+            <div className="dashboard-card-icon">
+              <ClipboardList aria-hidden="true" size={28} />
+            </div>
+            <h3>Mis postulaciones</h3>
+            <p>Consulta el estado de todas tus postulaciones: enviada, en revisión, entrevista o finalizada.</p>
           </article>
         </div>
 
         <div className="dashboard-actions">
+          <Link className="secondary-action" to="/candidato/vacantes">
+            <BriefcaseBusiness aria-hidden="true" size={16} />
+            Ver vacantes
+          </Link>
+          <Link className="secondary-action" to="/candidato/postulaciones">
+            <ClipboardList aria-hidden="true" size={16} />
+            Mis postulaciones
+          </Link>
           <Link className="secondary-action" to="/candidato/actualizar-registro">
             Actualizar registro
           </Link>

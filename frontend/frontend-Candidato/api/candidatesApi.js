@@ -62,3 +62,26 @@ export async function updateMyCandidatePassword(token, passwordRequest) {
     body: JSON.stringify(passwordRequest),
   });
 }
+
+export async function getVacantes(token) {
+  return sendApiRequest(`${apiBaseUrl}/api/vacantes`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function applyToVacante(token, vacanteId) {
+  return sendApiRequest(`${apiBaseUrl}/api/postulaciones`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ vacanteId }),
+  });
+}
+
+export async function getMyPostulaciones(token) {
+  return sendApiRequest(`${apiBaseUrl}/api/candidates/me/postulaciones`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}

@@ -68,5 +68,3 @@ INNER JOIN dbo.Users u
 WHERE cp.IsVisibleToPartnerEmployers = 1;
 GO
 
-PRINT 'Patch 003 aplicado: perfiles de candidatos usan fecha de nacimiento y edad calculada.';
-GO

@@ -26,5 +26,3 @@ BEGIN
 END;
 GO
 
-PRINT 'Patch 002 aplicado: Users admite contrasenas protegidas con hash y recuperacion.';
-GO
