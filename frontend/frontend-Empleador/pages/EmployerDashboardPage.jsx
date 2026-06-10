@@ -1,4 +1,4 @@
-import { KeyRound, LogOut, RefreshCw, UserRoundCheck } from 'lucide-react';
+import { BriefcaseBusiness, KeyRound, LogOut, RefreshCw, UserRoundCheck } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getVisibleCandidateProfiles } from '../api/employerApi.js';
@@ -53,6 +53,10 @@ export function EmployerDashboardPage() {
         </div>
         <nav className="dashboard-nav" aria-label="Navegación del empleador">
           <span className="dashboard-user-email">{user?.email}</span>
+          <Link className="secondary-action" to="/empleador/vacantes">
+            <BriefcaseBusiness aria-hidden="true" size={16} />
+            Mis vacantes
+          </Link>
           <Link className="secondary-action" to={AUTH_ROUTES.recoverPassword}>
             <KeyRound aria-hidden="true" size={16} />
             Restablecer contraseña
