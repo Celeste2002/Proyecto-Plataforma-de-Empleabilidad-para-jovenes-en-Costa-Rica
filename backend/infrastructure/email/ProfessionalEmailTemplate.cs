@@ -78,6 +78,45 @@ internal static class ProfessionalEmailTemplate
             """);
     }
 
+    public static string BuildInterviewRequest(
+        string candidateFullName,
+        string companyName,
+        string jobTitle,
+        string employerContactName,
+        string employerEmail,
+        string employerPhone)
+    {
+        string safeCandidateFullName = WebUtility.HtmlEncode(candidateFullName);
+        string safeCompanyName = WebUtility.HtmlEncode(companyName);
+        string safeJobTitle = WebUtility.HtmlEncode(jobTitle);
+        string safeEmployerContactName = WebUtility.HtmlEncode(employerContactName);
+        string safeEmployerEmail = WebUtility.HtmlEncode(employerEmail);
+        string safeEmployerPhone = WebUtility.HtmlEncode(employerPhone);
+
+        return BuildLayout(
+            $"Solicitud de entrevista | {BrandName}",
+            $"""
+            <p style="margin:0 0 16px 0;">Hola <strong>{safeCandidateFullName}</strong>,</p>
+            <p style="margin:0 0 16px 0;">
+                <strong>{safeCompanyName}</strong> quiere coordinar una entrevista contigo para la vacante
+                <strong>{safeJobTitle}</strong>.
+            </p>
+            <div style="margin:24px 0;padding:16px;border-radius:14px;background:#F1F5F9;border:1px solid #E2E8F0;">
+                <p style="margin:0 0 8px 0;"><strong>Contacto del empleador</strong></p>
+                <p style="margin:0;color:{MutedTextColor};">Persona de contacto: {safeEmployerContactName}</p>
+                <p style="margin:6px 0 0 0;color:{MutedTextColor};">Correo: {safeEmployerEmail}</p>
+                <p style="margin:6px 0 0 0;color:{MutedTextColor};">Teléfono: {safeEmployerPhone}</p>
+            </div>
+            <p style="margin:0 0 16px 0;">
+                Para continuar el proceso, responde directamente al correo de la persona de contacto.
+                La coordinación de fecha, hora y modalidad se realizará fuera de la plataforma.
+            </p>
+            <p style="margin:0;">
+                Equipo de <strong>{BrandName}</strong>
+            </p>
+            """);
+    }
+
     private static string BuildLayout(string subject, string content)
     {
         return $"""

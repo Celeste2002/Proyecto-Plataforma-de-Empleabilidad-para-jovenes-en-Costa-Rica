@@ -156,6 +156,39 @@ public sealed class SqlVacanteRepository(string connectionString) : IVacanteRepo
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
+    public async Task<bool> UpdateEditableFieldsAsync(
+        Guid id,
+        Guid employerProfileId,
+        string? description,
+        string? requirements,
+        string? salaryRange,
+        CancellationToken cancellationToken)
+    {
+        const string query = """
+            UPDATE dbo.Vacantes
+            SET
+                Description = @Description,
+                Requirements = @Requirements,
+                SalaryRange = @SalaryRange
+            WHERE Id = @Id
+                AND EmployerProfileId = @EmployerProfileId
+                AND IsActive = 1;
+            """;
+
+        await using SqlConnection connection = new(connectionString);
+        await connection.OpenAsync(cancellationToken);
+
+        await using SqlCommand command = new(query, connection);
+        command.Parameters.AddWithValue("@Id", id);
+        command.Parameters.AddWithValue("@EmployerProfileId", employerProfileId);
+        command.Parameters.AddWithValue("@Description", (object?)description ?? DBNull.Value);
+        command.Parameters.AddWithValue("@Requirements", (object?)requirements ?? DBNull.Value);
+        command.Parameters.AddWithValue("@SalaryRange", (object?)salaryRange ?? DBNull.Value);
+
+        int affectedRows = await command.ExecuteNonQueryAsync(cancellationToken);
+        return affectedRows > 0;
+    }
+
     private static Vacante MapVacante(SqlDataReader reader) =>
         new()
         {

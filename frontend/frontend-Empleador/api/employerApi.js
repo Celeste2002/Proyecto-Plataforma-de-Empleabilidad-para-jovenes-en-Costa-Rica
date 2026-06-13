@@ -16,7 +16,9 @@ async function sendApiRequest(url, options) {
 }
 
 async function readApiResponse(response) {
-  const responseBody = await response.json();
+  const responseText = await response.text();
+  const responseBody = responseText ? JSON.parse(responseText) : {};
+
   if (!response.ok) {
     const apiError = new Error(responseBody.message ?? 'No se pudo completar la solicitud.');
     apiError.validationErrors = responseBody.errors ?? [];
@@ -78,5 +80,33 @@ export async function createVacante(token, data) {
       requirements: data.requirements || null,
       salaryRange: data.salaryRange || null,
     }),
+  });
+}
+
+export async function updateVacante(token, id, data) {
+  return sendApiRequest(`${apiBaseUrl}/api/employers/me/vacantes/${id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      description: data.description || null,
+      requirements: data.requirements || null,
+      salaryRange: data.salaryRange || null,
+    }),
+  });
+}
+
+export async function getVacantePostulaciones(token, vacanteId) {
+  return sendApiRequest(`${apiBaseUrl}/api/employers/me/vacantes/${vacanteId}/postulaciones`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function requestInterview(token, postulacionId) {
+  return sendApiRequest(`${apiBaseUrl}/api/employers/me/postulaciones/${postulacionId}/solicitar-entrevista`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
   });
 }

@@ -159,6 +159,22 @@ builder.Services.AddSingleton<IPasswordResetSender>(_ =>
     return new SmtpPasswordResetSender(passwordResetEmailSettings, frontendUrl);
 });
 
+builder.Services.AddSingleton<IInterviewRequestSender>(_ =>
+{
+    EmailSettings emailSettings = builder.Configuration
+        .GetSection("Email")
+        .Get<EmailSettings>() ?? new EmailSettings();
+
+    EmailSettings smtpSettings = builder.Configuration
+        .GetSection("Smtp")
+        .Get<EmailSettings>() ?? new EmailSettings();
+
+    bool smtpSectionIsConfigured = !string.IsNullOrWhiteSpace(smtpSettings.Host) ||
+        !string.IsNullOrWhiteSpace(smtpSettings.SmtpHost);
+
+    return new SmtpInterviewRequestSender(smtpSectionIsConfigured ? smtpSettings : emailSettings);
+});
+
 builder.Services.AddSingleton<ITokenService>(_ => new JwtTokenService(jwtSettings));
 builder.Services.AddSingleton<IPasswordHasher, BcryptPasswordHasher>();
 
@@ -171,7 +187,8 @@ builder.Services.AddScoped<IVacanteService>(sp =>
         sp.GetRequiredService<IVacanteRepository>(),
         sp.GetRequiredService<IPostulacionRepository>(),
         sp.GetRequiredService<ICandidateRepository>(),
-        sp.GetRequiredService<IEmployerRepository>()));
+        sp.GetRequiredService<IEmployerRepository>(),
+        sp.GetRequiredService<IInterviewRequestSender>()));
 
 WebApplication app = builder.Build();
 
@@ -296,6 +313,53 @@ employerRoutes.MapPost("/me/vacantes", async (
         await vacanteService.CreateVacanteAsync(GetAuthenticatedUserId(user), createVacanteRequest, cancellationToken);
 
     return Results.Created($"/api/employers/me/vacantes/{vacante.Id}", vacante);
+}).RequireAuthorization();
+
+employerRoutes.MapPut("/me/vacantes/{id:guid}", async (
+    Guid id,
+    ClaimsPrincipal user,
+    UpdateVacanteRequest updateVacanteRequest,
+    IVacanteService vacanteService,
+    CancellationToken cancellationToken) =>
+{
+    VacanteResponse vacante =
+        await vacanteService.UpdateVacanteAsync(
+            GetAuthenticatedUserId(user),
+            id,
+            updateVacanteRequest,
+            cancellationToken);
+
+    return Results.Ok(vacante);
+}).RequireAuthorization();
+
+employerRoutes.MapGet("/me/vacantes/{id:guid}/postulaciones", async (
+    Guid id,
+    ClaimsPrincipal user,
+    IVacanteService vacanteService,
+    CancellationToken cancellationToken) =>
+{
+    IReadOnlyCollection<EmployerPostulacionResponse> postulaciones =
+        await vacanteService.GetPostulacionesByVacanteAsync(
+            GetAuthenticatedUserId(user),
+            id,
+            cancellationToken);
+
+    return Results.Ok(postulaciones);
+}).RequireAuthorization();
+
+employerRoutes.MapPost("/me/postulaciones/{id:guid}/solicitar-entrevista", async (
+    Guid id,
+    ClaimsPrincipal user,
+    IVacanteService vacanteService,
+    CancellationToken cancellationToken) =>
+{
+    EmployerPostulacionResponse postulacion =
+        await vacanteService.RequestInterviewAsync(
+            GetAuthenticatedUserId(user),
+            id,
+            cancellationToken);
+
+    return Results.Ok(postulacion);
 }).RequireAuthorization();
 
 // -- Rutas de autenticacion --
