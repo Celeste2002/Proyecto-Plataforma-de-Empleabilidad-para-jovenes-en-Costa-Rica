@@ -223,6 +223,95 @@ candidateRoutes.MapPut("/me", async (
     return Results.Ok(candidateProfileResponse);
 }).RequireAuthorization();
 
+candidateRoutes.MapGet("/me/perfil", async (
+    ClaimsPrincipal user,
+    ICandidateRegistrationService candidateRegistrationService,
+    CancellationToken cancellationToken) =>
+{
+    CandidatoPerfilCompletoResponse perfil =
+        await candidateRegistrationService.GetFullProfileAsync(GetAuthenticatedUserId(user), cancellationToken);
+
+    return Results.Ok(perfil);
+}).RequireAuthorization();
+
+candidateRoutes.MapPatch("/me/disponibilidad", async (
+    ClaimsPrincipal user,
+    UpdateAvailabilityRequest request,
+    ICandidateRegistrationService candidateRegistrationService,
+    CancellationToken cancellationToken) =>
+{
+    await candidateRegistrationService.UpdateAvailabilityAsync(
+        GetAuthenticatedUserId(user), request.IsAvailableForContact, cancellationToken);
+
+    return Results.Ok(new { message = "Disponibilidad actualizada correctamente." });
+}).RequireAuthorization();
+
+candidateRoutes.MapPost("/me/experiencias", async (
+    ClaimsPrincipal user,
+    AddExperienciaLaboralRequest request,
+    ICandidateRegistrationService candidateRegistrationService,
+    CancellationToken cancellationToken) =>
+{
+    ExperienciaLaboralResponse response =
+        await candidateRegistrationService.AddExperienciaAsync(GetAuthenticatedUserId(user), request, cancellationToken);
+
+    return Results.Created($"/api/candidates/me/experiencias/{response.Id}", response);
+}).RequireAuthorization();
+
+candidateRoutes.MapDelete("/me/experiencias/{id:guid}", async (
+    Guid id,
+    ClaimsPrincipal user,
+    ICandidateRegistrationService candidateRegistrationService,
+    CancellationToken cancellationToken) =>
+{
+    await candidateRegistrationService.DeleteExperienciaAsync(GetAuthenticatedUserId(user), id, cancellationToken);
+    return Results.NoContent();
+}).RequireAuthorization();
+
+candidateRoutes.MapPost("/me/habilidades", async (
+    ClaimsPrincipal user,
+    AddHabilidadRequest request,
+    ICandidateRegistrationService candidateRegistrationService,
+    CancellationToken cancellationToken) =>
+{
+    HabilidadResponse response =
+        await candidateRegistrationService.AddHabilidadAsync(GetAuthenticatedUserId(user), request, cancellationToken);
+
+    return Results.Created($"/api/candidates/me/habilidades/{response.Id}", response);
+}).RequireAuthorization();
+
+candidateRoutes.MapDelete("/me/habilidades/{id:guid}", async (
+    Guid id,
+    ClaimsPrincipal user,
+    ICandidateRegistrationService candidateRegistrationService,
+    CancellationToken cancellationToken) =>
+{
+    await candidateRegistrationService.DeleteHabilidadAsync(GetAuthenticatedUserId(user), id, cancellationToken);
+    return Results.NoContent();
+}).RequireAuthorization();
+
+candidateRoutes.MapPost("/me/cursos", async (
+    ClaimsPrincipal user,
+    AddCursoCompletadoRequest request,
+    ICandidateRegistrationService candidateRegistrationService,
+    CancellationToken cancellationToken) =>
+{
+    CursoCompletadoResponse response =
+        await candidateRegistrationService.AddCursoAsync(GetAuthenticatedUserId(user), request, cancellationToken);
+
+    return Results.Created($"/api/candidates/me/cursos/{response.Id}", response);
+}).RequireAuthorization();
+
+candidateRoutes.MapDelete("/me/cursos/{id:guid}", async (
+    Guid id,
+    ClaimsPrincipal user,
+    ICandidateRegistrationService candidateRegistrationService,
+    CancellationToken cancellationToken) =>
+{
+    await candidateRegistrationService.DeleteCursoAsync(GetAuthenticatedUserId(user), id, cancellationToken);
+    return Results.NoContent();
+}).RequireAuthorization();
+
 candidateRoutes.MapPut("/me/password", async (
     ClaimsPrincipal user,
     UpdateCandidatePasswordRequest updateCandidatePasswordRequest,

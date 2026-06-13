@@ -9,5 +9,7 @@ public sealed record CandidateProfileResponse(
     string EducationLevel,
     string Email,
     bool IsVisibleToPartnerEmployers,
+    bool IsAvailableForContact,
+    string? PhotoUrl,
     bool EmailConfirmationSent,
     DateTime CreatedAtUtc);

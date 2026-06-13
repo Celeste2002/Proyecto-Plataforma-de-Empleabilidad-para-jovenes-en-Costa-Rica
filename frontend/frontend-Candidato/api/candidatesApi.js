@@ -85,3 +85,74 @@ export async function getMyPostulaciones(token) {
     headers: { Authorization: `Bearer ${token}` },
   });
 }
+
+export async function getMyFullProfile(token) {
+  return sendApiRequest(`${apiBaseUrl}/api/candidates/me/perfil`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function updateMyAvailability(token, isAvailableForContact) {
+  return sendApiRequest(`${apiBaseUrl}/api/candidates/me/disponibilidad`, {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ isAvailableForContact }),
+  });
+}
+
+export async function addExperiencia(token, experiencia) {
+  return sendApiRequest(`${apiBaseUrl}/api/candidates/me/experiencias`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(experiencia),
+  });
+}
+
+export async function deleteExperiencia(token, id) {
+  return sendApiRequest(`${apiBaseUrl}/api/candidates/me/experiencias/${id}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function addHabilidad(token, nombre) {
+  return sendApiRequest(`${apiBaseUrl}/api/candidates/me/habilidades`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ nombre }),
+  });
+}
+
+export async function deleteHabilidad(token, id) {
+  return sendApiRequest(`${apiBaseUrl}/api/candidates/me/habilidades/${id}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function addCurso(token, curso) {
+  return sendApiRequest(`${apiBaseUrl}/api/candidates/me/cursos`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(curso),
+  });
+}
+
+export async function deleteCurso(token, id) {
+  return sendApiRequest(`${apiBaseUrl}/api/candidates/me/cursos/${id}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}

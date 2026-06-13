@@ -1,4 +1,4 @@
-import { BriefcaseBusiness, ClipboardList, KeyRound, LogOut, UserRound } from 'lucide-react';
+import { BriefcaseBusiness, ClipboardList, KeyRound, LogOut, UserRound, UserCircle } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AUTH_ROUTES } from '../../shared/constants/authRoutes.js';
 import { useAuth } from '../../shared/context/AuthContext.jsx';
@@ -54,6 +54,14 @@ export function CandidateDashboardPage() {
         <div className="dashboard-cards">
           <article className="dashboard-card">
             <div className="dashboard-card-icon">
+              <UserCircle aria-hidden="true" size={28} />
+            </div>
+            <h3>Mi perfil público</h3>
+            <p>Agrega experiencia laboral, habilidades y cursos para destacar ante los empleadores.</p>
+          </article>
+
+          <article className="dashboard-card">
+            <div className="dashboard-card-icon">
               <BriefcaseBusiness aria-hidden="true" size={28} />
             </div>
             <h3>Buscar vacantes</h3>
@@ -70,6 +78,10 @@ export function CandidateDashboardPage() {
         </div>
 
         <div className="dashboard-actions">
+          <Link className="secondary-action" to="/candidato/mi-perfil">
+            <UserCircle aria-hidden="true" size={16} />
+            Mi perfil
+          </Link>
           <Link className="secondary-action" to="/candidato/vacantes">
             <BriefcaseBusiness aria-hidden="true" size={16} />
             Ver vacantes

@@ -137,6 +137,192 @@ public sealed class CandidateRegistrationService(
         return MapCandidateProfileResponse(candidateProfile);
     }
 
+    public async Task<CandidatoPerfilCompletoResponse> GetFullProfileAsync(
+        Guid userId,
+        CancellationToken cancellationToken)
+    {
+        CandidateProfile? profile = await candidateRepository.FindByUserIdAsync(userId, cancellationToken);
+
+        if (profile is null)
+        {
+            throw new NotFoundException("No se encontro el perfil del candidato.");
+        }
+
+        IReadOnlyCollection<domain.entities.ExperienciaLaboral> experiencias =
+            await candidateRepository.GetExperienciasAsync(profile.Id, cancellationToken);
+
+        IReadOnlyCollection<domain.entities.Habilidad> habilidades =
+            await candidateRepository.GetHabilidadesAsync(profile.Id, cancellationToken);
+
+        IReadOnlyCollection<domain.entities.CursoCompletado> cursos =
+            await candidateRepository.GetCursosAsync(profile.Id, cancellationToken);
+
+        return new CandidatoPerfilCompletoResponse(
+            profile.Id,
+            profile.FullName,
+            profile.DateOfBirth,
+            CalculateAge(profile.DateOfBirth, DateOnly.FromDateTime(DateTime.UtcNow)),
+            profile.Province,
+            profile.EducationLevel,
+            profile.Email,
+            profile.IsAvailableForContact,
+            profile.IsVisibleToPartnerEmployers,
+            profile.PhotoUrl,
+            experiencias.Select(e => new ExperienciaLaboralResponse(
+                e.Id, e.Empresa, e.Cargo, e.FechaInicio, e.FechaFin, e.EsTrabajoActual, e.Descripcion)).ToArray(),
+            habilidades.Select(h => new HabilidadResponse(h.Id, h.Nombre)).ToArray(),
+            cursos.Select(c => new CursoCompletadoResponse(
+                c.Id, c.NombreCurso, c.Institucion, c.FechaCompletado, c.EsDePlataforma)).ToArray());
+    }
+
+    public async Task UpdateAvailabilityAsync(
+        Guid userId,
+        bool isAvailableForContact,
+        CancellationToken cancellationToken)
+    {
+        CandidateProfile? profile = await candidateRepository.FindByUserIdAsync(userId, cancellationToken);
+
+        if (profile is null)
+        {
+            throw new NotFoundException("No se encontro el perfil del candidato.");
+        }
+
+        await candidateRepository.UpdateAvailabilityAsync(profile.Id, isAvailableForContact, cancellationToken);
+    }
+
+    public async Task<ExperienciaLaboralResponse> AddExperienciaAsync(
+        Guid userId,
+        AddExperienciaLaboralRequest request,
+        CancellationToken cancellationToken)
+    {
+        List<string> errors = [];
+
+        if (string.IsNullOrWhiteSpace(request.Empresa))
+            errors.Add("El nombre de la empresa es obligatorio.");
+        if (string.IsNullOrWhiteSpace(request.Cargo))
+            errors.Add("El cargo es obligatorio.");
+        if (!request.EsTrabajoActual && request.FechaFin.HasValue && request.FechaFin < request.FechaInicio)
+            errors.Add("La fecha de fin no puede ser anterior a la fecha de inicio.");
+
+        if (errors.Count > 0)
+            throw new RequestValidationException(errors);
+
+        CandidateProfile? profile = await candidateRepository.FindByUserIdAsync(userId, cancellationToken);
+
+        if (profile is null)
+            throw new NotFoundException("No se encontro el perfil del candidato.");
+
+        domain.entities.ExperienciaLaboral experiencia = new()
+        {
+            Id = Guid.NewGuid(),
+            CandidateProfileId = profile.Id,
+            Empresa = request.Empresa.Trim(),
+            Cargo = request.Cargo.Trim(),
+            FechaInicio = request.FechaInicio,
+            FechaFin = request.EsTrabajoActual ? null : request.FechaFin,
+            EsTrabajoActual = request.EsTrabajoActual,
+            Descripcion = string.IsNullOrWhiteSpace(request.Descripcion) ? null : request.Descripcion.Trim()
+        };
+
+        await candidateRepository.SaveExperienciaAsync(experiencia, cancellationToken);
+
+        return new ExperienciaLaboralResponse(
+            experiencia.Id, experiencia.Empresa, experiencia.Cargo,
+            experiencia.FechaInicio, experiencia.FechaFin,
+            experiencia.EsTrabajoActual, experiencia.Descripcion);
+    }
+
+    public async Task DeleteExperienciaAsync(Guid userId, Guid experienciaId, CancellationToken cancellationToken)
+    {
+        CandidateProfile? profile = await candidateRepository.FindByUserIdAsync(userId, cancellationToken);
+
+        if (profile is null)
+            throw new NotFoundException("No se encontro el perfil del candidato.");
+
+        await candidateRepository.DeleteExperienciaAsync(experienciaId, profile.Id, cancellationToken);
+    }
+
+    public async Task<HabilidadResponse> AddHabilidadAsync(
+        Guid userId,
+        AddHabilidadRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.Nombre))
+            throw new RequestValidationException(["El nombre de la habilidad es obligatorio."]);
+
+        CandidateProfile? profile = await candidateRepository.FindByUserIdAsync(userId, cancellationToken);
+
+        if (profile is null)
+            throw new NotFoundException("No se encontro el perfil del candidato.");
+
+        domain.entities.Habilidad habilidad = new()
+        {
+            Id = Guid.NewGuid(),
+            CandidateProfileId = profile.Id,
+            Nombre = request.Nombre.Trim()
+        };
+
+        await candidateRepository.SaveHabilidadAsync(habilidad, cancellationToken);
+
+        return new HabilidadResponse(habilidad.Id, habilidad.Nombre);
+    }
+
+    public async Task DeleteHabilidadAsync(Guid userId, Guid habilidadId, CancellationToken cancellationToken)
+    {
+        CandidateProfile? profile = await candidateRepository.FindByUserIdAsync(userId, cancellationToken);
+
+        if (profile is null)
+            throw new NotFoundException("No se encontro el perfil del candidato.");
+
+        await candidateRepository.DeleteHabilidadAsync(habilidadId, profile.Id, cancellationToken);
+    }
+
+    public async Task<CursoCompletadoResponse> AddCursoAsync(
+        Guid userId,
+        AddCursoCompletadoRequest request,
+        CancellationToken cancellationToken)
+    {
+        List<string> errors = [];
+
+        if (string.IsNullOrWhiteSpace(request.NombreCurso))
+            errors.Add("El nombre del curso es obligatorio.");
+        if (string.IsNullOrWhiteSpace(request.Institucion))
+            errors.Add("La institución es obligatoria.");
+
+        if (errors.Count > 0)
+            throw new RequestValidationException(errors);
+
+        CandidateProfile? profile = await candidateRepository.FindByUserIdAsync(userId, cancellationToken);
+
+        if (profile is null)
+            throw new NotFoundException("No se encontro el perfil del candidato.");
+
+        domain.entities.CursoCompletado curso = new()
+        {
+            Id = Guid.NewGuid(),
+            CandidateProfileId = profile.Id,
+            NombreCurso = request.NombreCurso.Trim(),
+            Institucion = request.Institucion.Trim(),
+            FechaCompletado = request.FechaCompletado,
+            EsDePlataforma = request.EsDePlataforma
+        };
+
+        await candidateRepository.SaveCursoAsync(curso, cancellationToken);
+
+        return new CursoCompletadoResponse(
+            curso.Id, curso.NombreCurso, curso.Institucion, curso.FechaCompletado, curso.EsDePlataforma);
+    }
+
+    public async Task DeleteCursoAsync(Guid userId, Guid cursoId, CancellationToken cancellationToken)
+    {
+        CandidateProfile? profile = await candidateRepository.FindByUserIdAsync(userId, cancellationToken);
+
+        if (profile is null)
+            throw new NotFoundException("No se encontro el perfil del candidato.");
+
+        await candidateRepository.DeleteCursoAsync(cursoId, profile.Id, cancellationToken);
+    }
+
     public async Task<CandidateProfileResponse> UpdateProfileAsync(
         Guid userId,
         UpdateCandidateProfileRequest updateCandidateProfileRequest,
@@ -161,7 +347,10 @@ public sealed class CandidateRegistrationService(
             FullName = updateCandidateProfileRequest.FullName.Trim(),
             DateOfBirth = updateCandidateProfileRequest.DateOfBirth,
             Province = updateCandidateProfileRequest.Province.Trim(),
-            EducationLevel = updateCandidateProfileRequest.EducationLevel.Trim()
+            EducationLevel = updateCandidateProfileRequest.EducationLevel.Trim(),
+            PhotoUrl = string.IsNullOrWhiteSpace(updateCandidateProfileRequest.PhotoUrl)
+                ? null
+                : updateCandidateProfileRequest.PhotoUrl.Trim()
         };
 
         await candidateRepository.UpdateAsync(updatedProfile, cancellationToken);
@@ -313,6 +502,8 @@ public sealed class CandidateRegistrationService(
             candidateProfile.EducationLevel,
             candidateProfile.Email,
             candidateProfile.IsVisibleToPartnerEmployers,
+            candidateProfile.IsAvailableForContact,
+            candidateProfile.PhotoUrl,
             candidateProfile.EmailConfirmationSent,
             candidateProfile.CreatedAtUtc);
     }
