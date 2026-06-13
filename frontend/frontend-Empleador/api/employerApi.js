@@ -54,3 +54,29 @@ export async function getMyEmployerProfile(token) {
   });
   return readApiResponse(response);
 }
+
+export async function getMyVacantes(token) {
+  return sendApiRequest(`${apiBaseUrl}/api/employers/me/vacantes`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function createVacante(token, data) {
+  return sendApiRequest(`${apiBaseUrl}/api/employers/me/vacantes`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      jobTitle: data.jobTitle,
+      province: data.province,
+      sector: data.sector,
+      modality: data.modality,
+      experienceLevel: data.experienceLevel,
+      description: data.description || null,
+      requirements: data.requirements || null,
+      salaryRange: data.salaryRange || null,
+    }),
+  });
+}

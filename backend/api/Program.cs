@@ -166,7 +166,12 @@ builder.Services.AddScoped<ICandidateRegistrationService, CandidateRegistrationS
 builder.Services.AddScoped<IEmployerRegistrationService, EmployerRegistrationService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
-builder.Services.AddScoped<IVacanteService, VacanteService>();
+builder.Services.AddScoped<IVacanteService>(sp =>
+    new VacanteService(
+        sp.GetRequiredService<IVacanteRepository>(),
+        sp.GetRequiredService<IPostulacionRepository>(),
+        sp.GetRequiredService<ICandidateRepository>(),
+        sp.GetRequiredService<IEmployerRepository>()));
 
 WebApplication app = builder.Build();
 
@@ -268,6 +273,29 @@ employerRoutes.MapGet("/candidates", async (
         await candidateRegistrationService.GetProfilesVisibleToPartnerEmployersAsync(cancellationToken);
 
     return Results.Ok(visibleCandidateProfiles);
+}).RequireAuthorization();
+
+employerRoutes.MapGet("/me/vacantes", async (
+    ClaimsPrincipal user,
+    IVacanteService vacanteService,
+    CancellationToken cancellationToken) =>
+{
+    IReadOnlyCollection<VacanteResponse> vacantes =
+        await vacanteService.GetMyVacantesAsync(GetAuthenticatedUserId(user), cancellationToken);
+
+    return Results.Ok(vacantes);
+}).RequireAuthorization();
+
+employerRoutes.MapPost("/me/vacantes", async (
+    ClaimsPrincipal user,
+    CreateVacanteRequest createVacanteRequest,
+    IVacanteService vacanteService,
+    CancellationToken cancellationToken) =>
+{
+    VacanteResponse vacante =
+        await vacanteService.CreateVacanteAsync(GetAuthenticatedUserId(user), createVacanteRequest, cancellationToken);
+
+    return Results.Created($"/api/employers/me/vacantes/{vacante.Id}", vacante);
 }).RequireAuthorization();
 
 // -- Rutas de autenticacion --
