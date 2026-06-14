@@ -9,6 +9,8 @@ import { EmployerDashboardPage } from './pages/EmployerDashboardPage.jsx';
 import { MisVacantesPage } from './pages/MisVacantesPage.jsx';
 import { PublicarVacantePage } from './pages/PublicarVacantePage.jsx';
 import { RegisterPage } from './pages/RegisterPage.jsx';
+import { PostulacionesVacanteEmpleadorPage } from './pages/PostulacionesVacanteEmpleadorPage.jsx';
+import { PostulacionDetailPage } from './pages/PostulacionDetailPage.jsx';
 
 export function App() {
   return (
@@ -41,6 +43,22 @@ export function App() {
             element={
               <ProtectedRoute>
                 <PublicarVacantePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/empleador/vacantes/:vacanteId/postulaciones"
+            element={
+              <ProtectedRoute>
+                <PostulacionesVacanteEmpleadorPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/empleador/postulaciones/:postulacionId"
+            element={
+              <ProtectedRoute>
+                <PostulacionDetailPage />
               </ProtectedRoute>
             }
           />

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, BriefcaseBusiness, MapPin, Plus, RefreshCw } from 'lucide-react';
+import { ArrowLeft, BriefcaseBusiness, ClipboardList, MapPin, Plus, RefreshCw } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { getMyVacantes } from '../api/employerApi.js';
 import { StatusMessage } from '../../shared/components/StatusMessage.jsx';
@@ -149,6 +149,15 @@ export function MisVacantesPage() {
                     <p className="vacante-card__description">{vacante.requirements}</p>
                   </div>
                 )}
+                <div className="vacante-card__footer">
+                  <Link
+                    className="secondary-action"
+                    to={`/empleador/vacantes/${vacante.id}/postulaciones`}
+                  >
+                    <ClipboardList aria-hidden="true" size={15} />
+                    Ver postulaciones
+                  </Link>
+                </div>
               </article>
             ))}
           </div>
