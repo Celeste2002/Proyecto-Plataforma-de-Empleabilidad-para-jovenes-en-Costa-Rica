@@ -16,7 +16,8 @@ async function sendApiRequest(url, options) {
 }
 
 async function readApiResponse(response) {
-  const responseBody = await response.json();
+  const responseText = await response.text();
+  const responseBody = responseText ? JSON.parse(responseText) : {};
   if (!response.ok) {
     const apiError = new Error(responseBody.message ?? 'No se pudo completar la solicitud.');
     apiError.validationErrors = responseBody.errors ?? [];
@@ -53,4 +54,21 @@ export async function getMyEmployerProfile(token) {
     headers: { Authorization: `Bearer ${token}` },
   });
   return readApiResponse(response);
+}
+
+export async function getMyVacantes(token) {
+  return sendApiRequest(`${apiBaseUrl}/api/employers/me/vacantes`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function updateMyVacanteStatus(token, vacanteId, isActive) {
+  return sendApiRequest(`${apiBaseUrl}/api/employers/me/vacantes/${vacanteId}/status`, {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ isActive }),
+  });
 }

@@ -31,6 +31,12 @@ export async function getUsers(token) {
   });
 }
 
+export async function getVacantes(token) {
+  return sendApiRequest(`${apiBaseUrl}/api/admin/vacantes`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
 export async function updateUserRole(userId, newRole, token) {
   let response;
 
@@ -55,4 +61,15 @@ export async function updateUserRole(userId, newRole, token) {
 
   if (response.status === 204) return;
   return readApiResponse(response);
+}
+
+export async function updateVacanteStatus(vacanteId, isActive, token) {
+  return sendApiRequest(`${apiBaseUrl}/api/admin/vacantes/${vacanteId}/status`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ isActive }),
+  });
 }

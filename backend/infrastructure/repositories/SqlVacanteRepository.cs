@@ -8,40 +8,25 @@ public sealed class SqlVacanteRepository(string connectionString) : IVacanteRepo
 {
     public async Task<IReadOnlyCollection<Vacante>> GetActiveAsync(CancellationToken cancellationToken)
     {
-        const string query = """
-            SELECT
-                v.Id,
-                v.EmployerProfileId,
-                v.JobTitle,
-                v.Province,
-                v.Sector,
-                v.Modality,
-                v.ExperienceLevel,
-                v.Description,
-                v.IsActive,
-                v.PublishedAt,
-                v.CreatedAtUtc,
-                ep.CompanyName
-            FROM dbo.Vacantes v
-            INNER JOIN dbo.EmployerProfiles ep ON v.EmployerProfileId = ep.Id
+        return await QueryVacantesAsync("""
             WHERE v.IsActive = 1
-            ORDER BY v.PublishedAt DESC;
-            """;
+            """, cancellationToken);
+    }
 
-        List<Vacante> vacantes = [];
+    public async Task<IReadOnlyCollection<Vacante>> GetAllAsync(CancellationToken cancellationToken)
+    {
+        return await QueryVacantesAsync(string.Empty, cancellationToken);
+    }
 
-        await using SqlConnection connection = new(connectionString);
-        await connection.OpenAsync(cancellationToken);
-
-        await using SqlCommand command = new(query, connection);
-        await using SqlDataReader reader = await command.ExecuteReaderAsync(cancellationToken);
-
-        while (await reader.ReadAsync(cancellationToken))
-        {
-            vacantes.Add(MapVacante(reader));
-        }
-
-        return vacantes;
+    public async Task<IReadOnlyCollection<Vacante>> GetByEmployerProfileIdAsync(
+        Guid employerProfileId,
+        CancellationToken cancellationToken)
+    {
+        return await QueryVacantesAsync("""
+            WHERE v.EmployerProfileId = @EmployerProfileId
+            """,
+            cancellationToken,
+            command => command.Parameters.AddWithValue("@EmployerProfileId", employerProfileId));
     }
 
     public async Task<Vacante?> FindByIdAsync(Guid id, CancellationToken cancellationToken)
@@ -74,6 +59,67 @@ public sealed class SqlVacanteRepository(string connectionString) : IVacanteRepo
         await using SqlDataReader reader = await command.ExecuteReaderAsync(cancellationToken);
 
         return await reader.ReadAsync(cancellationToken) ? MapVacante(reader) : null;
+    }
+
+    public async Task UpdateIsActiveAsync(Guid vacanteId, bool isActive, CancellationToken cancellationToken)
+    {
+        const string sql = """
+            UPDATE dbo.Vacantes
+            SET IsActive = @IsActive
+            WHERE Id = @Id;
+            """;
+
+        await using SqlConnection connection = new(connectionString);
+        await connection.OpenAsync(cancellationToken);
+
+        await using SqlCommand command = new(sql, connection);
+        command.Parameters.AddWithValue("@IsActive", isActive);
+        command.Parameters.AddWithValue("@Id", vacanteId);
+
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    private async Task<IReadOnlyCollection<Vacante>> QueryVacantesAsync(
+        string whereClause,
+        CancellationToken cancellationToken,
+        Action<SqlCommand>? bindParameters = null)
+    {
+        string query = $"""
+            SELECT
+                v.Id,
+                v.EmployerProfileId,
+                v.JobTitle,
+                v.Province,
+                v.Sector,
+                v.Modality,
+                v.ExperienceLevel,
+                v.Description,
+                v.IsActive,
+                v.PublishedAt,
+                v.CreatedAtUtc,
+                ep.CompanyName
+            FROM dbo.Vacantes v
+            INNER JOIN dbo.EmployerProfiles ep ON v.EmployerProfileId = ep.Id
+            {whereClause}
+            ORDER BY v.PublishedAt DESC;
+            """;
+
+        List<Vacante> vacantes = [];
+
+        await using SqlConnection connection = new(connectionString);
+        await connection.OpenAsync(cancellationToken);
+
+        await using SqlCommand command = new(query, connection);
+        bindParameters?.Invoke(command);
+
+        await using SqlDataReader reader = await command.ExecuteReaderAsync(cancellationToken);
+
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            vacantes.Add(MapVacante(reader));
+        }
+
+        return vacantes;
     }
 
     private static Vacante MapVacante(SqlDataReader reader) =>

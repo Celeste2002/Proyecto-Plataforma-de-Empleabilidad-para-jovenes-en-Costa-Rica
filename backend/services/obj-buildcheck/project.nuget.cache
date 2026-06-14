@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "dgSpecHash": "1stCDiaej7k=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\maces\\OneDrive\\Documentos\\GitHub\\Proyecto-Plataforma-de-Empleabilidad-para-jovenes-en-Costa-Rica\\backend\\services\\services.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\maces\\.nuget\\packages\\microsoft.extensions.dependencyinjection.abstractions\\9.0.0\\microsoft.extensions.dependencyinjection.abstractions.9.0.0.nupkg.sha512",
+    "C:\\Users\\maces\\.nuget\\packages\\microsoft.extensions.logging.abstractions\\9.0.0\\microsoft.extensions.logging.abstractions.9.0.0.nupkg.sha512"
+  ],
+  "logs": []
+}

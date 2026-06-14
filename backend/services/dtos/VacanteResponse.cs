@@ -9,4 +9,5 @@ public sealed record VacanteResponse(
     string Modality,
     string ExperienceLevel,
     string? Description,
+    bool IsActive,
     DateTime PublishedAt);

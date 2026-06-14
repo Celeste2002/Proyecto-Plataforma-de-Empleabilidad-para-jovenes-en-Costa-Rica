@@ -270,6 +270,34 @@ employerRoutes.MapGet("/candidates", async (
     return Results.Ok(visibleCandidateProfiles);
 }).RequireAuthorization();
 
+employerRoutes.MapGet("/me/vacantes", async (
+    ClaimsPrincipal user,
+    IVacanteService vacanteService,
+    CancellationToken cancellationToken) =>
+{
+    IReadOnlyCollection<VacanteResponse> vacantes =
+        await vacanteService.GetMyVacantesAsync(GetAuthenticatedUserId(user), cancellationToken);
+
+    return Results.Ok(vacantes);
+}).RequireAuthorization();
+
+employerRoutes.MapPut("/me/vacantes/{id:guid}/status", async (
+    ClaimsPrincipal user,
+    Guid id,
+    UpdateVacanteStatusRequest updateVacanteStatusRequest,
+    IVacanteService vacanteService,
+    CancellationToken cancellationToken) =>
+{
+    VacanteResponse vacante =
+        await vacanteService.UpdateMyVacanteStatusAsync(
+            GetAuthenticatedUserId(user),
+            id,
+            updateVacanteStatusRequest,
+            cancellationToken);
+
+    return Results.Ok(vacante);
+}).RequireAuthorization();
+
 // -- Rutas de autenticacion --
 
 RouteGroupBuilder authRoutes = app.MapGroup("/api/auth");
@@ -333,6 +361,28 @@ adminRoutes.MapPost("/employers/{id:guid}/activate", async (
 {
     await employerRegistrationService.ActivateAsync(id, cancellationToken);
     return Results.Ok(new { message = "Empleador activado correctamente." });
+});
+
+adminRoutes.MapGet("/vacantes", async (
+    IVacanteService vacanteService,
+    CancellationToken cancellationToken) =>
+{
+    IReadOnlyCollection<VacanteResponse> vacantes =
+        await vacanteService.GetAllVacantesAsync(cancellationToken);
+
+    return Results.Ok(vacantes);
+});
+
+adminRoutes.MapPut("/vacantes/{id:guid}/status", async (
+    Guid id,
+    UpdateVacanteStatusRequest updateVacanteStatusRequest,
+    IVacanteService vacanteService,
+    CancellationToken cancellationToken) =>
+{
+    VacanteResponse vacante =
+        await vacanteService.UpdateVacanteStatusAsAdminAsync(id, updateVacanteStatusRequest, cancellationToken);
+
+    return Results.Ok(vacante);
 });
 
 // -- Rutas de vacantes y postulaciones --

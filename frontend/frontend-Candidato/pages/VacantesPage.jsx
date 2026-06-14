@@ -30,12 +30,33 @@ export function VacantesPage() {
     experienceLevel: '',
   });
 
-  useEffect(() => {
-    getVacantes(token)
-      .then((data) => setVacantes(data))
-      .catch((err) => setErrorMsg(err.message))
-      .finally(() => setLoading(false));
+  const loadVacantes = useCallback(async (showLoading = false) => {
+    if (showLoading) {
+      setLoading(true);
+    }
+
+    setErrorMsg('');
+
+    try {
+      const data = await getVacantes(token);
+      setVacantes(data);
+    } catch (err) {
+      setErrorMsg(err.message);
+    } finally {
+      if (showLoading) {
+        setLoading(false);
+      }
+    }
   }, [token]);
+
+  useEffect(() => {
+    loadVacantes(true);
+    const intervalId = setInterval(() => {
+      loadVacantes(false);
+    }, 15000);
+
+    return () => clearInterval(intervalId);
+  }, [loadVacantes]);
 
   const filteredVacantes = useMemo(() => {
     return vacantes.filter((v) => {
@@ -199,6 +220,9 @@ export function VacantesPage() {
                       <p className="vacante-card__company">{vacante.companyName}</p>
                     </div>
                     <div className="vacante-card__meta">
+                      <span className={`vacante-badge ${vacante.isActive ? 'vacante-badge--active' : 'vacante-badge--inactive'}`}>
+                        {vacante.isActive ? 'Activa' : 'Desactivada'}
+                      </span>
                       <span className="vacante-badge vacante-badge--modality">{vacante.modality}</span>
                       <span className="vacante-badge vacante-badge--experience">{vacante.experienceLevel}</span>
                     </div>

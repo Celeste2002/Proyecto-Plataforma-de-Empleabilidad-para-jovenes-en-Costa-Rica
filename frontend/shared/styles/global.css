@@ -901,6 +901,8 @@ dd {
 }
 
 .vacante-badge {
+  align-items: center;
+  display: inline-flex;
   border-radius: 20px;
   font-size: 0.75rem;
   font-weight: 700;
@@ -915,6 +917,28 @@ dd {
 .vacante-badge--experience {
   background: #e6f5ed;
   color: var(--success);
+}
+
+.vacante-badge--active {
+  background: #e6f5ed;
+  color: var(--success);
+}
+
+.vacante-badge--inactive {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.vacante-table__title {
+  align-items: flex-start;
+  display: flex;
+  gap: 10px;
+}
+
+.vacante-table__title p {
+  color: var(--muted);
+  font-size: 0.82rem;
+  margin: 4px 0 0;
 }
 
 .vacante-card__details {
@@ -1203,6 +1227,7 @@ dd {
 .admin-stat__dot--candidate   { background: #075a9c; }
 .admin-stat__dot--employer    { background: #00857a; }
 .admin-stat__dot--administrator { background: #7c3aed; }
+.admin-stat__dot--vacancy     { background: #b45309; }
 
 .admin-section__title {
   font-size: 1.1rem;
@@ -1298,13 +1323,28 @@ dd {
 .admin-confirmed--no  { background: #fee2e2; color: #991b1b; }
 
 .admin-save-btn {
+  align-items: center;
   background: var(--primary);
   border: none;
   border-radius: 6px;
   color: #fff;
+  display: inline-flex;
   font-size: 0.8rem;
   font-weight: 700;
   padding: 5px 12px;
+  gap: 6px;
+}
+
+.admin-save-btn--danger {
+  background: #b42318;
+}
+
+.admin-save-btn--danger:hover:not(:disabled) {
+  background: #8f1d13;
+}
+
+.employer-section-spacing {
+  margin-top: 26px;
 }
 
 .admin-save-btn:hover:not(:disabled) {

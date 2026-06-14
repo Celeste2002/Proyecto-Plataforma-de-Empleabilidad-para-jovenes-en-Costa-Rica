@@ -1,7 +1,7 @@
-import { KeyRound, LogOut, RefreshCw, UserRoundCheck } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { BriefcaseBusiness, CircleCheck, CircleOff, KeyRound, LogOut, RefreshCw, UserRoundCheck } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { getVisibleCandidateProfiles } from '../api/employerApi.js';
+import { getMyVacantes, getVisibleCandidateProfiles, updateMyVacanteStatus } from '../api/employerApi.js';
 import { StatusMessage } from '../../shared/components/StatusMessage.jsx';
 import { AUTH_ROUTES } from '../../shared/constants/authRoutes.js';
 import { useAuth } from '../../shared/context/AuthContext.jsx';
@@ -11,26 +11,61 @@ export function EmployerDashboardPage() {
   const navigate = useNavigate();
 
   const [candidateProfiles, setCandidateProfiles] = useState([]);
+  const [vacantes, setVacantes] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
+  const [savingVacanteId, setSavingVacanteId] = useState(null);
+  const [savedVacanteId, setSavedVacanteId] = useState(null);
 
-  async function loadCandidateProfiles() {
-    setIsLoading(true);
+  const loadDashboardData = useCallback(async (showLoading = false) => {
+    if (showLoading) {
+      setIsLoading(true);
+    }
+
     setErrorMessage('');
 
     try {
-      const profiles = await getVisibleCandidateProfiles(token);
+      const [profiles, ownVacantes] = await Promise.all([
+        getVisibleCandidateProfiles(token),
+        getMyVacantes(token),
+      ]);
       setCandidateProfiles(profiles);
+      setVacantes(ownVacantes);
     } catch (error) {
       setErrorMessage(error.message);
     } finally {
-      setIsLoading(false);
+      if (showLoading) {
+        setIsLoading(false);
+      }
     }
-  }
+  }, [token]);
 
   useEffect(() => {
-    loadCandidateProfiles();
-  }, []);
+    loadDashboardData(true);
+    const intervalId = setInterval(() => {
+      loadDashboardData(false);
+    }, 15000);
+
+    return () => clearInterval(intervalId);
+  }, [loadDashboardData]);
+
+  async function handleVacanteStatusChange(vacanteId, isActive) {
+    setSavingVacanteId(vacanteId);
+    setErrorMessage('');
+
+    try {
+      const updatedVacante = await updateMyVacanteStatus(token, vacanteId, isActive);
+      setVacantes((prev) => prev.map((vacante) => (
+        vacante.id === vacanteId ? updatedVacante : vacante
+      )));
+      setSavedVacanteId(vacanteId);
+      window.setTimeout(() => setSavedVacanteId(null), 1800);
+    } catch (error) {
+      setErrorMessage(error.message);
+    } finally {
+      setSavingVacanteId(null);
+    }
+  }
 
   function handleLogout() {
     logout();
@@ -70,7 +105,7 @@ export function EmployerDashboardPage() {
             <p className="eyebrow">Empleadores aliados</p>
             <h2>Candidatos visibles</h2>
           </div>
-          <button className="secondary-action" onClick={loadCandidateProfiles} type="button">
+          <button className="secondary-action" onClick={() => loadDashboardData(true)} type="button">
             <RefreshCw aria-hidden="true" size={18} />
             Actualizar
           </button>
@@ -113,6 +148,89 @@ export function EmployerDashboardPage() {
                 </dl>
               </article>
             ))}
+          </div>
+        )}
+
+        <div className="section-heading horizontal-heading employer-section-spacing">
+          <div>
+            <p className="eyebrow">Gestión de vacantes</p>
+            <h2>Mis vacantes</h2>
+            <p className="section-description">
+              Aquí puedes desactivar una vacante para dejar de recibir postulaciones y volver a activarla cuando quieras.
+            </p>
+          </div>
+          <button className="secondary-action" onClick={() => loadDashboardData(true)} type="button">
+            <RefreshCw aria-hidden="true" size={18} />
+            Actualizar
+          </button>
+        </div>
+
+        {isLoading ? (
+          <p className="empty-state">Cargando vacantes...</p>
+        ) : vacantes.length === 0 ? (
+          <p className="empty-state">Aún no tienes vacantes registradas.</p>
+        ) : (
+          <div className="admin-table-wrapper">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Vacante</th>
+                  <th>Provincia</th>
+                  <th>Estado</th>
+                  <th>Publicado</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {vacantes.map((vacante) => {
+                  const isSaving = savingVacanteId === vacante.id;
+                  const isSaved = savedVacanteId === vacante.id;
+
+                  return (
+                    <tr key={vacante.id} className={isSaved ? 'admin-table__row--saved' : ''}>
+                      <td>
+                        <div className="vacante-table__title">
+                          <BriefcaseBusiness size={16} />
+                          <div>
+                            <strong>{vacante.jobTitle}</strong>
+                            <p>{vacante.sector} · {vacante.modality}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td>{vacante.province}</td>
+                      <td>
+                        <span className={`vacante-badge ${vacante.isActive ? 'vacante-badge--active' : 'vacante-badge--inactive'}`}>
+                          {vacante.isActive ? 'Activa' : 'Desactivada'}
+                        </span>
+                      </td>
+                      <td className="admin-table__date">
+                        {new Date(vacante.publishedAt).toLocaleDateString('es-CR')}
+                      </td>
+                      <td>
+                        <button
+                          className={`admin-save-btn ${vacante.isActive ? 'admin-save-btn--danger' : ''}`}
+                          disabled={isSaving}
+                          onClick={() => handleVacanteStatusChange(vacante.id, !vacante.isActive)}
+                          type="button"
+                        >
+                          {isSaving ? 'Actualizando...' : vacante.isActive ? (
+                            <>
+                              <CircleOff size={16} />
+                              Desactivar
+                            </>
+                          ) : (
+                            <>
+                              <CircleCheck size={16} />
+                              Activar
+                            </>
+                          )}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
       </section>
