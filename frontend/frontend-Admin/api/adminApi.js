@@ -31,6 +31,12 @@ export async function getUsers(token) {
   });
 }
 
+export async function getReportData(token) {
+  return sendApiRequest(`${apiBaseUrl}/api/admin/report/data`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
 export async function updateUserRole(userId, newRole, token) {
   let response;
 

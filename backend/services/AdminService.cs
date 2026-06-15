@@ -6,7 +6,9 @@ using services.interfaces;
 
 namespace services;
 
-public sealed class AdminService(IUserRepository userRepository) : IAdminService
+public sealed class AdminService(
+    IUserRepository userRepository,
+    IAdminReportRepository adminReportRepository) : IAdminService
 {
     public async Task<IReadOnlyCollection<UserSummaryResponse>> GetAllUsersAsync(
         CancellationToken cancellationToken)
@@ -45,4 +47,7 @@ public sealed class AdminService(IUserRepository userRepository) : IAdminService
 
         await userRepository.UpdateRoleAsync(userId, newRole.ToUpperInvariant(), cancellationToken);
     }
+
+    public Task<AdminReportResponse> GetReportDataAsync(CancellationToken cancellationToken)
+        => adminReportRepository.GetReportDataAsync(cancellationToken);
 }

@@ -94,6 +94,9 @@ builder.Services.AddSingleton<IVacanteRepository>(_ =>
 builder.Services.AddSingleton<IPostulacionRepository>(_ =>
     new SqlPostulacionRepository(defaultConnectionString));
 
+builder.Services.AddSingleton<INotificacionRepository>(_ =>
+    new SqlNotificacionRepository(defaultConnectionString));
+
 builder.Services.AddSingleton<IEmailConfirmationSender>(_ =>
 {
     EmailSettings emailSettings = builder.Configuration
@@ -165,13 +168,27 @@ builder.Services.AddSingleton<IPasswordHasher, BcryptPasswordHasher>();
 builder.Services.AddScoped<ICandidateRegistrationService, CandidateRegistrationService>();
 builder.Services.AddScoped<IEmployerRegistrationService, EmployerRegistrationService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<IAdminService, AdminService>();
+builder.Services.AddSingleton<IAdminReportRepository>(_ =>
+    new SqlAdminReportRepository(defaultConnectionString));
+
+builder.Services.AddScoped<IAdminService>(sp =>
+    new AdminService(
+        sp.GetRequiredService<IUserRepository>(),
+        sp.GetRequiredService<IAdminReportRepository>()));
 builder.Services.AddScoped<IVacanteService>(sp =>
     new VacanteService(
         sp.GetRequiredService<IVacanteRepository>(),
         sp.GetRequiredService<IPostulacionRepository>(),
         sp.GetRequiredService<ICandidateRepository>(),
-        sp.GetRequiredService<IEmployerRepository>()));
+        sp.GetRequiredService<IEmployerRepository>(),
+        sp.GetRequiredService<INotificacionRepository>()));
+
+builder.Services.AddScoped<IEmployerPostulacionService>(sp =>
+    new EmployerPostulacionService(
+        sp.GetRequiredService<IEmployerRepository>(),
+        sp.GetRequiredService<IVacanteRepository>(),
+        sp.GetRequiredService<IPostulacionRepository>(),
+        sp.GetRequiredService<INotificacionRepository>()));
 
 WebApplication app = builder.Build();
 
@@ -387,6 +404,81 @@ employerRoutes.MapPost("/me/vacantes", async (
     return Results.Created($"/api/employers/me/vacantes/{vacante.Id}", vacante);
 }).RequireAuthorization();
 
+employerRoutes.MapGet("/me/vacantes/{vacanteId:guid}/postulaciones", async (
+    Guid vacanteId,
+    ClaimsPrincipal user,
+    IEmployerPostulacionService employerPostulacionService,
+    CancellationToken cancellationToken) =>
+{
+    IReadOnlyCollection<PostulacionSummaryResponse> postulaciones =
+        await employerPostulacionService.GetPostulacionesByVacanteAsync(
+            GetAuthenticatedUserId(user), vacanteId, cancellationToken);
+
+    return Results.Ok(postulaciones);
+}).RequireAuthorization();
+
+employerRoutes.MapGet("/me/postulaciones/{postulacionId:guid}", async (
+    Guid postulacionId,
+    ClaimsPrincipal user,
+    IEmployerPostulacionService employerPostulacionService,
+    CancellationToken cancellationToken) =>
+{
+    PostulacionDetailResponse detail =
+        await employerPostulacionService.GetPostulacionDetailAsync(
+            GetAuthenticatedUserId(user), postulacionId, cancellationToken);
+
+    return Results.Ok(detail);
+}).RequireAuthorization();
+
+employerRoutes.MapPut("/me/postulaciones/{postulacionId:guid}/status", async (
+    Guid postulacionId,
+    UpdatePostulacionStatusRequest request,
+    ClaimsPrincipal user,
+    IEmployerPostulacionService employerPostulacionService,
+    CancellationToken cancellationToken) =>
+{
+    await employerPostulacionService.UpdatePostulacionStatusAsync(
+        GetAuthenticatedUserId(user), postulacionId, request.Status, cancellationToken);
+
+    return Results.Ok(new { message = $"Estado actualizado a '{request.Status}'." });
+}).RequireAuthorization();
+
+employerRoutes.MapGet("/me/notificaciones/unread-count", async (
+    ClaimsPrincipal user,
+    IEmployerPostulacionService employerPostulacionService,
+    CancellationToken cancellationToken) =>
+{
+    int count = await employerPostulacionService.GetUnreadNotificacionCountAsync(
+        GetAuthenticatedUserId(user), cancellationToken);
+
+    return Results.Ok(new { count });
+}).RequireAuthorization();
+
+employerRoutes.MapGet("/me/notificaciones", async (
+    Guid? vacanteId,
+    ClaimsPrincipal user,
+    IEmployerPostulacionService employerPostulacionService,
+    CancellationToken cancellationToken) =>
+{
+    IReadOnlyCollection<NotificacionResponse> notificaciones =
+        await employerPostulacionService.GetNotificacionesAsync(
+            GetAuthenticatedUserId(user), vacanteId, cancellationToken);
+
+    return Results.Ok(notificaciones);
+}).RequireAuthorization();
+
+employerRoutes.MapPut("/me/notificaciones/{id:guid}/read", async (
+    Guid id,
+    ClaimsPrincipal user,
+    IEmployerPostulacionService employerPostulacionService,
+    CancellationToken cancellationToken) =>
+{
+    await employerPostulacionService.MarkNotificacionReadAsync(
+        GetAuthenticatedUserId(user), id, cancellationToken);
+
+    return Results.Ok(new { message = "Notificación marcada como leída." });
+}).RequireAuthorization();
+
 // -- Rutas de autenticacion --
 
 RouteGroupBuilder authRoutes = app.MapGroup("/api/auth");
@@ -441,6 +533,14 @@ adminRoutes.MapPut("/users/{id:guid}/role", async (
 {
     await adminService.UpdateUserRoleAsync(id, updateUserRoleRequest.NewRole, cancellationToken);
     return Results.NoContent();
+});
+
+adminRoutes.MapGet("/report/data", async (
+    IAdminService adminService,
+    CancellationToken cancellationToken) =>
+{
+    AdminReportResponse report = await adminService.GetReportDataAsync(cancellationToken);
+    return Results.Ok(report);
 });
 
 adminRoutes.MapPost("/employers/{id:guid}/activate", async (

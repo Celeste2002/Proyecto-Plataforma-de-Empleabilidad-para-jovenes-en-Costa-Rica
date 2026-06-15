@@ -10,7 +10,8 @@ public sealed class VacanteService(
     IVacanteRepository vacanteRepository,
     IPostulacionRepository postulacionRepository,
     ICandidateRepository candidateRepository,
-    IEmployerRepository employerRepository) : IVacanteService
+    IEmployerRepository employerRepository,
+    INotificacionRepository notificacionRepository) : IVacanteService
 {
     public async Task<IReadOnlyCollection<VacanteResponse>> GetActiveVacantesAsync(
         CancellationToken cancellationToken)
@@ -144,6 +145,19 @@ public sealed class VacanteService(
         };
 
         await postulacionRepository.SaveAsync(postulacion, cancellationToken);
+
+        Notificacion notificacion = new()
+        {
+            Id = Guid.NewGuid(),
+            EmployerProfileId = vacante.EmployerProfileId,
+            PostulacionId = postulacion.Id,
+            VacanteId = vacante.Id,
+            Message = $"{candidateProfile.FullName} se ha postulado a la vacante {vacante.JobTitle}",
+            IsRead = false,
+            CreatedAtUtc = DateTime.UtcNow
+        };
+
+        await notificacionRepository.SaveAsync(notificacion, cancellationToken);
     }
 
     public async Task<IReadOnlyCollection<PostulacionResponse>> GetMyPostulacionesAsync(

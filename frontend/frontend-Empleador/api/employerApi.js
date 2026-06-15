@@ -16,7 +16,8 @@ async function sendApiRequest(url, options) {
 }
 
 async function readApiResponse(response) {
-  const responseBody = await response.json();
+  const responseText = await response.text();
+  const responseBody = responseText ? JSON.parse(responseText) : {};
   if (!response.ok) {
     const apiError = new Error(responseBody.message ?? 'No se pudo completar la solicitud.');
     apiError.validationErrors = responseBody.errors ?? [];
@@ -79,4 +80,57 @@ export async function createVacante(token, data) {
       salaryRange: data.salaryRange || null,
     }),
   });
+}
+
+export async function getPostulacionesByVacante(token, vacanteId) {
+  return sendApiRequest(
+    `${apiBaseUrl}/api/employers/me/vacantes/${vacanteId}/postulaciones`,
+    { headers: { Authorization: `Bearer ${token}` } },
+  );
+}
+
+export async function getPostulacionDetail(token, postulacionId) {
+  return sendApiRequest(
+    `${apiBaseUrl}/api/employers/me/postulaciones/${postulacionId}`,
+    { headers: { Authorization: `Bearer ${token}` } },
+  );
+}
+
+export async function updatePostulacionStatus(token, postulacionId, newStatus) {
+  return sendApiRequest(
+    `${apiBaseUrl}/api/employers/me/postulaciones/${postulacionId}/status`,
+    {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ status: newStatus }),
+    },
+  );
+}
+
+export async function getNotificaciones(token, vacanteId) {
+  const query = vacanteId ? `?vacanteId=${vacanteId}` : '';
+  return sendApiRequest(
+    `${apiBaseUrl}/api/employers/me/notificaciones${query}`,
+    { headers: { Authorization: `Bearer ${token}` } },
+  );
+}
+
+export async function markNotificacionRead(token, notificacionId) {
+  return sendApiRequest(
+    `${apiBaseUrl}/api/employers/me/notificaciones/${notificacionId}/read`,
+    {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${token}` },
+    },
+  );
+}
+
+export async function getUnreadNotificacionCount(token) {
+  return sendApiRequest(
+    `${apiBaseUrl}/api/employers/me/notificaciones/unread-count`,
+    { headers: { Authorization: `Bearer ${token}` } },
+  );
 }
