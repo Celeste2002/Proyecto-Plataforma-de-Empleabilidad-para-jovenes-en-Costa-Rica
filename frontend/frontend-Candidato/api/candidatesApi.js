@@ -20,7 +20,11 @@ async function readApiResponse(response) {
   const responseBody = responseText ? JSON.parse(responseText) : {};
 
   if (!response.ok) {
+    if (response.status === 401) {
+      window.dispatchEvent(new Event('auth:unauthorized'));
+    }
     const apiError = new Error(responseBody.message ?? 'No se pudo completar la solicitud.');
+    apiError.status = response.status;
     apiError.validationErrors = responseBody.errors ?? [];
     throw apiError;
   }

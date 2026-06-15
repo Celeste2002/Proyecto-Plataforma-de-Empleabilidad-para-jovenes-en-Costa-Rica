@@ -70,6 +70,14 @@ button:disabled {
   line-height: 1;
 }
 
+.brand-subtitle {
+  color: var(--muted);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  margin: 2px 0 0;
+  text-transform: uppercase;
+}
+
 .brand-lockup {
   align-items: center;
   display: flex;
@@ -729,6 +737,24 @@ dd {
 .dashboard-card--info {
   background: var(--surface-strong);
   border-style: dashed;
+}
+
+.dashboard-card-link {
+  color: inherit;
+  cursor: pointer;
+  display: block;
+  text-decoration: none;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+}
+
+.dashboard-card-link:hover {
+  border-color: var(--primary);
+  box-shadow: 0 6px 24px rgb(16 36 58 / 0.12);
+  transform: translateY(-2px);
+}
+
+.dashboard-card-link h3 {
+  color: var(--primary);
 }
 
 .dashboard-actions {
