@@ -97,6 +97,12 @@ builder.Services.AddSingleton<IPostulacionRepository>(_ =>
 builder.Services.AddSingleton<INotificacionRepository>(_ =>
     new SqlNotificacionRepository(defaultConnectionString));
 
+builder.Services.AddSingleton<IContactoAccesoRepository>(_ =>
+    new SqlContactoAccesoRepository(defaultConnectionString));
+
+builder.Services.AddSingleton<IMensajeRepository>(_ =>
+    new SqlMensajeRepository(defaultConnectionString));
+
 builder.Services.AddSingleton<IEmailConfirmationSender>(_ =>
 {
     EmailSettings emailSettings = builder.Configuration
@@ -188,7 +194,16 @@ builder.Services.AddScoped<IEmployerPostulacionService>(sp =>
         sp.GetRequiredService<IEmployerRepository>(),
         sp.GetRequiredService<IVacanteRepository>(),
         sp.GetRequiredService<IPostulacionRepository>(),
-        sp.GetRequiredService<INotificacionRepository>()));
+        sp.GetRequiredService<INotificacionRepository>(),
+        sp.GetRequiredService<IContactoAccesoRepository>()));
+
+builder.Services.AddScoped<IMensajeService>(sp =>
+    new MensajeService(
+        sp.GetRequiredService<IMensajeRepository>(),
+        sp.GetRequiredService<IPostulacionRepository>(),
+        sp.GetRequiredService<IVacanteRepository>(),
+        sp.GetRequiredService<IEmployerRepository>(),
+        sp.GetRequiredService<ICandidateRepository>()));
 
 WebApplication app = builder.Build();
 

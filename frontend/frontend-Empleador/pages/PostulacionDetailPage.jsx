@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, CalendarDays, CheckCircle2, GraduationCap, Mail, MapPin, UserRound } from 'lucide-react';
+import { ArrowLeft, CalendarDays, CheckCircle2, GraduationCap, Mail, MapPin, MessageSquare, UserRound } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import { getPostulacionDetail, updatePostulacionStatus } from '../api/employerApi.js';
+import { EnviarMensajeModal } from '../components/EnviarMensajeModal.jsx';
 import { StatusMessage } from '../../shared/components/StatusMessage.jsx';
 import { useAuth } from '../../shared/context/AuthContext.jsx';
 
@@ -47,6 +48,7 @@ export function PostulacionDetailPage() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [mensajeModal, setMensajeModal] = useState(false);
 
   async function loadDetail() {
     setIsLoading(true);
@@ -138,6 +140,17 @@ export function PostulacionDetailPage() {
             </div>
 
             <div className="status-actions">
+              <button
+                className="secondary-action"
+                onClick={() => setMensajeModal(true)}
+                type="button"
+              >
+                <MessageSquare aria-hidden="true" size={15} />
+                Enviar mensaje
+              </button>
+            </div>
+
+            <div className="status-actions">
               <span className="status-actions__label">Gestionar estado:</span>
               {EMPLOYER_STATUSES.map(({ value, label }) => (
                 <button
@@ -164,7 +177,7 @@ export function PostulacionDetailPage() {
                     <Mail aria-hidden="true" size={15} />
                     Correo electrónico
                   </dt>
-                  <dd>{detail.candidateEmail}</dd>
+                  <dd><a href={`mailto:${detail.candidateEmail}`}>{detail.candidateEmail}</a></dd>
                 </div>
                 <div>
                   <dt>
@@ -213,6 +226,15 @@ export function PostulacionDetailPage() {
           </>
         )}
       </section>
+
+      {mensajeModal && detail && (
+        <EnviarMensajeModal
+          candidateName={detail.candidateFullName}
+          onClose={() => setMensajeModal(false)}
+          postulacionId={detail.id}
+          token={token}
+        />
+      )}
     </main>
   );
 }

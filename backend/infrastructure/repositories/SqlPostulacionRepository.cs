@@ -227,23 +227,4 @@ public sealed class SqlPostulacionRepository(string connectionString) : IPostula
             CompanyName = reader.GetString(reader.GetOrdinal("CompanyName")),
             Province = reader.GetString(reader.GetOrdinal("Province"))
         };
-
-    private static Postulacion MapPostulacionWithCandidate(SqlDataReader reader) =>
-        new()
-        {
-            Id = reader.GetGuid(reader.GetOrdinal("Id")),
-            VacanteId = reader.GetGuid(reader.GetOrdinal("VacanteId")),
-            CandidateProfileId = reader.GetGuid(reader.GetOrdinal("CandidateProfileId")),
-            Status = reader.GetString(reader.GetOrdinal("Status")),
-            AppliedAt = reader.GetDateTime(reader.GetOrdinal("AppliedAt")),
-            UpdatedAtUtc = reader.GetDateTime(reader.GetOrdinal("UpdatedAtUtc")),
-            JobTitle = reader.GetString(reader.GetOrdinal("JobTitle")),
-            CompanyName = reader.GetString(reader.GetOrdinal("CompanyName")),
-            Province = reader.GetString(reader.GetOrdinal("Province")),
-            CandidateFullName = reader.GetString(reader.GetOrdinal("CandidateFullName")),
-            CandidateEmail = reader.GetString(reader.GetOrdinal("CandidateEmail")),
-            CandidateProvince = reader.GetString(reader.GetOrdinal("CandidateProvince")),
-            CandidateEducationLevel = reader.GetString(reader.GetOrdinal("CandidateEducationLevel")),
-            CandidateAge = reader.GetInt32(reader.GetOrdinal("CandidateAge"))
-        };
 }

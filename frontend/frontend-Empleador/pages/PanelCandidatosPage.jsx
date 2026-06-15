@@ -199,7 +199,7 @@ export function PanelCandidatosPage() {
                             </div>
                             <div>
                               <dt>Correo</dt>
-                              <dd>{postulacion.candidateEmail}</dd>
+                              <dd><a href={`mailto:${postulacion.candidateEmail}`}>{postulacion.candidateEmail}</a></dd>
                             </div>
                             <div>
                               <dt>Postulado</dt>
