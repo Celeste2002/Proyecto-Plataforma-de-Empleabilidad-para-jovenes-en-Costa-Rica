@@ -9,6 +9,7 @@ import { CandidateDashboardPage } from './pages/CandidateDashboardPage.jsx';
 import { CandidateProfileUpdatePage } from './pages/CandidateProfileUpdatePage.jsx';
 import { CandidateRegistrationPage } from './pages/CandidateRegistrationPage.jsx';
 import { VacantesPage } from './pages/VacantesPage.jsx';
+import { MisMensajesPage } from './pages/MisMensajesPage.jsx';
 import { PostulacionesPage } from './pages/PostulacionesPage.jsx';
 
 export function App() {
@@ -50,6 +51,14 @@ export function App() {
             element={
               <ProtectedRoute>
                 <PostulacionesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/candidato/mensajes"
+            element={
+              <ProtectedRoute>
+                <MisMensajesPage />
               </ProtectedRoute>
             }
           />

@@ -1,4 +1,4 @@
-import { BriefcaseBusiness, ClipboardList, KeyRound, LogOut, UserRound } from 'lucide-react';
+import { BriefcaseBusiness, ClipboardList, KeyRound, LogOut, MessageSquare, UserRound } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AUTH_ROUTES } from '../../shared/constants/authRoutes.js';
 import { useAuth } from '../../shared/context/AuthContext.jsx';
@@ -67,6 +67,14 @@ export function CandidateDashboardPage() {
             <h3>Mis postulaciones</h3>
             <p>Consulta el estado de todas tus postulaciones: enviada, en revisión, entrevista o finalizada.</p>
           </article>
+
+          <article className="dashboard-card">
+            <div className="dashboard-card-icon">
+              <MessageSquare aria-hidden="true" size={28} />
+            </div>
+            <h3>Mis mensajes</h3>
+            <p>Lee los mensajes que los empleadores te han enviado sobre tus postulaciones.</p>
+          </article>
         </div>
 
         <div className="dashboard-actions">
@@ -77,6 +85,10 @@ export function CandidateDashboardPage() {
           <Link className="secondary-action" to="/candidato/postulaciones">
             <ClipboardList aria-hidden="true" size={16} />
             Mis postulaciones
+          </Link>
+          <Link className="secondary-action" to="/candidato/mensajes">
+            <MessageSquare aria-hidden="true" size={16} />
+            Mis mensajes
           </Link>
           <Link className="secondary-action" to="/candidato/actualizar-registro">
             Actualizar registro

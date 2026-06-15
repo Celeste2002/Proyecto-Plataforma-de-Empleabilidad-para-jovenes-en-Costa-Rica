@@ -1,4 +1,4 @@
-import { BriefcaseBusiness, KeyRound, LogOut, RefreshCw, UserRoundCheck } from 'lucide-react';
+import { BriefcaseBusiness, KeyRound, LogOut, RefreshCw, UserRoundCheck, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getVisibleCandidateProfiles } from '../api/employerApi.js';
@@ -56,6 +56,10 @@ export function EmployerDashboardPage() {
           <Link className="secondary-action" to="/empleador/vacantes">
             <BriefcaseBusiness aria-hidden="true" size={16} />
             Mis vacantes
+          </Link>
+          <Link className="secondary-action" to="/empleador/candidatos">
+            <Users aria-hidden="true" size={16} />
+            Panel de candidatos
           </Link>
           <Link className="secondary-action" to={AUTH_ROUTES.recoverPassword}>
             <KeyRound aria-hidden="true" size={16} />

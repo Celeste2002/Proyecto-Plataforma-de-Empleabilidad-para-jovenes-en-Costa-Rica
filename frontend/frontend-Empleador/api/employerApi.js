@@ -80,3 +80,34 @@ export async function createVacante(token, data) {
     }),
   });
 }
+
+export async function getMisCandidatos(token) {
+  return sendApiRequest(`${apiBaseUrl}/api/employers/me/candidatos`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function updatePostulacionStatus(token, postulacionId, newStatus) {
+  return sendApiRequest(
+    `${apiBaseUrl}/api/employers/me/postulaciones/${postulacionId}/status`,
+    {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ newStatus }),
+    },
+  );
+}
+
+export async function enviarMensaje(token, postulacionId, body) {
+  return sendApiRequest(`${apiBaseUrl}/api/mensajes`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ postulacionId, body }),
+  });
+}

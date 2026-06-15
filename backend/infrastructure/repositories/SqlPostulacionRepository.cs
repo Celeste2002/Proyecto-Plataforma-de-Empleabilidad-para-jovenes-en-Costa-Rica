@@ -92,6 +92,114 @@ public sealed class SqlPostulacionRepository(string connectionString) : IPostula
         return postulaciones;
     }
 
+    public async Task<IReadOnlyCollection<Postulacion>> GetByVacanteIdWithCandidateAsync(
+        Guid vacanteId,
+        CancellationToken cancellationToken)
+    {
+        const string query = """
+            SELECT
+                p.Id,
+                p.VacanteId,
+                p.CandidateProfileId,
+                p.Status,
+                p.AppliedAt,
+                p.UpdatedAtUtc,
+                v.JobTitle,
+                v.Province,
+                ep.CompanyName,
+                cp.FullName       AS CandidateFullName,
+                u.Email           AS CandidateEmail,
+                cp.Province       AS CandidateProvince,
+                cp.EducationLevel AS CandidateEducationLevel,
+                DATEDIFF(YEAR, cp.DateOfBirth, GETDATE()) AS CandidateAge
+            FROM dbo.Postulaciones p
+            INNER JOIN dbo.Vacantes v           ON p.VacanteId = v.Id
+            INNER JOIN dbo.EmployerProfiles ep  ON v.EmployerProfileId = ep.Id
+            INNER JOIN dbo.CandidateProfiles cp ON p.CandidateProfileId = cp.Id
+            INNER JOIN dbo.Users u              ON cp.UserId = u.Id
+            WHERE p.VacanteId = @VacanteId
+            ORDER BY p.AppliedAt ASC;
+            """;
+
+        List<Postulacion> postulaciones = [];
+
+        await using SqlConnection connection = new(connectionString);
+        await connection.OpenAsync(cancellationToken);
+
+        await using SqlCommand command = new(query, connection);
+        command.Parameters.AddWithValue("@VacanteId", vacanteId);
+
+        await using SqlDataReader reader = await command.ExecuteReaderAsync(cancellationToken);
+
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            postulaciones.Add(MapPostulacionWithCandidate(reader));
+        }
+
+        return postulaciones;
+    }
+
+    public async Task<Postulacion?> FindByIdAsync(
+        Guid postulacionId,
+        CancellationToken cancellationToken)
+    {
+        const string query = """
+            SELECT TOP (1)
+                p.Id,
+                p.VacanteId,
+                p.CandidateProfileId,
+                p.Status,
+                p.AppliedAt,
+                p.UpdatedAtUtc,
+                v.JobTitle,
+                v.Province,
+                ep.CompanyName
+            FROM dbo.Postulaciones p
+            INNER JOIN dbo.Vacantes v           ON p.VacanteId = v.Id
+            INNER JOIN dbo.EmployerProfiles ep  ON v.EmployerProfileId = ep.Id
+            WHERE p.Id = @Id;
+            """;
+
+        await using SqlConnection connection = new(connectionString);
+        await connection.OpenAsync(cancellationToken);
+
+        await using SqlCommand command = new(query, connection);
+        command.Parameters.AddWithValue("@Id", postulacionId);
+
+        await using SqlDataReader reader = await command.ExecuteReaderAsync(cancellationToken);
+
+        if (await reader.ReadAsync(cancellationToken))
+        {
+            return MapPostulacion(reader);
+        }
+
+        return null;
+    }
+
+    public async Task UpdateStatusAsync(
+        Guid postulacionId,
+        string newStatus,
+        DateTime updatedAtUtc,
+        CancellationToken cancellationToken)
+    {
+        const string sql = """
+            UPDATE dbo.Postulaciones
+            SET Status       = @NewStatus,
+                UpdatedAtUtc = @UpdatedAtUtc
+            WHERE Id = @Id;
+            """;
+
+        await using SqlConnection connection = new(connectionString);
+        await connection.OpenAsync(cancellationToken);
+
+        await using SqlCommand command = new(sql, connection);
+        command.Parameters.AddWithValue("@NewStatus", newStatus);
+        command.Parameters.AddWithValue("@UpdatedAtUtc", updatedAtUtc);
+        command.Parameters.AddWithValue("@Id", postulacionId);
+
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
     private static Postulacion MapPostulacion(SqlDataReader reader) =>
         new()
         {
@@ -104,5 +212,24 @@ public sealed class SqlPostulacionRepository(string connectionString) : IPostula
             JobTitle = reader.GetString(reader.GetOrdinal("JobTitle")),
             CompanyName = reader.GetString(reader.GetOrdinal("CompanyName")),
             Province = reader.GetString(reader.GetOrdinal("Province"))
+        };
+
+    private static Postulacion MapPostulacionWithCandidate(SqlDataReader reader) =>
+        new()
+        {
+            Id = reader.GetGuid(reader.GetOrdinal("Id")),
+            VacanteId = reader.GetGuid(reader.GetOrdinal("VacanteId")),
+            CandidateProfileId = reader.GetGuid(reader.GetOrdinal("CandidateProfileId")),
+            Status = reader.GetString(reader.GetOrdinal("Status")),
+            AppliedAt = reader.GetDateTime(reader.GetOrdinal("AppliedAt")),
+            UpdatedAtUtc = reader.GetDateTime(reader.GetOrdinal("UpdatedAtUtc")),
+            JobTitle = reader.GetString(reader.GetOrdinal("JobTitle")),
+            CompanyName = reader.GetString(reader.GetOrdinal("CompanyName")),
+            Province = reader.GetString(reader.GetOrdinal("Province")),
+            CandidateFullName = reader.GetString(reader.GetOrdinal("CandidateFullName")),
+            CandidateEmail = reader.GetString(reader.GetOrdinal("CandidateEmail")),
+            CandidateProvince = reader.GetString(reader.GetOrdinal("CandidateProvince")),
+            CandidateEducationLevel = reader.GetString(reader.GetOrdinal("CandidateEducationLevel")),
+            CandidateAge = reader.GetInt32(reader.GetOrdinal("CandidateAge"))
         };
 }

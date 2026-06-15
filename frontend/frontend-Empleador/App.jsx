@@ -7,6 +7,7 @@ import { ProtectedRoute } from './components/ProtectedRoute.jsx';
 import { LoginPage } from './pages/LoginPage.jsx';
 import { EmployerDashboardPage } from './pages/EmployerDashboardPage.jsx';
 import { MisVacantesPage } from './pages/MisVacantesPage.jsx';
+import { PanelCandidatosPage } from './pages/PanelCandidatosPage.jsx';
 import { PublicarVacantePage } from './pages/PublicarVacantePage.jsx';
 import { RegisterPage } from './pages/RegisterPage.jsx';
 
@@ -41,6 +42,14 @@ export function App() {
             element={
               <ProtectedRoute>
                 <PublicarVacantePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/empleador/candidatos"
+            element={
+              <ProtectedRoute>
+                <PanelCandidatosPage />
               </ProtectedRoute>
             }
           />
