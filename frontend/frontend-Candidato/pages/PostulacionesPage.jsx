@@ -6,6 +6,8 @@ import { getMyPostulaciones } from '../api/candidatesApi.js';
 
 const STATUS_CONFIG = {
   'Enviada': { className: 'postulacion-status--enviada', label: 'Enviada' },
+  'Vista': { className: 'postulacion-status--vista', label: 'Vista por el empleador' },
+  'Entrevista': { className: 'postulacion-status--entrevista', label: 'Entrevista programada' },
   'En revisión': { className: 'postulacion-status--revision', label: 'En revisión' },
   'Entrevista solicitada': { className: 'postulacion-status--entrevista', label: 'Entrevista solicitada' },
   'Entrevista programada': { className: 'postulacion-status--entrevista', label: 'Entrevista programada' },

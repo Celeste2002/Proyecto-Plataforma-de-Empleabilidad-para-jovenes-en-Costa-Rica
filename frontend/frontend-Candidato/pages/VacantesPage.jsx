@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, BriefcaseBusiness, MapPin, Search, Send } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../shared/context/AuthContext.jsx';
-import { applyToVacante, getVacantes } from '../api/candidatesApi.js';
+import { applyToVacante, getMyPostulaciones, getVacantes } from '../api/candidatesApi.js';
 import { costaRicaProvinces } from '../constants/candidateCatalogs.js';
 import { employerSectors, experienceLevels, vacanteModalities } from '../constants/vacanteCatalogs.js';
 
@@ -31,8 +31,15 @@ export function VacantesPage() {
   });
 
   useEffect(() => {
-    getVacantes(token)
-      .then((data) => setVacantes(data))
+    Promise.all([getVacantes(token), getMyPostulaciones(token)])
+      .then(([vacantesData, postulacionesData]) => {
+        setVacantes(vacantesData);
+        const existing = {};
+        postulacionesData.forEach((p) => {
+          existing[p.vacanteId] = { success: true, message: 'Ya te postulaste a esta vacante.' };
+        });
+        setApplyResults(existing);
+      })
       .catch((err) => setErrorMsg(err.message))
       .finally(() => setLoading(false));
   }, [token]);

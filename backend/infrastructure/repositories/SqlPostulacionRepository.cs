@@ -92,7 +92,7 @@ public sealed class SqlPostulacionRepository(string connectionString) : IPostula
         return postulaciones;
     }
 
-    public async Task<IReadOnlyCollection<Postulacion>> GetByVacanteIdWithCandidateAsync(
+    public async Task<IReadOnlyCollection<Postulacion>> GetByVacanteIdAsync(
         Guid vacanteId,
         CancellationToken cancellationToken)
     {
@@ -104,21 +104,11 @@ public sealed class SqlPostulacionRepository(string connectionString) : IPostula
                 p.Status,
                 p.AppliedAt,
                 p.UpdatedAtUtc,
-                v.JobTitle,
-                v.Province,
-                ep.CompanyName,
-                cp.FullName       AS CandidateFullName,
-                u.Email           AS CandidateEmail,
-                cp.Province       AS CandidateProvince,
-                cp.EducationLevel AS CandidateEducationLevel,
-                DATEDIFF(YEAR, cp.DateOfBirth, GETDATE()) AS CandidateAge
+                cp.FullName AS CandidateFullName
             FROM dbo.Postulaciones p
-            INNER JOIN dbo.Vacantes v           ON p.VacanteId = v.Id
-            INNER JOIN dbo.EmployerProfiles ep  ON v.EmployerProfileId = ep.Id
             INNER JOIN dbo.CandidateProfiles cp ON p.CandidateProfileId = cp.Id
-            INNER JOIN dbo.Users u              ON cp.UserId = u.Id
             WHERE p.VacanteId = @VacanteId
-            ORDER BY p.AppliedAt ASC;
+            ORDER BY p.AppliedAt DESC;
             """;
 
         List<Postulacion> postulaciones = [];
@@ -133,7 +123,16 @@ public sealed class SqlPostulacionRepository(string connectionString) : IPostula
 
         while (await reader.ReadAsync(cancellationToken))
         {
-            postulaciones.Add(MapPostulacionWithCandidate(reader));
+            postulaciones.Add(new Postulacion
+            {
+                Id = reader.GetGuid(reader.GetOrdinal("Id")),
+                VacanteId = reader.GetGuid(reader.GetOrdinal("VacanteId")),
+                CandidateProfileId = reader.GetGuid(reader.GetOrdinal("CandidateProfileId")),
+                Status = reader.GetString(reader.GetOrdinal("Status")),
+                AppliedAt = reader.GetDateTime(reader.GetOrdinal("AppliedAt")),
+                UpdatedAtUtc = reader.GetDateTime(reader.GetOrdinal("UpdatedAtUtc")),
+                CandidateFullName = reader.GetString(reader.GetOrdinal("CandidateFullName"))
+            });
         }
 
         return postulaciones;
@@ -152,11 +151,15 @@ public sealed class SqlPostulacionRepository(string connectionString) : IPostula
                 p.AppliedAt,
                 p.UpdatedAtUtc,
                 v.JobTitle,
-                v.Province,
-                ep.CompanyName
+                cp.FullName            AS CandidateFullName,
+                cp.Province            AS CandidateProvince,
+                cp.EducationLevel      AS CandidateEducationLevel,
+                cp.DateOfBirth         AS CandidateDateOfBirth,
+                u.Email                AS CandidateEmail
             FROM dbo.Postulaciones p
-            INNER JOIN dbo.Vacantes v           ON p.VacanteId = v.Id
-            INNER JOIN dbo.EmployerProfiles ep  ON v.EmployerProfileId = ep.Id
+            INNER JOIN dbo.Vacantes         v  ON p.VacanteId          = v.Id
+            INNER JOIN dbo.CandidateProfiles cp ON p.CandidateProfileId = cp.Id
+            INNER JOIN dbo.Users             u  ON cp.UserId            = u.Id
             WHERE p.Id = @Id;
             """;
 
@@ -168,12 +171,24 @@ public sealed class SqlPostulacionRepository(string connectionString) : IPostula
 
         await using SqlDataReader reader = await command.ExecuteReaderAsync(cancellationToken);
 
-        if (await reader.ReadAsync(cancellationToken))
-        {
-            return MapPostulacion(reader);
-        }
+        if (!await reader.ReadAsync(cancellationToken))
+            return null;
 
-        return null;
+        return new Postulacion
+        {
+            Id = reader.GetGuid(reader.GetOrdinal("Id")),
+            VacanteId = reader.GetGuid(reader.GetOrdinal("VacanteId")),
+            CandidateProfileId = reader.GetGuid(reader.GetOrdinal("CandidateProfileId")),
+            Status = reader.GetString(reader.GetOrdinal("Status")),
+            AppliedAt = reader.GetDateTime(reader.GetOrdinal("AppliedAt")),
+            UpdatedAtUtc = reader.GetDateTime(reader.GetOrdinal("UpdatedAtUtc")),
+            JobTitle = reader.GetString(reader.GetOrdinal("JobTitle")),
+            CandidateFullName = reader.GetString(reader.GetOrdinal("CandidateFullName")),
+            CandidateEmail = reader.GetString(reader.GetOrdinal("CandidateEmail")),
+            CandidateProvince = reader.GetString(reader.GetOrdinal("CandidateProvince")),
+            CandidateEducationLevel = reader.GetString(reader.GetOrdinal("CandidateEducationLevel")),
+            CandidateDateOfBirth = DateOnly.FromDateTime(reader.GetDateTime(reader.GetOrdinal("CandidateDateOfBirth")))
+        };
     }
 
     public async Task UpdateStatusAsync(
@@ -184,8 +199,7 @@ public sealed class SqlPostulacionRepository(string connectionString) : IPostula
     {
         const string sql = """
             UPDATE dbo.Postulaciones
-            SET Status       = @NewStatus,
-                UpdatedAtUtc = @UpdatedAtUtc
+            SET Status = @Status, UpdatedAtUtc = @UpdatedAtUtc
             WHERE Id = @Id;
             """;
 
@@ -193,7 +207,7 @@ public sealed class SqlPostulacionRepository(string connectionString) : IPostula
         await connection.OpenAsync(cancellationToken);
 
         await using SqlCommand command = new(sql, connection);
-        command.Parameters.AddWithValue("@NewStatus", newStatus);
+        command.Parameters.AddWithValue("@Status", newStatus);
         command.Parameters.AddWithValue("@UpdatedAtUtc", updatedAtUtc);
         command.Parameters.AddWithValue("@Id", postulacionId);
 

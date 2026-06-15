@@ -1,7 +1,17 @@
-import { KeyRound, LogOut, Shield, Users } from 'lucide-react';
+import {
+  BookOpen,
+  BriefcaseBusiness,
+  ClipboardList,
+  FileDown,
+  KeyRound,
+  LogOut,
+  Shield,
+  Users,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getUsers, updateUserRole } from '../api/adminApi.js';
+import { getReportData, getUsers, updateUserRole } from '../api/adminApi.js';
+import { generateReportPdf } from '../utils/generatePdfReport.js';
 import { StatusMessage } from '../../shared/components/StatusMessage.jsx';
 import { AUTH_ROUTES } from '../../shared/constants/authRoutes.js';
 import { useAuth } from '../../shared/context/AuthContext.jsx';
@@ -18,6 +28,18 @@ function RoleBadge({ role }) {
   return <span className={`role-badge role-badge--${role.toLowerCase()}`}>{ROLE_LABELS[role] ?? role}</span>;
 }
 
+function StatCard({ icon, value, label, accent }) {
+  return (
+    <div className="admin-stat" style={accent ? { borderLeft: `3px solid ${accent}` } : {}}>
+      {icon}
+      <div>
+        <p className="admin-stat__value">{value ?? '—'}</p>
+        <p className="admin-stat__label">{label}</p>
+      </div>
+    </div>
+  );
+}
+
 export function AdminDashboardPage() {
   const { user, token, logout } = useAuth();
 
@@ -28,9 +50,16 @@ export function AdminDashboardPage() {
   const [savingId, setSavingId] = useState(null);
   const [successId, setSuccessId] = useState(null);
 
+  const [reportData, setReportData] = useState(null);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [pdfError, setPdfError] = useState('');
+
   useEffect(() => {
-    getUsers(token)
-      .then((data) => setUsers(data))
+    Promise.all([getUsers(token), getReportData(token)])
+      .then(([usersData, report]) => {
+        setUsers(usersData);
+        setReportData(report);
+      })
       .catch((err) => setErrorMessage(err.message))
       .finally(() => setIsLoading(false));
   }, [token]);
@@ -65,13 +94,27 @@ export function AdminDashboardPage() {
     }
   }
 
-  const counts = users.reduce(
-    (acc, u) => {
-      acc[u.role] = (acc[u.role] ?? 0) + 1;
-      return acc;
-    },
-    {}
-  );
+  async function handleGeneratePdf() {
+    setIsGeneratingPdf(true);
+    setPdfError('');
+    try {
+      let data = reportData;
+      if (!data) {
+        data = await getReportData(token);
+        setReportData(data);
+      }
+      generateReportPdf(data, user?.email);
+    } catch (err) {
+      setPdfError(err.message ?? 'Error al generar el reporte PDF.');
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  }
+
+  const counts = users.reduce((acc, u) => {
+    acc[u.role] = (acc[u.role] ?? 0) + 1;
+    return acc;
+  }, {});
 
   return (
     <div className="admin-shell">
@@ -94,37 +137,89 @@ export function AdminDashboardPage() {
       </header>
 
       <main className="admin-main">
-        <div className="admin-stats">
-          <div className="admin-stat">
-            <Users size={20} />
-            <div>
-              <p className="admin-stat__value">{users.length}</p>
-              <p className="admin-stat__label">Usuarios totales</p>
-            </div>
+
+        {/* ── Botón Reporte PDF ── */}
+        <div className="admin-report-bar">
+          <div>
+            <p className="admin-section__title" style={{ margin: 0 }}>Panel de control</p>
+            <p style={{ fontSize: '0.82rem', color: '#6b7280', marginTop: 2 }}>
+              Datos en tiempo real desde la base de datos
+            </p>
           </div>
-          <div className="admin-stat">
-            <div className="admin-stat__dot admin-stat__dot--candidate" />
-            <div>
-              <p className="admin-stat__value">{counts.CANDIDATE ?? 0}</p>
-              <p className="admin-stat__label">Candidatos</p>
-            </div>
-          </div>
-          <div className="admin-stat">
-            <div className="admin-stat__dot admin-stat__dot--employer" />
-            <div>
-              <p className="admin-stat__value">{counts.EMPLOYER ?? 0}</p>
-              <p className="admin-stat__label">Empleadores</p>
-            </div>
-          </div>
-          <div className="admin-stat">
-            <div className="admin-stat__dot admin-stat__dot--administrator" />
-            <div>
-              <p className="admin-stat__value">{counts.ADMINISTRATOR ?? 0}</p>
-              <p className="admin-stat__label">Administradores</p>
-            </div>
-          </div>
+          <button
+            className="admin-pdf-btn"
+            disabled={isGeneratingPdf}
+            onClick={handleGeneratePdf}
+            type="button"
+          >
+            <FileDown size={16} />
+            {isGeneratingPdf ? 'Generando PDF...' : 'Generar Reporte PDF'}
+          </button>
         </div>
 
+        {pdfError && (
+          <div style={{ margin: '0 0 12px', padding: '8px 12px', background: '#fef2f2', borderRadius: 6, color: '#b91c1c', fontSize: '0.85rem' }}>
+            {pdfError}
+          </div>
+        )}
+
+        {/* ── Sección: Usuarios ── */}
+        <p className="admin-stats-section-label">Usuarios</p>
+        <div className="admin-stats">
+          <StatCard icon={<Users size={20} />} value={users.length} label="Usuarios totales" />
+          <StatCard icon={<div className="admin-stat__dot admin-stat__dot--candidate" />} value={counts.CANDIDATE ?? 0} label="Candidatos" />
+          <StatCard icon={<div className="admin-stat__dot admin-stat__dot--employer" />} value={counts.EMPLOYER ?? 0} label="Empleadores" />
+          <StatCard icon={<div className="admin-stat__dot admin-stat__dot--administrator" />} value={counts.ADMINISTRATOR ?? 0} label="Administradores" />
+        </div>
+
+        {/* ── Sección: Vacantes ── */}
+        <p className="admin-stats-section-label">Vacantes</p>
+        <div className="admin-stats">
+          <StatCard icon={<BriefcaseBusiness size={20} />} value={reportData?.totalVacantes} label="Vacantes totales" />
+          <StatCard icon={<div className="admin-stat__dot" style={{ background: '#16a34a' }} />} value={reportData?.activeVacantes} label="Activas" accent="#16a34a" />
+          <StatCard icon={<div className="admin-stat__dot" style={{ background: '#9ca3af' }} />} value={reportData?.closedVacantes} label="Cerradas" accent="#9ca3af" />
+        </div>
+
+        {/* ── Sección: Postulaciones ── */}
+        <p className="admin-stats-section-label">Postulaciones</p>
+        <div className="admin-stats">
+          <StatCard icon={<ClipboardList size={20} />} value={reportData?.totalPostulaciones} label="Postulaciones totales" />
+          <StatCard icon={<div className="admin-stat__dot" style={{ background: '#7c3aed' }} />} value={reportData?.candidatesWithPostulaciones} label="Candidatos postulados" />
+          <StatCard icon={<div className="admin-stat__dot" style={{ background: '#0ea5e9' }} />} value={reportData?.vacantesWithPostulaciones} label="Vacantes con postulaciones" />
+        </div>
+
+        {/* ── Estado de Postulaciones ── */}
+        {reportData?.postulacionesByStatus?.length > 0 && (
+          <div className="admin-section" style={{ marginTop: 8 }}>
+            <h3 className="admin-section__title" style={{ fontSize: '0.9rem' }}>Estado de postulaciones</h3>
+            <div className="admin-table-wrapper">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Estado</th>
+                    <th>Cantidad</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {reportData.postulacionesByStatus.map((s) => (
+                    <tr key={s.status}>
+                      <td>{s.status}</td>
+                      <td style={{ textAlign: 'center' }}>{s.count}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* ── Formación / Microcursos ── */}
+        <p className="admin-stats-section-label">Formación</p>
+        <div className="admin-stats">
+          <StatCard icon={<BookOpen size={20} />} value={reportData?.totalMicrocursos ?? 0} label="Microcursos disponibles" />
+        </div>
+
+        {/* ── Gestión de Usuarios ── */}
         <section className="admin-section">
           <h2 className="admin-section__title">Gestion de usuarios</h2>
 

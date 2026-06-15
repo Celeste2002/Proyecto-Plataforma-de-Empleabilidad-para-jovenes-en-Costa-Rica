@@ -11,11 +11,9 @@ public sealed class Postulacion
     public string JobTitle { get; init; } = string.Empty;
     public string CompanyName { get; init; } = string.Empty;
     public string Province { get; init; } = string.Empty;
-
-    // Campos de enriquecimiento — populados por JOIN en GetByVacanteIdWithCandidateAsync
-    public string CandidateFullName       { get; init; } = string.Empty;
-    public string CandidateEmail          { get; init; } = string.Empty;
-    public string CandidateProvince       { get; init; } = string.Empty;
+    public string CandidateFullName { get; init; } = string.Empty;
+    public string CandidateEmail { get; init; } = string.Empty;
+    public string CandidateProvince { get; init; } = string.Empty;
     public string CandidateEducationLevel { get; init; } = string.Empty;
-    public int    CandidateAge            { get; init; }
+    public DateOnly CandidateDateOfBirth { get; init; }
 }
