@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import {
   ArrowLeft,
   BriefcaseBusiness,
-  MailPlus,
+  MailPlus, 
   MapPin,
   Pencil,
   Plus,
@@ -10,6 +10,8 @@ import {
   Save,
   UsersRound,
   X,
+  ClipboardList, 
+  MapPin
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import {
@@ -484,6 +486,15 @@ export function MisVacantesPage() {
                     )}
                   </>
                 )}
+                <div className="vacante-card__footer">
+                  <Link
+                    className="secondary-action"
+                    to={`/empleador/vacantes/${vacante.id}/postulaciones`}
+                  >
+                    <ClipboardList aria-hidden="true" size={15} />
+                    Ver postulaciones
+                  </Link>
+                </div>
               </article>
             ))}
           </div>

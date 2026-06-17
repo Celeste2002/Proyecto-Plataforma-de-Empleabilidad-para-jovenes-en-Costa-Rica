@@ -20,7 +20,11 @@ async function readApiResponse(response) {
   const responseBody = responseText ? JSON.parse(responseText) : {};
 
   if (!response.ok) {
+    if (response.status === 401) {
+      window.dispatchEvent(new Event('auth:unauthorized'));
+    }
     const apiError = new Error(responseBody.message ?? 'No se pudo completar la solicitud.');
+    apiError.status = response.status;
     apiError.validationErrors = responseBody.errors ?? [];
     throw apiError;
   }
@@ -109,4 +113,50 @@ export async function requestInterview(token, postulacionId) {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}` },
   });
+}
+
+export async function getPostulacionDetail(token, postulacionId) {
+  return sendApiRequest(
+    `${apiBaseUrl}/api/employers/me/postulaciones/${postulacionId}`,
+    { headers: { Authorization: `Bearer ${token}` } },
+  );
+}
+
+export async function updatePostulacionStatus(token, postulacionId, newStatus) {
+  return sendApiRequest(
+    `${apiBaseUrl}/api/employers/me/postulaciones/${postulacionId}/status`,
+    {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ status: newStatus }),
+    },
+  );
+}
+
+export async function getNotificaciones(token, vacanteId) {
+  const query = vacanteId ? `?vacanteId=${vacanteId}` : '';
+  return sendApiRequest(
+    `${apiBaseUrl}/api/employers/me/notificaciones${query}`,
+    { headers: { Authorization: `Bearer ${token}` } },
+  );
+}
+
+export async function markNotificacionRead(token, notificacionId) {
+  return sendApiRequest(
+    `${apiBaseUrl}/api/employers/me/notificaciones/${notificacionId}/read`,
+    {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${token}` },
+    },
+  );
+}
+
+export async function getUnreadNotificacionCount(token) {
+  return sendApiRequest(
+    `${apiBaseUrl}/api/employers/me/notificaciones/unread-count`,
+    { headers: { Authorization: `Bearer ${token}` } },
+  );
 }

@@ -15,4 +15,5 @@ public sealed class Postulacion
     public string CandidateEmail { get; init; } = string.Empty;
     public string CandidateProvince { get; init; } = string.Empty;
     public string CandidateEducationLevel { get; init; } = string.Empty;
+    public DateOnly CandidateDateOfBirth { get; init; }
 }

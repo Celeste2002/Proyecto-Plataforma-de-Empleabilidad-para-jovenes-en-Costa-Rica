@@ -314,6 +314,19 @@ public sealed class VacanteService(
         };
 
         await postulacionRepository.SaveAsync(postulacion, cancellationToken);
+
+        Notificacion notificacion = new()
+        {
+            Id = Guid.NewGuid(),
+            EmployerProfileId = vacante.EmployerProfileId,
+            PostulacionId = postulacion.Id,
+            VacanteId = vacante.Id,
+            Message = $"{candidateProfile.FullName} se ha postulado a la vacante {vacante.JobTitle}",
+            IsRead = false,
+            CreatedAtUtc = DateTime.UtcNow
+        };
+
+        await notificacionRepository.SaveAsync(notificacion, cancellationToken);
     }
 
     public async Task<IReadOnlyCollection<PostulacionResponse>> GetMyPostulacionesAsync(

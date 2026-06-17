@@ -1,7 +1,7 @@
-import { BriefcaseBusiness, KeyRound, LogOut, RefreshCw, UserRoundCheck } from 'lucide-react';
+import { Bell, BriefcaseBusiness, KeyRound, LogOut, RefreshCw, UserRoundCheck } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { getVisibleCandidateProfiles } from '../api/employerApi.js';
+import { getUnreadNotificacionCount, getVisibleCandidateProfiles } from '../api/employerApi.js';
 import { StatusMessage } from '../../shared/components/StatusMessage.jsx';
 import { AUTH_ROUTES } from '../../shared/constants/authRoutes.js';
 import { useAuth } from '../../shared/context/AuthContext.jsx';
@@ -13,6 +13,7 @@ export function EmployerDashboardPage() {
   const [candidateProfiles, setCandidateProfiles] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
+  const [unreadCount, setUnreadCount] = useState(0);
 
   async function loadCandidateProfiles() {
     setIsLoading(true);
@@ -30,6 +31,9 @@ export function EmployerDashboardPage() {
 
   useEffect(() => {
     loadCandidateProfiles();
+    getUnreadNotificacionCount(token)
+      .then((data) => setUnreadCount(data.count ?? 0))
+      .catch(() => {});
   }, []);
 
   function handleLogout() {
@@ -56,6 +60,15 @@ export function EmployerDashboardPage() {
           <Link className="secondary-action" to="/empleador/vacantes">
             <BriefcaseBusiness aria-hidden="true" size={16} />
             Mis vacantes
+          </Link>
+          <Link className="secondary-action bell-action" to="/empleador/vacantes">
+            <Bell aria-hidden="true" size={16} />
+            {unreadCount > 0 && (
+              <span className="bell-badge" aria-label={`${unreadCount} notificaciones sin leer`}>
+                {unreadCount}
+              </span>
+            )}
+            Notificaciones
           </Link>
           <Link className="secondary-action" to={AUTH_ROUTES.recoverPassword}>
             <KeyRound aria-hidden="true" size={16} />

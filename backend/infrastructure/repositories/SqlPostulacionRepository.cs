@@ -135,15 +135,23 @@ public sealed class SqlPostulacionRepository(string connectionString) : IPostula
 
         while (await reader.ReadAsync(cancellationToken))
         {
-            postulaciones.Add(MapEmployerPostulacion(reader));
+            postulaciones.Add(new Postulacion
+            {
+                Id = reader.GetGuid(reader.GetOrdinal("Id")),
+                VacanteId = reader.GetGuid(reader.GetOrdinal("VacanteId")),
+                CandidateProfileId = reader.GetGuid(reader.GetOrdinal("CandidateProfileId")),
+                Status = reader.GetString(reader.GetOrdinal("Status")),
+                AppliedAt = reader.GetDateTime(reader.GetOrdinal("AppliedAt")),
+                UpdatedAtUtc = reader.GetDateTime(reader.GetOrdinal("UpdatedAtUtc")),
+                CandidateFullName = reader.GetString(reader.GetOrdinal("CandidateFullName"))
+            });
         }
 
         return postulaciones;
     }
 
-    public async Task<Postulacion?> FindByIdForEmployerAsync(
-        Guid id,
-        Guid employerProfileId,
+    public async Task<Postulacion?> FindByIdAsync(
+        Guid postulacionId,
         CancellationToken cancellationToken)
     {
         const string query = """
