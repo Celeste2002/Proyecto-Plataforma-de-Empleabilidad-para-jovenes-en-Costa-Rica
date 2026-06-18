@@ -7,7 +7,7 @@ public interface IPostulacionRepository
     Task SaveAsync(Postulacion postulacion, CancellationToken cancellationToken);
     Task<bool> ExistsByVacanteAndCandidateAsync(Guid vacanteId, Guid candidateProfileId, CancellationToken cancellationToken);
     Task<IReadOnlyCollection<Postulacion>> GetByCandidateProfileIdAsync(Guid candidateProfileId, CancellationToken cancellationToken);
-    Task<IReadOnlyCollection<Postulacion>> GetByVacanteIdAsync(Guid vacanteId, CancellationToken cancellationToken);
-    Task<Postulacion?> FindByIdAsync(Guid postulacionId, CancellationToken cancellationToken);
-    Task UpdateStatusAsync(Guid postulacionId, string newStatus, DateTime updatedAtUtc, CancellationToken cancellationToken);
+    Task<IReadOnlyCollection<Postulacion>> GetByVacanteForEmployerAsync(Guid vacanteId, Guid employerProfileId, CancellationToken cancellationToken);
+    Task<Postulacion?> FindByIdForEmployerAsync(Guid id, Guid employerProfileId, CancellationToken cancellationToken);
+    Task<bool> UpdateStatusForEmployerAsync(Guid id, Guid employerProfileId, string status, DateTime updatedAtUtc, CancellationToken cancellationToken);
 }

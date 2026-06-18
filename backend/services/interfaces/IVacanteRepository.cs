@@ -10,4 +10,11 @@ public interface IVacanteRepository
     Task<Vacante?> FindByIdAsync(Guid id, CancellationToken cancellationToken);
     Task SaveAsync(Vacante vacante, CancellationToken cancellationToken);
     Task UpdateStatusAsync(Guid id, bool isActive, CancellationToken cancellationToken);
+    Task<bool> UpdateEditableFieldsAsync(
+        Guid id,
+        Guid employerProfileId,
+        string? description,
+        string? requirements,
+        string? salaryRange,
+        CancellationToken cancellationToken);
 }

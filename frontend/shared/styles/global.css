@@ -29,7 +29,8 @@ body {
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
 }
 
@@ -256,7 +257,8 @@ label {
 }
 
 input,
-select {
+select,
+textarea {
   background: #fbfdff;
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -266,8 +268,16 @@ select {
   width: 100%;
 }
 
+textarea {
+  line-height: 1.5;
+  min-height: 118px;
+  padding: 12px;
+  resize: vertical;
+}
+
 input:focus,
 select:focus,
+textarea:focus,
 button:focus-visible {
   outline: 3px solid #8cc8ff;
   outline-offset: 2px;
@@ -950,14 +960,10 @@ dd {
   color: var(--success);
 }
 
-.vacante-badge--inactive {
+.vacante-badge--inactive,
+.vacante-badge--closed {
   background: #fee2e2;
   color: #991b1b;
-}
-
-.vacante-badge--closed {
-  background: #e5e7eb;
-  color: #4b5563;
 }
 
 .vacante-table__title {
@@ -970,22 +976,6 @@ dd {
   color: var(--muted);
   font-size: 0.82rem;
   margin: 4px 0 0;
-}
-
-.vacante-card__requirements {
-  border-top: 1px solid var(--border);
-  display: grid;
-  gap: 6px;
-  padding-top: 12px;
-}
-
-.vacante-card__requirements-label {
-  color: var(--primary-strong);
-  font-size: 0.78rem;
-  font-weight: 800;
-  letter-spacing: 0;
-  margin: 0;
-  text-transform: uppercase;
 }
 
 .vacante-card__details {
@@ -1004,9 +994,31 @@ dd {
   padding-top: 12px;
 }
 
+.vacante-card__requirements {
+  border-top: 1px solid var(--border);
+  display: grid;
+  gap: 6px;
+  padding-top: 12px;
+}
+
+.vacante-card__requirements .vacante-card__description {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.vacante-card__requirements-label {
+  color: var(--primary-strong);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  margin: 0;
+  text-transform: uppercase;
+}
+
 .vacante-card__footer {
   align-items: center;
   display: flex;
+  flex-wrap: wrap;
   gap: 12px;
   justify-content: flex-end;
 }
@@ -1026,12 +1038,94 @@ dd {
   color: var(--error);
 }
 
-.vacante-card__apply-btn {
+.vacante-card__apply-btn,
+.vacante-status-action {
   width: auto;
 }
 
-.vacante-status-action {
+.vacante-edit-form {
+  border-top: 1px solid var(--border);
+  display: grid;
+  gap: 14px;
+  padding-top: 14px;
+}
+
+.vacante-card__edit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.vacante-card__edit-actions .primary-action,
+.vacante-card__edit-actions .secondary-action {
   width: auto;
+}
+
+.postulantes-panel {
+  background: #fbfdff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+}
+
+.postulantes-panel__header {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.postulantes-panel__header h4 {
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.postulantes-panel__header .secondary-action {
+  min-height: 36px;
+}
+
+.postulante-list {
+  display: grid;
+  gap: 10px;
+}
+
+.postulante-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.postulante-card__main,
+.postulante-card__actions {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.postulante-card h5 {
+  font-size: 0.95rem;
+  margin: 0 0 4px;
+}
+
+.postulante-card p {
+  color: var(--muted);
+  font-size: 0.86rem;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.postulante-card__details {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
 }
 
 /* -- Microcursos -- */
@@ -1436,6 +1530,7 @@ dd {
   .vacante-card__details,
   .postulacion-card__details,
   .microcurso-card__details,
+  .postulante-card__details,
   .microcurso-detail__data {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1460,6 +1555,9 @@ dd {
   }
 
   .microcurso-toolbar,
+  .postulantes-panel__header,
+  .postulante-card__main,
+  .postulante-card__actions,
   .microcurso-detail__header {
     align-items: stretch;
     flex-direction: column;
@@ -1483,6 +1581,7 @@ dd {
   .vacante-card__details,
   .postulacion-card__details,
   .microcurso-card__details,
+  .postulante-card__details,
   .microcurso-detail__data {
     grid-template-columns: 1fr;
   }

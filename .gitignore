@@ -69,3 +69,4 @@ frontend/frontend-Admin/bun.lock
 frontend/frontend-Empleador/bun.lock
 
 .claude
+.codex-run-logs/

@@ -69,6 +69,12 @@ builder.Services
 
 builder.Services.AddAuthorization(options =>
 {
+    options.AddPolicy("CandidateOnly", policy =>
+        policy.RequireRole(UserRoles.Candidate));
+
+    options.AddPolicy("EmployerOnly", policy =>
+        policy.RequireRole(UserRoles.Employer));
+
     options.AddPolicy("AdminOnly", policy =>
         policy.RequireRole(UserRoles.Administrator));
 });
@@ -165,6 +171,22 @@ builder.Services.AddSingleton<IPasswordResetSender>(_ =>
     return new SmtpPasswordResetSender(passwordResetEmailSettings, frontendUrl);
 });
 
+builder.Services.AddSingleton<IInterviewRequestSender>(_ =>
+{
+    EmailSettings emailSettings = builder.Configuration
+        .GetSection("Email")
+        .Get<EmailSettings>() ?? new EmailSettings();
+
+    EmailSettings smtpSettings = builder.Configuration
+        .GetSection("Smtp")
+        .Get<EmailSettings>() ?? new EmailSettings();
+
+    bool smtpSectionIsConfigured = !string.IsNullOrWhiteSpace(smtpSettings.Host) ||
+        !string.IsNullOrWhiteSpace(smtpSettings.SmtpHost);
+
+    return new SmtpInterviewRequestSender(smtpSectionIsConfigured ? smtpSettings : emailSettings);
+});
+
 builder.Services.AddSingleton<ITokenService>(_ => new JwtTokenService(jwtSettings));
 builder.Services.AddSingleton<IPasswordHasher, BcryptPasswordHasher>();
 
@@ -184,7 +206,8 @@ builder.Services.AddScoped<IVacanteService>(sp =>
         sp.GetRequiredService<IPostulacionRepository>(),
         sp.GetRequiredService<ICandidateRepository>(),
         sp.GetRequiredService<IEmployerRepository>(),
-        sp.GetRequiredService<INotificacionRepository>()));
+        sp.GetRequiredService<INotificacionRepository>(),
+        sp.GetRequiredService<IInterviewRequestSender>()));
 
 builder.Services.AddScoped<IEmployerPostulacionService>(sp =>
     new EmployerPostulacionService(
@@ -240,7 +263,7 @@ candidateRoutes.MapGet("/me", async (
         await candidateRegistrationService.GetProfileByUserIdAsync(GetAuthenticatedUserId(user), cancellationToken);
 
     return Results.Ok(candidateProfileResponse);
-}).RequireAuthorization();
+}).RequireAuthorization("CandidateOnly");
 
 candidateRoutes.MapPut("/me", async (
     ClaimsPrincipal user,
@@ -255,7 +278,7 @@ candidateRoutes.MapPut("/me", async (
             cancellationToken);
 
     return Results.Ok(candidateProfileResponse);
-}).RequireAuthorization();
+}).RequireAuthorization("CandidateOnly");
 
 candidateRoutes.MapGet("/me/perfil", async (
     ClaimsPrincipal user,
@@ -266,7 +289,7 @@ candidateRoutes.MapGet("/me/perfil", async (
         await candidateRegistrationService.GetFullProfileAsync(GetAuthenticatedUserId(user), cancellationToken);
 
     return Results.Ok(perfil);
-}).RequireAuthorization();
+}).RequireAuthorization("CandidateOnly");
 
 candidateRoutes.MapPatch("/me/disponibilidad", async (
     ClaimsPrincipal user,
@@ -278,7 +301,7 @@ candidateRoutes.MapPatch("/me/disponibilidad", async (
         GetAuthenticatedUserId(user), request.IsAvailableForContact, cancellationToken);
 
     return Results.Ok(new { message = "Disponibilidad actualizada correctamente." });
-}).RequireAuthorization();
+}).RequireAuthorization("CandidateOnly");
 
 candidateRoutes.MapPost("/me/experiencias", async (
     ClaimsPrincipal user,
@@ -290,7 +313,7 @@ candidateRoutes.MapPost("/me/experiencias", async (
         await candidateRegistrationService.AddExperienciaAsync(GetAuthenticatedUserId(user), request, cancellationToken);
 
     return Results.Created($"/api/candidates/me/experiencias/{response.Id}", response);
-}).RequireAuthorization();
+}).RequireAuthorization("CandidateOnly");
 
 candidateRoutes.MapDelete("/me/experiencias/{id:guid}", async (
     Guid id,
@@ -300,7 +323,7 @@ candidateRoutes.MapDelete("/me/experiencias/{id:guid}", async (
 {
     await candidateRegistrationService.DeleteExperienciaAsync(GetAuthenticatedUserId(user), id, cancellationToken);
     return Results.NoContent();
-}).RequireAuthorization();
+}).RequireAuthorization("CandidateOnly");
 
 candidateRoutes.MapPost("/me/habilidades", async (
     ClaimsPrincipal user,
@@ -312,7 +335,7 @@ candidateRoutes.MapPost("/me/habilidades", async (
         await candidateRegistrationService.AddHabilidadAsync(GetAuthenticatedUserId(user), request, cancellationToken);
 
     return Results.Created($"/api/candidates/me/habilidades/{response.Id}", response);
-}).RequireAuthorization();
+}).RequireAuthorization("CandidateOnly");
 
 candidateRoutes.MapDelete("/me/habilidades/{id:guid}", async (
     Guid id,
@@ -322,7 +345,7 @@ candidateRoutes.MapDelete("/me/habilidades/{id:guid}", async (
 {
     await candidateRegistrationService.DeleteHabilidadAsync(GetAuthenticatedUserId(user), id, cancellationToken);
     return Results.NoContent();
-}).RequireAuthorization();
+}).RequireAuthorization("CandidateOnly");
 
 candidateRoutes.MapPost("/me/cursos", async (
     ClaimsPrincipal user,
@@ -334,7 +357,7 @@ candidateRoutes.MapPost("/me/cursos", async (
         await candidateRegistrationService.AddCursoAsync(GetAuthenticatedUserId(user), request, cancellationToken);
 
     return Results.Created($"/api/candidates/me/cursos/{response.Id}", response);
-}).RequireAuthorization();
+}).RequireAuthorization("CandidateOnly");
 
 candidateRoutes.MapDelete("/me/cursos/{id:guid}", async (
     Guid id,
@@ -344,7 +367,7 @@ candidateRoutes.MapDelete("/me/cursos/{id:guid}", async (
 {
     await candidateRegistrationService.DeleteCursoAsync(GetAuthenticatedUserId(user), id, cancellationToken);
     return Results.NoContent();
-}).RequireAuthorization();
+}).RequireAuthorization("CandidateOnly");
 
 candidateRoutes.MapPut("/me/password", async (
     ClaimsPrincipal user,
@@ -358,7 +381,7 @@ candidateRoutes.MapPut("/me/password", async (
         cancellationToken);
 
     return Results.Ok(new { message = "Contraseña actualizada correctamente." });
-}).RequireAuthorization();
+}).RequireAuthorization("CandidateOnly");
 
 // -- Rutas de empleadores --
 
@@ -386,7 +409,7 @@ employerRoutes.MapGet("/me", async (
         await employerRegistrationService.GetProfileByUserIdAsync(GetAuthenticatedUserId(user), cancellationToken);
 
     return Results.Ok(profile);
-}).RequireAuthorization();
+}).RequireAuthorization("EmployerOnly");
 
 employerRoutes.MapGet("/candidates", async (
     ICandidateRegistrationService candidateRegistrationService,
@@ -396,7 +419,7 @@ employerRoutes.MapGet("/candidates", async (
         await candidateRegistrationService.GetProfilesVisibleToPartnerEmployersAsync(cancellationToken);
 
     return Results.Ok(visibleCandidateProfiles);
-}).RequireAuthorization();
+}).RequireAuthorization("EmployerOnly");
 
 employerRoutes.MapGet("/me/vacantes", async (
     ClaimsPrincipal user,
@@ -407,7 +430,7 @@ employerRoutes.MapGet("/me/vacantes", async (
         await vacanteService.GetMyVacantesAsync(GetAuthenticatedUserId(user), cancellationToken);
 
     return Results.Ok(vacantes);
-}).RequireAuthorization();
+}).RequireAuthorization("EmployerOnly");
 
 employerRoutes.MapPut("/me/vacantes/{id:guid}/status", async (
     ClaimsPrincipal user,
@@ -424,7 +447,7 @@ employerRoutes.MapPut("/me/vacantes/{id:guid}/status", async (
             cancellationToken);
 
     return Results.Ok(vacante);
-}).RequireAuthorization();
+}).RequireAuthorization("EmployerOnly");
 
 employerRoutes.MapPost("/me/vacantes", async (
     ClaimsPrincipal user,
@@ -436,7 +459,7 @@ employerRoutes.MapPost("/me/vacantes", async (
         await vacanteService.CreateVacanteAsync(GetAuthenticatedUserId(user), createVacanteRequest, cancellationToken);
 
     return Results.Created($"/api/employers/me/vacantes/{vacante.Id}", vacante);
-}).RequireAuthorization();
+}).RequireAuthorization("EmployerOnly");
 
 employerRoutes.MapPatch("/me/vacantes/{vacanteId:guid}/estado", async (
     Guid vacanteId,
@@ -453,20 +476,39 @@ employerRoutes.MapPatch("/me/vacantes/{vacanteId:guid}/estado", async (
             cancellationToken);
 
     return Results.Ok(vacante);
-}).RequireAuthorization();
+}).RequireAuthorization("EmployerOnly");
 
-employerRoutes.MapGet("/me/vacantes/{vacanteId:guid}/postulaciones", async (
-    Guid vacanteId,
+employerRoutes.MapPut("/me/vacantes/{id:guid}", async (
+    Guid id,
     ClaimsPrincipal user,
-    IEmployerPostulacionService employerPostulacionService,
+    UpdateVacanteRequest updateVacanteRequest,
+    IVacanteService vacanteService,
     CancellationToken cancellationToken) =>
 {
-    IReadOnlyCollection<PostulacionSummaryResponse> postulaciones =
-        await employerPostulacionService.GetPostulacionesByVacanteAsync(
-            GetAuthenticatedUserId(user), vacanteId, cancellationToken);
+    VacanteResponse vacante =
+        await vacanteService.UpdateVacanteAsync(
+            GetAuthenticatedUserId(user),
+            id,
+            updateVacanteRequest,
+            cancellationToken);
+
+    return Results.Ok(vacante);
+}).RequireAuthorization("EmployerOnly");
+
+employerRoutes.MapGet("/me/vacantes/{id:guid}/postulaciones", async (
+    Guid id,
+    ClaimsPrincipal user,
+    IVacanteService vacanteService,
+    CancellationToken cancellationToken) =>
+{
+    IReadOnlyCollection<EmployerPostulacionResponse> postulaciones =
+        await vacanteService.GetPostulacionesByVacanteAsync(
+            GetAuthenticatedUserId(user),
+            id,
+            cancellationToken);
 
     return Results.Ok(postulaciones);
-}).RequireAuthorization();
+}).RequireAuthorization("EmployerOnly");
 
 employerRoutes.MapGet("/me/postulaciones/{postulacionId:guid}", async (
     Guid postulacionId,
@@ -479,7 +521,20 @@ employerRoutes.MapGet("/me/postulaciones/{postulacionId:guid}", async (
             GetAuthenticatedUserId(user), postulacionId, cancellationToken);
 
     return Results.Ok(detail);
-}).RequireAuthorization();
+}).RequireAuthorization("EmployerOnly");
+
+employerRoutes.MapPost("/me/postulaciones/{postulacionId:guid}/solicitar-entrevista", async (
+    Guid postulacionId,
+    ClaimsPrincipal user,
+    IVacanteService vacanteService,
+    CancellationToken cancellationToken) =>
+{
+    EmployerPostulacionResponse postulacion =
+        await vacanteService.RequestInterviewAsync(
+            GetAuthenticatedUserId(user), postulacionId, cancellationToken);
+
+    return Results.Ok(postulacion);
+}).RequireAuthorization("EmployerOnly");
 
 employerRoutes.MapPut("/me/postulaciones/{postulacionId:guid}/status", async (
     Guid postulacionId,
@@ -492,7 +547,7 @@ employerRoutes.MapPut("/me/postulaciones/{postulacionId:guid}/status", async (
         GetAuthenticatedUserId(user), postulacionId, request.Status, cancellationToken);
 
     return Results.Ok(new { message = $"Estado actualizado a '{request.Status}'." });
-}).RequireAuthorization();
+}).RequireAuthorization("EmployerOnly");
 
 employerRoutes.MapGet("/me/notificaciones/unread-count", async (
     ClaimsPrincipal user,
@@ -503,7 +558,7 @@ employerRoutes.MapGet("/me/notificaciones/unread-count", async (
         GetAuthenticatedUserId(user), cancellationToken);
 
     return Results.Ok(new { count });
-}).RequireAuthorization();
+}).RequireAuthorization("EmployerOnly");
 
 employerRoutes.MapGet("/me/notificaciones", async (
     Guid? vacanteId,
@@ -516,7 +571,7 @@ employerRoutes.MapGet("/me/notificaciones", async (
             GetAuthenticatedUserId(user), vacanteId, cancellationToken);
 
     return Results.Ok(notificaciones);
-}).RequireAuthorization();
+}).RequireAuthorization("EmployerOnly");
 
 employerRoutes.MapPut("/me/notificaciones/{id:guid}/read", async (
     Guid id,
@@ -528,7 +583,7 @@ employerRoutes.MapPut("/me/notificaciones/{id:guid}/read", async (
         GetAuthenticatedUserId(user), id, cancellationToken);
 
     return Results.Ok(new { message = "Notificación marcada como leída." });
-}).RequireAuthorization();
+}).RequireAuthorization("EmployerOnly");
 
 // -- Rutas de autenticacion --
 
@@ -637,7 +692,7 @@ vacanteRoutes.MapGet("/", async (
         await vacanteService.GetActiveVacantesAsync(cancellationToken);
 
     return Results.Ok(vacantes);
-}).RequireAuthorization();
+}).RequireAuthorization("CandidateOnly");
 
 RouteGroupBuilder postulacionRoutes = app.MapGroup("/api/postulaciones");
 
@@ -649,7 +704,7 @@ postulacionRoutes.MapPost("/", async (
 {
     await vacanteService.ApplyAsync(GetAuthenticatedUserId(user), applyToVacanteRequest, cancellationToken);
     return Results.Created("/api/postulaciones", new { message = "Postulación enviada correctamente." });
-}).RequireAuthorization();
+}).RequireAuthorization("CandidateOnly");
 
 candidateRoutes.MapGet("/me/postulaciones", async (
     ClaimsPrincipal user,
@@ -660,7 +715,7 @@ candidateRoutes.MapGet("/me/postulaciones", async (
         await vacanteService.GetMyPostulacionesAsync(GetAuthenticatedUserId(user), cancellationToken);
 
     return Results.Ok(postulaciones);
-}).RequireAuthorization();
+}).RequireAuthorization("CandidateOnly");
 
 // -- Rutas de microcursos --
 

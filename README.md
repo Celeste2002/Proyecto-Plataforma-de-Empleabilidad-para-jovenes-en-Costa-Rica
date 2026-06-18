@@ -15,7 +15,7 @@
 
 - Bun.
 - .NET SDK 9.
-- SQL Server local con la base de datos creada desde `database/scripts/001_initial_candidate_registration.sql`.
+- SQL Server local con la base de datos creada desde `database/Plataforma_Empleabilidad_BD.sql`.
 
 ## Instalacion inicial
 
@@ -91,7 +91,10 @@ La conexion local a SQL Server queda en:
 ConnectionStrings__DefaultConnection=Server=.;Database=Plataforma_Empleabilidad_BD;Integrated Security=True;TrustServerCertificate=True;Encrypt=False
 ```
 
-El script inicial de SQL Server esta en `database/scripts/001_initial_candidate_registration.sql`.
+El script unificado para crear o completar la base de datos SQL Server esta en
+`database/Plataforma_Empleabilidad_BD.sql`. Ese archivo es la unica fuente de
+verdad del esquema y contiene todas las tablas, columnas, vistas, indices y datos
+iniciales necesarios.
 
 
 ## Correr frontend manualmente

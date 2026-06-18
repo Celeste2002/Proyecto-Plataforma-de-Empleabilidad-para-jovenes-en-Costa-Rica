@@ -1,4 +1,3 @@
-using domain.constants;
 using domain.entities;
 using Microsoft.Data.SqlClient;
 using services.interfaces;
@@ -7,64 +6,31 @@ namespace infrastructure.repositories;
 
 public sealed class SqlEmployerRepository(string connectionString) : IEmployerRepository
 {
-    public async Task<EmployerProfile?> FindByEmailAsync(string email, CancellationToken cancellationToken)
-    {
-        const string query = """
-            SELECT TOP (1)
-                ep.Id, ep.UserId, ep.CompanyName, ep.LegalId, ep.Sector,
-                ep.ContactName, ep.ContactPhone, ep.Location, ep.Status, ep.CreatedAtUtc,
-                u.Email, u.EmailConfirmed
-            FROM dbo.EmployerProfiles ep
-            INNER JOIN dbo.Users u ON ep.UserId = u.Id
-            WHERE u.Email = @Email;
-            """;
+    public Task<EmployerProfile?> FindByEmailAsync(string email, CancellationToken cancellationToken)
+        => QuerySingleAsync(
+            StoredProcedures.Employers.FindByEmail,
+            command => command.Parameters.AddWithValue("@Email", email),
+            cancellationToken);
 
-        return await QuerySingleAsync(query, cmd => cmd.Parameters.AddWithValue("@Email", email), cancellationToken);
-    }
+    public Task<EmployerProfile?> FindByUserIdAsync(Guid userId, CancellationToken cancellationToken)
+        => QuerySingleAsync(
+            StoredProcedures.Employers.FindByUserId,
+            command => command.Parameters.AddWithValue("@UserId", userId),
+            cancellationToken);
 
-    public async Task<EmployerProfile?> FindByUserIdAsync(Guid userId, CancellationToken cancellationToken)
-    {
-        const string query = """
-            SELECT TOP (1)
-                ep.Id, ep.UserId, ep.CompanyName, ep.LegalId, ep.Sector,
-                ep.ContactName, ep.ContactPhone, ep.Location, ep.Status, ep.CreatedAtUtc,
-                u.Email, u.EmailConfirmed
-            FROM dbo.EmployerProfiles ep
-            INNER JOIN dbo.Users u ON ep.UserId = u.Id
-            WHERE ep.UserId = @UserId;
-            """;
-
-        return await QuerySingleAsync(query, cmd => cmd.Parameters.AddWithValue("@UserId", userId), cancellationToken);
-    }
-
-    public async Task<EmployerProfile?> FindByIdAsync(Guid id, CancellationToken cancellationToken)
-    {
-        const string query = """
-            SELECT TOP (1)
-                ep.Id, ep.UserId, ep.CompanyName, ep.LegalId, ep.Sector,
-                ep.ContactName, ep.ContactPhone, ep.Location, ep.Status, ep.CreatedAtUtc,
-                u.Email, u.EmailConfirmed
-            FROM dbo.EmployerProfiles ep
-            INNER JOIN dbo.Users u ON ep.UserId = u.Id
-            WHERE ep.Id = @Id;
-            """;
-
-        return await QuerySingleAsync(query, cmd => cmd.Parameters.AddWithValue("@Id", id), cancellationToken);
-    }
+    public Task<EmployerProfile?> FindByIdAsync(Guid id, CancellationToken cancellationToken)
+        => QuerySingleAsync(
+            StoredProcedures.Employers.FindById,
+            command => command.Parameters.AddWithValue("@Id", id),
+            cancellationToken);
 
     public async Task SaveAsync(EmployerProfile employerProfile, CancellationToken cancellationToken)
     {
-        const string sql = """
-            INSERT INTO dbo.EmployerProfiles
-            (Id, UserId, CompanyName, LegalId, Sector, ContactName, ContactPhone, Location, Status, CreatedAtUtc)
-            VALUES
-            (@Id, @UserId, @CompanyName, @LegalId, @Sector, @ContactName, @ContactPhone, @Location, @Status, @CreatedAtUtc);
-            """;
+        await using SqlConnection connection =
+            await SqlStoredProcedure.OpenConnectionAsync(connectionString, cancellationToken);
 
-        await using SqlConnection connection = new(connectionString);
-        await connection.OpenAsync(cancellationToken);
-
-        await using SqlCommand command = new(sql, connection);
+        await using SqlCommand command =
+            connection.CreateStoredProcedureCommand(StoredProcedures.Employers.Save);
         command.Parameters.AddWithValue("@Id", employerProfile.Id);
         command.Parameters.AddWithValue("@UserId", employerProfile.UserId);
         command.Parameters.AddWithValue("@CompanyName", employerProfile.CompanyName);
@@ -81,50 +47,38 @@ public sealed class SqlEmployerRepository(string connectionString) : IEmployerRe
 
     public async Task UpdateStatusAsync(Guid employerProfileId, string status, CancellationToken cancellationToken)
     {
-        const string sql = """
-            UPDATE dbo.EmployerProfiles
-            SET Status = @Status
-            WHERE Id = @Id;
-            """;
+        await using SqlConnection connection =
+            await SqlStoredProcedure.OpenConnectionAsync(connectionString, cancellationToken);
 
-        await using SqlConnection connection = new(connectionString);
-        await connection.OpenAsync(cancellationToken);
-
-        await using SqlCommand command = new(sql, connection);
-        command.Parameters.AddWithValue("@Status", status);
+        await using SqlCommand command =
+            connection.CreateStoredProcedureCommand(StoredProcedures.Employers.UpdateStatus);
         command.Parameters.AddWithValue("@Id", employerProfileId);
+        command.Parameters.AddWithValue("@Status", status);
 
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
     public async Task MarkActivationEmailSentAsync(Guid employerProfileId, CancellationToken cancellationToken)
     {
-        const string sql = """
-            UPDATE u
-            SET u.EmailConfirmed = 1
-            FROM dbo.Users u
-            INNER JOIN dbo.EmployerProfiles ep ON u.Id = ep.UserId
-            WHERE ep.Id = @Id;
-            """;
+        await using SqlConnection connection =
+            await SqlStoredProcedure.OpenConnectionAsync(connectionString, cancellationToken);
 
-        await using SqlConnection connection = new(connectionString);
-        await connection.OpenAsync(cancellationToken);
-
-        await using SqlCommand command = new(sql, connection);
+        await using SqlCommand command =
+            connection.CreateStoredProcedureCommand(StoredProcedures.Employers.MarkActivationEmailSent);
         command.Parameters.AddWithValue("@Id", employerProfileId);
 
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
     private async Task<EmployerProfile?> QuerySingleAsync(
-        string query,
+        string procedureName,
         Action<SqlCommand> bindParams,
         CancellationToken cancellationToken)
     {
-        await using SqlConnection connection = new(connectionString);
-        await connection.OpenAsync(cancellationToken);
+        await using SqlConnection connection =
+            await SqlStoredProcedure.OpenConnectionAsync(connectionString, cancellationToken);
 
-        await using SqlCommand command = new(query, connection);
+        await using SqlCommand command = connection.CreateStoredProcedureCommand(procedureName);
         bindParams(command);
 
         await using SqlDataReader reader = await command.ExecuteReaderAsync(cancellationToken);

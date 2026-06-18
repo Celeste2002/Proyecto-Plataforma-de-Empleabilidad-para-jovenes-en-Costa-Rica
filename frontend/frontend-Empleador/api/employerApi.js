@@ -18,6 +18,7 @@ async function sendApiRequest(url, options) {
 async function readApiResponse(response) {
   const responseText = await response.text();
   const responseBody = responseText ? JSON.parse(responseText) : {};
+
   if (!response.ok) {
     if (response.status === 401) {
       window.dispatchEvent(new Event('auth:unauthorized'));
@@ -101,11 +102,34 @@ export async function updateMyVacanteStatus(token, vacanteId, isActive) {
   return updateVacanteStatus(token, vacanteId, isActive);
 }
 
-export async function getPostulacionesByVacante(token, vacanteId) {
-  return sendApiRequest(
-    `${apiBaseUrl}/api/employers/me/vacantes/${vacanteId}/postulaciones`,
-    { headers: { Authorization: `Bearer ${token}` } },
-  );
+export async function updateVacante(token, id, data) {
+  return sendApiRequest(`${apiBaseUrl}/api/employers/me/vacantes/${id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      description: data.description || null,
+      requirements: data.requirements || null,
+      salaryRange: data.salaryRange || null,
+    }),
+  });
+}
+
+export async function getVacantePostulaciones(token, vacanteId) {
+  return sendApiRequest(`${apiBaseUrl}/api/employers/me/vacantes/${vacanteId}/postulaciones`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export const getPostulacionesByVacante = getVacantePostulaciones;
+
+export async function requestInterview(token, postulacionId) {
+  return sendApiRequest(`${apiBaseUrl}/api/employers/me/postulaciones/${postulacionId}/solicitar-entrevista`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+  });
 }
 
 export async function getPostulacionDetail(token, postulacionId) {

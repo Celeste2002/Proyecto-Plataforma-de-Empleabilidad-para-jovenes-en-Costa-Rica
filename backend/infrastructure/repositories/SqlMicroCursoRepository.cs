@@ -6,109 +6,18 @@ namespace infrastructure.repositories;
 
 public sealed class SqlMicroCursoRepository(string connectionString) : IMicroCursoRepository
 {
-    public Task<IReadOnlyCollection<MicroCurso>> GetValidatedAsync(
+    public async Task<IReadOnlyCollection<MicroCurso>> GetValidatedAsync(
         string? area,
         CancellationToken cancellationToken)
     {
-        const string query = """
-            SELECT
-                mc.Id,
-                mc.Titulo,
-                mc.Descripcion,
-                mc.Area,
-                mc.DuracionHoras,
-                mc.EntidadProveedora,
-                mc.TipoProveedor,
-                mc.OtorgaCertificacion,
-                COUNT(DISTINCT ep.Id) AS CantidadValidaciones,
-                mc.IsActive,
-                mc.CreatedAtUtc
-            FROM dbo.MicroCursos mc
-            LEFT JOIN dbo.MicroCursoValidacionesEmpleador mcv
-                ON mc.Id = mcv.MicroCursoId
-            LEFT JOIN dbo.EmployerProfiles ep
-                ON mcv.EmployerProfileId = ep.Id
-                AND ep.Status = N'Active'
-            WHERE mc.IsActive = 1
-                AND (@Area IS NULL OR mc.Area = @Area)
-            GROUP BY
-                mc.Id,
-                mc.Titulo,
-                mc.Descripcion,
-                mc.Area,
-                mc.DuracionHoras,
-                mc.EntidadProveedora,
-                mc.TipoProveedor,
-                mc.OtorgaCertificacion,
-                mc.IsActive,
-                mc.CreatedAtUtc
-            HAVING COUNT(DISTINCT ep.Id) >= 3
-            ORDER BY mc.Area, mc.Titulo;
-            """;
-
-        return QueryMicroCursosAsync(
-            query,
-            command => command.Parameters.AddWithValue("@Area", (object?)area ?? DBNull.Value),
-            cancellationToken);
-    }
-
-    public async Task<MicroCurso?> FindValidatedByIdAsync(Guid id, CancellationToken cancellationToken)
-    {
-        const string query = """
-            SELECT
-                mc.Id,
-                mc.Titulo,
-                mc.Descripcion,
-                mc.Area,
-                mc.DuracionHoras,
-                mc.EntidadProveedora,
-                mc.TipoProveedor,
-                mc.OtorgaCertificacion,
-                COUNT(DISTINCT ep.Id) AS CantidadValidaciones,
-                mc.IsActive,
-                mc.CreatedAtUtc
-            FROM dbo.MicroCursos mc
-            LEFT JOIN dbo.MicroCursoValidacionesEmpleador mcv
-                ON mc.Id = mcv.MicroCursoId
-            LEFT JOIN dbo.EmployerProfiles ep
-                ON mcv.EmployerProfileId = ep.Id
-                AND ep.Status = N'Active'
-            WHERE mc.Id = @Id
-                AND mc.IsActive = 1
-            GROUP BY
-                mc.Id,
-                mc.Titulo,
-                mc.Descripcion,
-                mc.Area,
-                mc.DuracionHoras,
-                mc.EntidadProveedora,
-                mc.TipoProveedor,
-                mc.OtorgaCertificacion,
-                mc.IsActive,
-                mc.CreatedAtUtc
-            HAVING COUNT(DISTINCT ep.Id) >= 3;
-            """;
-
-        IReadOnlyCollection<MicroCurso> microCursos = await QueryMicroCursosAsync(
-            query,
-            command => command.Parameters.AddWithValue("@Id", id),
-            cancellationToken);
-
-        return microCursos.SingleOrDefault();
-    }
-
-    private async Task<IReadOnlyCollection<MicroCurso>> QueryMicroCursosAsync(
-        string query,
-        Action<SqlCommand> bindParameters,
-        CancellationToken cancellationToken)
-    {
-        await using SqlConnection connection = new(connectionString);
-        await connection.OpenAsync(cancellationToken);
-
-        await using SqlCommand command = new(query, connection);
-        bindParameters(command);
-
         List<MicroCurso> microCursos = [];
+
+        await using SqlConnection connection =
+            await SqlStoredProcedure.OpenConnectionAsync(connectionString, cancellationToken);
+
+        await using SqlCommand command =
+            connection.CreateStoredProcedureCommand(StoredProcedures.MicroCursos.GetValidated);
+        command.Parameters.AddNullableWithValue("@Area", area);
 
         await using (SqlDataReader reader = await command.ExecuteReaderAsync(cancellationToken))
         {
@@ -119,7 +28,7 @@ public sealed class SqlMicroCursoRepository(string connectionString) : IMicroCur
         }
 
         Dictionary<Guid, List<string>> habilidades =
-            await LoadHabilidadesAsync(connection, microCursos.Select(c => c.Id).ToArray(), cancellationToken);
+            await LoadHabilidadesAsync(connection, microCursos.Select(c => c.Id), cancellationToken);
 
         return microCursos
             .Select(curso => curso with
@@ -131,52 +40,66 @@ public sealed class SqlMicroCursoRepository(string connectionString) : IMicroCur
             .ToArray();
     }
 
+    public async Task<MicroCurso?> FindValidatedByIdAsync(Guid id, CancellationToken cancellationToken)
+    {
+        await using SqlConnection connection =
+            await SqlStoredProcedure.OpenConnectionAsync(connectionString, cancellationToken);
+
+        await using SqlCommand command =
+            connection.CreateStoredProcedureCommand(StoredProcedures.MicroCursos.FindValidatedById);
+        command.Parameters.AddWithValue("@Id", id);
+
+        MicroCurso? microCurso = null;
+
+        await using (SqlDataReader reader = await command.ExecuteReaderAsync(cancellationToken))
+        {
+            if (await reader.ReadAsync(cancellationToken))
+            {
+                microCurso = MapMicroCurso(reader);
+            }
+        }
+
+        if (microCurso is null)
+        {
+            return null;
+        }
+
+        Dictionary<Guid, List<string>> habilidades =
+            await LoadHabilidadesAsync(connection, [microCurso.Id], cancellationToken);
+
+        return microCurso with
+        {
+            Habilidades = habilidades.TryGetValue(microCurso.Id, out List<string>? values)
+                ? values
+                : []
+        };
+    }
+
     private static async Task<Dictionary<Guid, List<string>>> LoadHabilidadesAsync(
         SqlConnection connection,
-        IReadOnlyCollection<Guid> microCursoIds,
+        IEnumerable<Guid> microCursoIds,
         CancellationToken cancellationToken)
     {
         Dictionary<Guid, List<string>> habilidades = [];
 
-        if (microCursoIds.Count == 0)
+        foreach (Guid microCursoId in microCursoIds.Distinct())
         {
-            return habilidades;
-        }
+            await using SqlCommand command =
+                connection.CreateStoredProcedureCommand(StoredProcedures.MicroCursos.GetHabilidades);
+            command.Parameters.AddWithValue("@MicroCursoId", microCursoId);
 
-        string[] parameterNames = microCursoIds
-            .Select((_, index) => $"@Id{index}")
-            .ToArray();
+            await using SqlDataReader reader = await command.ExecuteReaderAsync(cancellationToken);
 
-        string query = $"""
-            SELECT MicroCursoId, Nombre
-            FROM dbo.MicroCursoHabilidades
-            WHERE MicroCursoId IN ({string.Join(", ", parameterNames)})
-            ORDER BY Nombre;
-            """;
-
-        await using SqlCommand command = new(query, connection);
-
-        int i = 0;
-        foreach (Guid id in microCursoIds)
-        {
-            command.Parameters.AddWithValue(parameterNames[i], id);
-            i++;
-        }
-
-        await using SqlDataReader reader = await command.ExecuteReaderAsync(cancellationToken);
-
-        while (await reader.ReadAsync(cancellationToken))
-        {
-            Guid microCursoId = reader.GetGuid(reader.GetOrdinal("MicroCursoId"));
-            string nombre = reader.GetString(reader.GetOrdinal("Nombre"));
-
-            if (!habilidades.TryGetValue(microCursoId, out List<string>? values))
+            while (await reader.ReadAsync(cancellationToken))
             {
-                values = [];
-                habilidades[microCursoId] = values;
-            }
+                if (!habilidades.TryGetValue(microCursoId, out List<string>? values))
+                {
+                    values = [];
+                    habilidades[microCursoId] = values;
+                }
 
-            values.Add(nombre);
+                values.Add(reader.GetString(reader.GetOrdinal("Nombre")));
+            }
         }
 
         return habilidades;
@@ -198,4 +121,3 @@ public sealed class SqlMicroCursoRepository(string connectionString) : IMicroCur
             CreatedAtUtc = reader.GetDateTime(reader.GetOrdinal("CreatedAtUtc"))
         };
 }
-
