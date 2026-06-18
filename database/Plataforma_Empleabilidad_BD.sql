@@ -607,6 +607,937 @@ END;
 GO
 
 /* =============================================================
+   PROCEDIMIENTOS ALMACENADOS
+   ============================================================= */
+
+CREATE OR ALTER PROCEDURE dbo.usp_User_FindByEmail
+    @Email NVARCHAR(254)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT TOP (1)
+        Id, Email, PasswordHash, PasswordResetToken,
+        PasswordResetTokenExpiresAtUtc, Role, IsActive, EmailConfirmed, CreatedAtUtc
+    FROM dbo.Users
+    WHERE Email = @Email;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_User_FindById
+    @Id UNIQUEIDENTIFIER
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT TOP (1)
+        Id, Email, PasswordHash, PasswordResetToken,
+        PasswordResetTokenExpiresAtUtc, Role, IsActive, EmailConfirmed, CreatedAtUtc
+    FROM dbo.Users
+    WHERE Id = @Id;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_User_FindByPasswordResetToken
+    @Token NVARCHAR(500)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT TOP (1)
+        Id, Email, PasswordHash, PasswordResetToken,
+        PasswordResetTokenExpiresAtUtc, Role, IsActive, EmailConfirmed, CreatedAtUtc
+    FROM dbo.Users
+    WHERE PasswordResetToken = @Token;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_User_GetAll
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        Id, Email, PasswordHash, PasswordResetToken,
+        PasswordResetTokenExpiresAtUtc, Role, IsActive, EmailConfirmed, CreatedAtUtc
+    FROM dbo.Users
+    ORDER BY CreatedAtUtc DESC;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_User_Save
+    @Id UNIQUEIDENTIFIER,
+    @Email NVARCHAR(254),
+    @PasswordHash NVARCHAR(500) = NULL,
+    @Role NVARCHAR(20),
+    @IsActive BIT,
+    @EmailConfirmed BIT,
+    @CreatedAtUtc DATETIME2(0)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    INSERT INTO dbo.Users
+        (Id, Email, PasswordHash, Role, IsActive, EmailConfirmed, CreatedAtUtc)
+    VALUES
+        (@Id, @Email, @PasswordHash, @Role, @IsActive, @EmailConfirmed, @CreatedAtUtc);
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_User_UpdatePassword
+    @Id UNIQUEIDENTIFIER,
+    @PasswordHash NVARCHAR(500)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    UPDATE dbo.Users
+    SET PasswordHash = @PasswordHash
+    WHERE Id = @Id;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_User_UpdateRole
+    @Id UNIQUEIDENTIFIER,
+    @Role NVARCHAR(20)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    UPDATE dbo.Users
+    SET Role = @Role
+    WHERE Id = @Id;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_User_SavePasswordResetToken
+    @Id UNIQUEIDENTIFIER,
+    @Token NVARCHAR(500),
+    @ExpiresAtUtc DATETIME2(0)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    UPDATE dbo.Users
+    SET PasswordResetToken = @Token,
+        PasswordResetTokenExpiresAtUtc = @ExpiresAtUtc
+    WHERE Id = @Id;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_User_ClearPasswordResetToken
+    @Id UNIQUEIDENTIFIER
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    UPDATE dbo.Users
+    SET PasswordResetToken = NULL,
+        PasswordResetTokenExpiresAtUtc = NULL
+    WHERE Id = @Id;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_User_SetActive
+    @Id UNIQUEIDENTIFIER,
+    @IsActive BIT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    UPDATE dbo.Users
+    SET IsActive = @IsActive
+    WHERE Id = @Id;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Candidate_FindByEmail
+    @Email NVARCHAR(254)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT TOP (1)
+        cp.Id,
+        cp.UserId,
+        cp.FullName,
+        cp.DateOfBirth,
+        cp.Province,
+        cp.EducationLevel,
+        cp.IsVisibleToPartnerEmployers,
+        cp.IsAvailableForContact,
+        cp.PhotoUrl,
+        cp.CreatedAtUtc,
+        u.Email,
+        u.EmailConfirmed
+    FROM dbo.CandidateProfiles cp
+    INNER JOIN dbo.Users u ON cp.UserId = u.Id
+    WHERE u.Email = @Email;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Candidate_FindByUserId
+    @UserId UNIQUEIDENTIFIER
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT TOP (1)
+        cp.Id,
+        cp.UserId,
+        cp.FullName,
+        cp.DateOfBirth,
+        cp.Province,
+        cp.EducationLevel,
+        cp.IsVisibleToPartnerEmployers,
+        cp.IsAvailableForContact,
+        cp.PhotoUrl,
+        cp.CreatedAtUtc,
+        u.Email,
+        u.EmailConfirmed
+    FROM dbo.CandidateProfiles cp
+    INNER JOIN dbo.Users u ON cp.UserId = u.Id
+    WHERE cp.UserId = @UserId;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Candidate_GetVisibleToPartnerEmployers
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        Id,
+        FullName,
+        DateOfBirth,
+        Age,
+        Province,
+        EducationLevel,
+        IsAvailableForContact,
+        PhotoUrl,
+        Email,
+        EmailConfirmed,
+        CreatedAtUtc
+    FROM dbo.PartnerEmployerVisibleCandidateProfiles
+    ORDER BY CreatedAtUtc DESC;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Candidate_Save
+    @Id UNIQUEIDENTIFIER,
+    @UserId UNIQUEIDENTIFIER,
+    @FullName NVARCHAR(160),
+    @DateOfBirth DATE,
+    @Province NVARCHAR(40),
+    @EducationLevel NVARCHAR(80),
+    @IsVisibleToPartnerEmployers BIT,
+    @IsAvailableForContact BIT,
+    @PhotoUrl NVARCHAR(500) = NULL,
+    @CreatedAtUtc DATETIME2(0)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @Today DATE = CAST(SYSUTCDATETIME() AS DATE);
+    DECLARE @Age INT =
+        DATEDIFF(YEAR, @DateOfBirth, @Today)
+        - CASE
+            WHEN DATEADD(YEAR, DATEDIFF(YEAR, @DateOfBirth, @Today), @DateOfBirth) > @Today THEN 1
+            ELSE 0
+          END;
+
+    INSERT INTO dbo.CandidateProfiles
+    (
+        Id,
+        UserId,
+        FullName,
+        DateOfBirth,
+        Age,
+        Province,
+        EducationLevel,
+        IsVisibleToPartnerEmployers,
+        IsAvailableForContact,
+        PhotoUrl,
+        CreatedAtUtc
+    )
+    VALUES
+    (
+        @Id,
+        @UserId,
+        @FullName,
+        @DateOfBirth,
+        @Age,
+        @Province,
+        @EducationLevel,
+        @IsVisibleToPartnerEmployers,
+        @IsAvailableForContact,
+        @PhotoUrl,
+        @CreatedAtUtc
+    );
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Candidate_Update
+    @Id UNIQUEIDENTIFIER,
+    @UserId UNIQUEIDENTIFIER,
+    @FullName NVARCHAR(160),
+    @DateOfBirth DATE,
+    @Province NVARCHAR(40),
+    @EducationLevel NVARCHAR(80),
+    @PhotoUrl NVARCHAR(500) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @Today DATE = CAST(SYSUTCDATETIME() AS DATE);
+    DECLARE @Age INT =
+        DATEDIFF(YEAR, @DateOfBirth, @Today)
+        - CASE
+            WHEN DATEADD(YEAR, DATEDIFF(YEAR, @DateOfBirth, @Today), @DateOfBirth) > @Today THEN 1
+            ELSE 0
+          END;
+
+    UPDATE dbo.CandidateProfiles
+    SET FullName = @FullName,
+        DateOfBirth = @DateOfBirth,
+        Age = @Age,
+        Province = @Province,
+        EducationLevel = @EducationLevel,
+        PhotoUrl = @PhotoUrl
+    WHERE Id = @Id
+        AND UserId = @UserId;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Candidate_UpdateAvailability
+    @Id UNIQUEIDENTIFIER,
+    @IsAvailableForContact BIT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    UPDATE dbo.CandidateProfiles
+    SET IsAvailableForContact = @IsAvailableForContact
+    WHERE Id = @Id;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Candidate_MarkEmailConfirmationSent
+    @Id UNIQUEIDENTIFIER
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    UPDATE u
+    SET u.EmailConfirmed = 1
+    FROM dbo.Users u
+    INNER JOIN dbo.CandidateProfiles cp ON u.Id = cp.UserId
+    WHERE cp.Id = @Id;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Candidate_GetExperiencias
+    @CandidateProfileId UNIQUEIDENTIFIER
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT Id, CandidateProfileId, Empresa, Cargo, FechaInicio, FechaFin, EsTrabajoActual, Descripcion
+    FROM dbo.ExperienciasLaborales
+    WHERE CandidateProfileId = @CandidateProfileId
+    ORDER BY FechaInicio DESC;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Candidate_SaveExperiencia
+    @Id UNIQUEIDENTIFIER,
+    @CandidateProfileId UNIQUEIDENTIFIER,
+    @Empresa NVARCHAR(200),
+    @Cargo NVARCHAR(200),
+    @FechaInicio DATE,
+    @FechaFin DATE = NULL,
+    @EsTrabajoActual BIT,
+    @Descripcion NVARCHAR(1000) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    INSERT INTO dbo.ExperienciasLaborales
+        (Id, CandidateProfileId, Empresa, Cargo, FechaInicio, FechaFin, EsTrabajoActual, Descripcion)
+    VALUES
+        (@Id, @CandidateProfileId, @Empresa, @Cargo, @FechaInicio, @FechaFin, @EsTrabajoActual, @Descripcion);
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Candidate_DeleteExperiencia
+    @Id UNIQUEIDENTIFIER,
+    @CandidateProfileId UNIQUEIDENTIFIER
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DELETE FROM dbo.ExperienciasLaborales
+    WHERE Id = @Id
+        AND CandidateProfileId = @CandidateProfileId;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Candidate_GetHabilidades
+    @CandidateProfileId UNIQUEIDENTIFIER
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT Id, CandidateProfileId, Nombre
+    FROM dbo.Habilidades
+    WHERE CandidateProfileId = @CandidateProfileId
+    ORDER BY Nombre;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Candidate_SaveHabilidad
+    @Id UNIQUEIDENTIFIER,
+    @CandidateProfileId UNIQUEIDENTIFIER,
+    @Nombre NVARCHAR(100)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    INSERT INTO dbo.Habilidades (Id, CandidateProfileId, Nombre)
+    VALUES (@Id, @CandidateProfileId, @Nombre);
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Candidate_DeleteHabilidad
+    @Id UNIQUEIDENTIFIER,
+    @CandidateProfileId UNIQUEIDENTIFIER
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DELETE FROM dbo.Habilidades
+    WHERE Id = @Id
+        AND CandidateProfileId = @CandidateProfileId;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Candidate_GetCursos
+    @CandidateProfileId UNIQUEIDENTIFIER
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT Id, CandidateProfileId, NombreCurso, Institucion, FechaCompletado, EsDePlataforma
+    FROM dbo.CursosCompletados
+    WHERE CandidateProfileId = @CandidateProfileId
+    ORDER BY FechaCompletado DESC;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Candidate_SaveCurso
+    @Id UNIQUEIDENTIFIER,
+    @CandidateProfileId UNIQUEIDENTIFIER,
+    @NombreCurso NVARCHAR(200),
+    @Institucion NVARCHAR(200),
+    @FechaCompletado DATE,
+    @EsDePlataforma BIT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    INSERT INTO dbo.CursosCompletados
+        (Id, CandidateProfileId, NombreCurso, Institucion, FechaCompletado, EsDePlataforma)
+    VALUES
+        (@Id, @CandidateProfileId, @NombreCurso, @Institucion, @FechaCompletado, @EsDePlataforma);
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Candidate_DeleteCurso
+    @Id UNIQUEIDENTIFIER,
+    @CandidateProfileId UNIQUEIDENTIFIER
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DELETE FROM dbo.CursosCompletados
+    WHERE Id = @Id
+        AND CandidateProfileId = @CandidateProfileId;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Employer_FindByEmail
+    @Email NVARCHAR(254)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT TOP (1)
+        ep.Id, ep.UserId, ep.CompanyName, ep.LegalId, ep.Sector,
+        ep.ContactName, ep.ContactPhone, ep.Location, ep.Status, ep.CreatedAtUtc,
+        u.Email, u.EmailConfirmed
+    FROM dbo.EmployerProfiles ep
+    INNER JOIN dbo.Users u ON ep.UserId = u.Id
+    WHERE u.Email = @Email;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Employer_FindByUserId
+    @UserId UNIQUEIDENTIFIER
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT TOP (1)
+        ep.Id, ep.UserId, ep.CompanyName, ep.LegalId, ep.Sector,
+        ep.ContactName, ep.ContactPhone, ep.Location, ep.Status, ep.CreatedAtUtc,
+        u.Email, u.EmailConfirmed
+    FROM dbo.EmployerProfiles ep
+    INNER JOIN dbo.Users u ON ep.UserId = u.Id
+    WHERE ep.UserId = @UserId;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Employer_FindById
+    @Id UNIQUEIDENTIFIER
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT TOP (1)
+        ep.Id, ep.UserId, ep.CompanyName, ep.LegalId, ep.Sector,
+        ep.ContactName, ep.ContactPhone, ep.Location, ep.Status, ep.CreatedAtUtc,
+        u.Email, u.EmailConfirmed
+    FROM dbo.EmployerProfiles ep
+    INNER JOIN dbo.Users u ON ep.UserId = u.Id
+    WHERE ep.Id = @Id;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Employer_Save
+    @Id UNIQUEIDENTIFIER,
+    @UserId UNIQUEIDENTIFIER,
+    @CompanyName NVARCHAR(200),
+    @LegalId NVARCHAR(20),
+    @Sector NVARCHAR(80),
+    @ContactName NVARCHAR(160),
+    @ContactPhone NVARCHAR(30),
+    @Location NVARCHAR(200),
+    @Status NVARCHAR(30),
+    @CreatedAtUtc DATETIME2(0)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    INSERT INTO dbo.EmployerProfiles
+        (Id, UserId, CompanyName, LegalId, Sector, ContactName, ContactPhone, Location, Status, CreatedAtUtc)
+    VALUES
+        (@Id, @UserId, @CompanyName, @LegalId, @Sector, @ContactName, @ContactPhone, @Location, @Status, @CreatedAtUtc);
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Employer_UpdateStatus
+    @Id UNIQUEIDENTIFIER,
+    @Status NVARCHAR(30)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    UPDATE dbo.EmployerProfiles
+    SET Status = @Status
+    WHERE Id = @Id;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Employer_MarkActivationEmailSent
+    @Id UNIQUEIDENTIFIER
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    UPDATE u
+    SET u.EmailConfirmed = 1
+    FROM dbo.Users u
+    INNER JOIN dbo.EmployerProfiles ep ON u.Id = ep.UserId
+    WHERE ep.Id = @Id;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Vacante_GetActive
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        v.Id,
+        v.EmployerProfileId,
+        v.JobTitle,
+        v.Province,
+        v.Sector,
+        v.Modality,
+        v.ExperienceLevel,
+        v.Description,
+        v.Requirements,
+        v.SalaryRange,
+        v.IsActive,
+        v.PublishedAt,
+        v.CreatedAtUtc,
+        ep.CompanyName
+    FROM dbo.Vacantes v
+    INNER JOIN dbo.EmployerProfiles ep ON v.EmployerProfileId = ep.Id
+    WHERE v.IsActive = 1
+    ORDER BY v.PublishedAt DESC;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Vacante_GetByEmployerProfileId
+    @EmployerProfileId UNIQUEIDENTIFIER
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        v.Id,
+        v.EmployerProfileId,
+        v.JobTitle,
+        v.Province,
+        v.Sector,
+        v.Modality,
+        v.ExperienceLevel,
+        v.Description,
+        v.Requirements,
+        v.SalaryRange,
+        v.IsActive,
+        v.PublishedAt,
+        v.CreatedAtUtc,
+        ep.CompanyName
+    FROM dbo.Vacantes v
+    INNER JOIN dbo.EmployerProfiles ep ON v.EmployerProfileId = ep.Id
+    WHERE v.EmployerProfileId = @EmployerProfileId
+    ORDER BY v.PublishedAt DESC;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Vacante_FindById
+    @Id UNIQUEIDENTIFIER
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT TOP (1)
+        v.Id,
+        v.EmployerProfileId,
+        v.JobTitle,
+        v.Province,
+        v.Sector,
+        v.Modality,
+        v.ExperienceLevel,
+        v.Description,
+        v.Requirements,
+        v.SalaryRange,
+        v.IsActive,
+        v.PublishedAt,
+        v.CreatedAtUtc,
+        ep.CompanyName
+    FROM dbo.Vacantes v
+    INNER JOIN dbo.EmployerProfiles ep ON v.EmployerProfileId = ep.Id
+    WHERE v.Id = @Id;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Vacante_Save
+    @Id UNIQUEIDENTIFIER,
+    @EmployerProfileId UNIQUEIDENTIFIER,
+    @JobTitle NVARCHAR(100),
+    @Province NVARCHAR(50),
+    @Sector NVARCHAR(50),
+    @Modality NVARCHAR(30),
+    @ExperienceLevel NVARCHAR(50),
+    @Description NVARCHAR(MAX) = NULL,
+    @Requirements NVARCHAR(MAX) = NULL,
+    @SalaryRange NVARCHAR(100) = NULL,
+    @IsActive BIT,
+    @PublishedAt DATETIME2(0),
+    @CreatedAtUtc DATETIME2(0)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    INSERT INTO dbo.Vacantes
+        (Id, EmployerProfileId, JobTitle, Province, Sector, Modality, ExperienceLevel,
+         Description, Requirements, SalaryRange, IsActive, PublishedAt, CreatedAtUtc)
+    VALUES
+        (@Id, @EmployerProfileId, @JobTitle, @Province, @Sector, @Modality, @ExperienceLevel,
+         @Description, @Requirements, @SalaryRange, @IsActive, @PublishedAt, @CreatedAtUtc);
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Vacante_UpdateEditableFields
+    @Id UNIQUEIDENTIFIER,
+    @EmployerProfileId UNIQUEIDENTIFIER,
+    @Description NVARCHAR(MAX) = NULL,
+    @Requirements NVARCHAR(MAX) = NULL,
+    @SalaryRange NVARCHAR(100) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    UPDATE dbo.Vacantes
+    SET Description = @Description,
+        Requirements = @Requirements,
+        SalaryRange = @SalaryRange
+    WHERE Id = @Id
+        AND EmployerProfileId = @EmployerProfileId
+        AND IsActive = 1;
+
+    SELECT CAST(@@ROWCOUNT AS INT) AS AffectedRows;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Postulacion_Save
+    @Id UNIQUEIDENTIFIER,
+    @VacanteId UNIQUEIDENTIFIER,
+    @CandidateProfileId UNIQUEIDENTIFIER,
+    @Status NVARCHAR(30),
+    @AppliedAt DATETIME2(0),
+    @UpdatedAtUtc DATETIME2(0)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    INSERT INTO dbo.Postulaciones
+        (Id, VacanteId, CandidateProfileId, Status, AppliedAt, UpdatedAtUtc)
+    VALUES
+        (@Id, @VacanteId, @CandidateProfileId, @Status, @AppliedAt, @UpdatedAtUtc);
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Postulacion_ExistsByVacanteAndCandidate
+    @VacanteId UNIQUEIDENTIFIER,
+    @CandidateProfileId UNIQUEIDENTIFIER
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT COUNT(1)
+    FROM dbo.Postulaciones
+    WHERE VacanteId = @VacanteId
+        AND CandidateProfileId = @CandidateProfileId;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Postulacion_GetByCandidateProfileId
+    @CandidateProfileId UNIQUEIDENTIFIER
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        p.Id,
+        p.VacanteId,
+        p.CandidateProfileId,
+        p.Status,
+        p.AppliedAt,
+        p.UpdatedAtUtc,
+        v.JobTitle,
+        v.Province,
+        ep.CompanyName
+    FROM dbo.Postulaciones p
+    INNER JOIN dbo.Vacantes v ON p.VacanteId = v.Id
+    INNER JOIN dbo.EmployerProfiles ep ON v.EmployerProfileId = ep.Id
+    WHERE p.CandidateProfileId = @CandidateProfileId
+    ORDER BY p.AppliedAt DESC;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Postulacion_GetByVacanteForEmployer
+    @VacanteId UNIQUEIDENTIFIER,
+    @EmployerProfileId UNIQUEIDENTIFIER
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        p.Id,
+        p.VacanteId,
+        p.CandidateProfileId,
+        p.Status,
+        p.AppliedAt,
+        p.UpdatedAtUtc,
+        v.JobTitle,
+        v.Province,
+        ep.CompanyName,
+        cp.FullName AS CandidateFullName,
+        cp.Province AS CandidateProvince,
+        cp.EducationLevel AS CandidateEducationLevel,
+        cp.DateOfBirth AS CandidateDateOfBirth,
+        u.Email AS CandidateEmail
+    FROM dbo.Postulaciones p
+    INNER JOIN dbo.Vacantes v ON p.VacanteId = v.Id
+    INNER JOIN dbo.EmployerProfiles ep ON v.EmployerProfileId = ep.Id
+    INNER JOIN dbo.CandidateProfiles cp ON p.CandidateProfileId = cp.Id
+    INNER JOIN dbo.Users u ON cp.UserId = u.Id
+    WHERE p.VacanteId = @VacanteId
+        AND v.EmployerProfileId = @EmployerProfileId
+    ORDER BY p.AppliedAt DESC;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Postulacion_FindByIdForEmployer
+    @Id UNIQUEIDENTIFIER,
+    @EmployerProfileId UNIQUEIDENTIFIER
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT TOP (1)
+        p.Id,
+        p.VacanteId,
+        p.CandidateProfileId,
+        p.Status,
+        p.AppliedAt,
+        p.UpdatedAtUtc,
+        v.JobTitle,
+        v.Province,
+        ep.CompanyName,
+        cp.FullName AS CandidateFullName,
+        cp.Province AS CandidateProvince,
+        cp.EducationLevel AS CandidateEducationLevel,
+        cp.DateOfBirth AS CandidateDateOfBirth,
+        u.Email AS CandidateEmail
+    FROM dbo.Postulaciones p
+    INNER JOIN dbo.Vacantes v ON p.VacanteId = v.Id
+    INNER JOIN dbo.EmployerProfiles ep ON v.EmployerProfileId = ep.Id
+    INNER JOIN dbo.CandidateProfiles cp ON p.CandidateProfileId = cp.Id
+    INNER JOIN dbo.Users u ON cp.UserId = u.Id
+    WHERE p.Id = @Id
+        AND v.EmployerProfileId = @EmployerProfileId;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Postulacion_UpdateStatusForEmployer
+    @Id UNIQUEIDENTIFIER,
+    @EmployerProfileId UNIQUEIDENTIFIER,
+    @Status NVARCHAR(30),
+    @UpdatedAtUtc DATETIME2(0)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    UPDATE p
+    SET p.Status = @Status,
+        p.UpdatedAtUtc = @UpdatedAtUtc
+    FROM dbo.Postulaciones p
+    INNER JOIN dbo.Vacantes v ON p.VacanteId = v.Id
+    WHERE p.Id = @Id
+        AND v.EmployerProfileId = @EmployerProfileId;
+
+    SELECT CAST(@@ROWCOUNT AS INT) AS AffectedRows;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Notificacion_Save
+    @Id UNIQUEIDENTIFIER,
+    @EmployerProfileId UNIQUEIDENTIFIER,
+    @PostulacionId UNIQUEIDENTIFIER,
+    @VacanteId UNIQUEIDENTIFIER,
+    @Message NVARCHAR(300),
+    @IsRead BIT,
+    @CreatedAtUtc DATETIME2(0)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    INSERT INTO dbo.Notificaciones
+        (Id, EmployerProfileId, PostulacionId, VacanteId, Message, IsRead, CreatedAtUtc)
+    VALUES
+        (@Id, @EmployerProfileId, @PostulacionId, @VacanteId, @Message, @IsRead, @CreatedAtUtc);
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Notificacion_GetByEmployerProfileId
+    @EmployerProfileId UNIQUEIDENTIFIER,
+    @VacanteId UNIQUEIDENTIFIER = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT Id, EmployerProfileId, PostulacionId, VacanteId, Message, IsRead, CreatedAtUtc
+    FROM dbo.Notificaciones
+    WHERE EmployerProfileId = @EmployerProfileId
+        AND (@VacanteId IS NULL OR VacanteId = @VacanteId)
+    ORDER BY CreatedAtUtc DESC;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Notificacion_MarkAsRead
+    @Id UNIQUEIDENTIFIER,
+    @EmployerProfileId UNIQUEIDENTIFIER
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    UPDATE dbo.Notificaciones
+    SET IsRead = 1
+    WHERE Id = @Id
+        AND EmployerProfileId = @EmployerProfileId;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Notificacion_GetUnreadCount
+    @EmployerProfileId UNIQUEIDENTIFIER
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT COUNT(1)
+    FROM dbo.Notificaciones
+    WHERE EmployerProfileId = @EmployerProfileId
+        AND IsRead = 0;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_AdminReport_GetReportData
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        COUNT(*) AS TotalUsers,
+        COALESCE(SUM(CASE WHEN Role = 'CANDIDATE' THEN 1 ELSE 0 END), 0) AS TotalCandidates,
+        COALESCE(SUM(CASE WHEN Role = 'EMPLOYER' THEN 1 ELSE 0 END), 0) AS TotalEmployers,
+        COALESCE(SUM(CASE WHEN Role = 'ADMINISTRATOR' THEN 1 ELSE 0 END), 0) AS TotalAdministrators
+    FROM dbo.Users;
+
+    SELECT
+        COUNT(*) AS TotalVacantes,
+        COALESCE(SUM(CASE WHEN IsActive = 1 THEN 1 ELSE 0 END), 0) AS ActiveVacantes,
+        COALESCE(SUM(CASE WHEN IsActive = 0 THEN 1 ELSE 0 END), 0) AS ClosedVacantes
+    FROM dbo.Vacantes;
+
+    SELECT
+        COUNT(*) AS TotalPostulaciones,
+        COUNT(DISTINCT CandidateProfileId) AS CandidatesWithPostulaciones,
+        COUNT(DISTINCT VacanteId) AS VacantesWithPostulaciones
+    FROM dbo.Postulaciones;
+
+    SELECT Status, COUNT(*) AS Count
+    FROM dbo.Postulaciones
+    GROUP BY Status
+    ORDER BY COUNT(*) DESC;
+
+    SELECT Province, COUNT(*) AS Count
+    FROM dbo.CandidateProfiles
+    GROUP BY Province
+    ORDER BY COUNT(*) DESC;
+
+    SELECT Province, COUNT(*) AS Count
+    FROM dbo.Vacantes
+    GROUP BY Province
+    ORDER BY COUNT(*) DESC;
+END;
+GO
+
+/* =============================================================
    Datos iniciales
    ============================================================= */
 

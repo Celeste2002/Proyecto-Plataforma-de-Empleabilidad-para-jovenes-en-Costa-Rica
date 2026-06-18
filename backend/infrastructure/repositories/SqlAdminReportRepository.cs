@@ -8,69 +8,33 @@ public sealed class SqlAdminReportRepository(string connectionString) : IAdminRe
 {
     public async Task<AdminReportResponse> GetReportDataAsync(CancellationToken cancellationToken)
     {
-        // All 6 aggregate queries in a single round-trip using multiple result sets.
-        const string sql = """
-            SELECT
-                COUNT(*)                                                              AS TotalUsers,
-                COALESCE(SUM(CASE WHEN Role = 'CANDIDATE'      THEN 1 ELSE 0 END), 0) AS TotalCandidates,
-                COALESCE(SUM(CASE WHEN Role = 'EMPLOYER'       THEN 1 ELSE 0 END), 0) AS TotalEmployers,
-                COALESCE(SUM(CASE WHEN Role = 'ADMINISTRATOR'  THEN 1 ELSE 0 END), 0) AS TotalAdministrators
-            FROM dbo.Users;
+        await using SqlConnection connection =
+            await SqlStoredProcedure.OpenConnectionAsync(connectionString, cancellationToken);
 
-            SELECT
-                COUNT(*)                                                              AS TotalVacantes,
-                COALESCE(SUM(CASE WHEN IsActive = 1 THEN 1 ELSE 0 END), 0)           AS ActiveVacantes,
-                COALESCE(SUM(CASE WHEN IsActive = 0 THEN 1 ELSE 0 END), 0)           AS ClosedVacantes
-            FROM dbo.Vacantes;
-
-            SELECT
-                COUNT(*)                                                              AS TotalPostulaciones,
-                COUNT(DISTINCT CandidateProfileId)                                    AS CandidatesWithPostulaciones,
-                COUNT(DISTINCT VacanteId)                                             AS VacantesWithPostulaciones
-            FROM dbo.Postulaciones;
-
-            SELECT Status, COUNT(*) AS Count
-            FROM dbo.Postulaciones
-            GROUP BY Status
-            ORDER BY COUNT(*) DESC;
-
-            SELECT Province, COUNT(*) AS Count
-            FROM dbo.CandidateProfiles
-            GROUP BY Province
-            ORDER BY COUNT(*) DESC;
-
-            SELECT Province, COUNT(*) AS Count
-            FROM dbo.Vacantes
-            GROUP BY Province
-            ORDER BY COUNT(*) DESC;
-            """;
-
-        await using SqlConnection connection = new(connectionString);
-        await connection.OpenAsync(cancellationToken);
-
-        await using SqlCommand command = new(sql, connection);
+        await using SqlCommand command =
+            connection.CreateStoredProcedureCommand(StoredProcedures.AdminReports.GetReportData);
         await using SqlDataReader reader = await command.ExecuteReaderAsync(cancellationToken);
 
         // Result 1: user counts
         await reader.ReadAsync(cancellationToken);
-        int totalUsers          = reader.GetInt32(reader.GetOrdinal("TotalUsers"));
-        int totalCandidates     = reader.GetInt32(reader.GetOrdinal("TotalCandidates"));
-        int totalEmployers      = reader.GetInt32(reader.GetOrdinal("TotalEmployers"));
+        int totalUsers = reader.GetInt32(reader.GetOrdinal("TotalUsers"));
+        int totalCandidates = reader.GetInt32(reader.GetOrdinal("TotalCandidates"));
+        int totalEmployers = reader.GetInt32(reader.GetOrdinal("TotalEmployers"));
         int totalAdministrators = reader.GetInt32(reader.GetOrdinal("TotalAdministrators"));
 
         // Result 2: vacante counts
         await reader.NextResultAsync(cancellationToken);
         await reader.ReadAsync(cancellationToken);
-        int totalVacantes  = reader.GetInt32(reader.GetOrdinal("TotalVacantes"));
+        int totalVacantes = reader.GetInt32(reader.GetOrdinal("TotalVacantes"));
         int activeVacantes = reader.GetInt32(reader.GetOrdinal("ActiveVacantes"));
         int closedVacantes = reader.GetInt32(reader.GetOrdinal("ClosedVacantes"));
 
         // Result 3: postulacion aggregates
         await reader.NextResultAsync(cancellationToken);
         await reader.ReadAsync(cancellationToken);
-        int totalPostulaciones          = reader.GetInt32(reader.GetOrdinal("TotalPostulaciones"));
+        int totalPostulaciones = reader.GetInt32(reader.GetOrdinal("TotalPostulaciones"));
         int candidatesWithPostulaciones = reader.GetInt32(reader.GetOrdinal("CandidatesWithPostulaciones"));
-        int vacantesWithPostulaciones   = reader.GetInt32(reader.GetOrdinal("VacantesWithPostulaciones"));
+        int vacantesWithPostulaciones = reader.GetInt32(reader.GetOrdinal("VacantesWithPostulaciones"));
 
         // Result 4: postulaciones by status
         await reader.NextResultAsync(cancellationToken);
@@ -103,20 +67,20 @@ public sealed class SqlAdminReportRepository(string connectionString) : IAdminRe
         }
 
         return new AdminReportResponse(
-            TotalUsers:                  totalUsers,
-            TotalCandidates:             totalCandidates,
-            TotalEmployers:              totalEmployers,
-            TotalAdministrators:         totalAdministrators,
-            TotalVacantes:               totalVacantes,
-            ActiveVacantes:              activeVacantes,
-            ClosedVacantes:              closedVacantes,
-            TotalPostulaciones:          totalPostulaciones,
+            TotalUsers: totalUsers,
+            TotalCandidates: totalCandidates,
+            TotalEmployers: totalEmployers,
+            TotalAdministrators: totalAdministrators,
+            TotalVacantes: totalVacantes,
+            ActiveVacantes: activeVacantes,
+            ClosedVacantes: closedVacantes,
+            TotalPostulaciones: totalPostulaciones,
             CandidatesWithPostulaciones: candidatesWithPostulaciones,
-            VacantesWithPostulaciones:   vacantesWithPostulaciones,
-            PostulacionesByStatus:       byStatus,
-            CandidatesByProvince:        candidatesByProvince,
-            VacantesByProvince:          vacantesByProvince,
-            TotalMicrocursos:            0,
-            GeneratedAt:                 DateTime.UtcNow);
+            VacantesWithPostulaciones: vacantesWithPostulaciones,
+            PostulacionesByStatus: byStatus,
+            CandidatesByProvince: candidatesByProvince,
+            VacantesByProvince: vacantesByProvince,
+            TotalMicrocursos: 0,
+            GeneratedAt: DateTime.UtcNow);
     }
 }

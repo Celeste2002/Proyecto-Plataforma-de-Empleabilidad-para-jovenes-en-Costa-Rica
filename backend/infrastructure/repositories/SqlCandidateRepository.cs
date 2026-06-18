@@ -6,96 +6,28 @@ namespace infrastructure.repositories;
 
 public sealed class SqlCandidateRepository(string connectionString) : ICandidateRepository
 {
-    public async Task<CandidateProfile?> FindByEmailAsync(string email, CancellationToken cancellationToken)
-    {
-        const string query = """
-            SELECT TOP (1)
-                cp.Id,
-                cp.UserId,
-                cp.FullName,
-                cp.DateOfBirth,
-                cp.Province,
-                cp.EducationLevel,
-                cp.IsVisibleToPartnerEmployers,
-                cp.IsAvailableForContact,
-                cp.PhotoUrl,
-                cp.CreatedAtUtc,
-                u.Email,
-                u.EmailConfirmed
-            FROM dbo.CandidateProfiles cp
-            INNER JOIN dbo.Users u ON cp.UserId = u.Id
-            WHERE u.Email = @Email;
-            """;
+    public Task<CandidateProfile?> FindByEmailAsync(string email, CancellationToken cancellationToken)
+        => QuerySingleProfileAsync(
+            StoredProcedures.Candidates.FindByEmail,
+            command => command.Parameters.AddWithValue("@Email", email),
+            cancellationToken);
 
-        await using SqlConnection connection = new(connectionString);
-        await connection.OpenAsync(cancellationToken);
-
-        await using SqlCommand command = new(query, connection);
-        command.Parameters.AddWithValue("@Email", email);
-
-        await using SqlDataReader reader = await command.ExecuteReaderAsync(cancellationToken);
-
-        return await reader.ReadAsync(cancellationToken) ? MapCandidateProfile(reader) : null;
-    }
-
-    public async Task<CandidateProfile?> FindByUserIdAsync(Guid userId, CancellationToken cancellationToken)
-    {
-        const string query = """
-            SELECT TOP (1)
-                cp.Id,
-                cp.UserId,
-                cp.FullName,
-                cp.DateOfBirth,
-                cp.Province,
-                cp.EducationLevel,
-                cp.IsVisibleToPartnerEmployers,
-                cp.IsAvailableForContact,
-                cp.PhotoUrl,
-                cp.CreatedAtUtc,
-                u.Email,
-                u.EmailConfirmed
-            FROM dbo.CandidateProfiles cp
-            INNER JOIN dbo.Users u ON cp.UserId = u.Id
-            WHERE cp.UserId = @UserId;
-            """;
-
-        await using SqlConnection connection = new(connectionString);
-        await connection.OpenAsync(cancellationToken);
-
-        await using SqlCommand command = new(query, connection);
-        command.Parameters.AddWithValue("@UserId", userId);
-
-        await using SqlDataReader reader = await command.ExecuteReaderAsync(cancellationToken);
-
-        return await reader.ReadAsync(cancellationToken) ? MapCandidateProfile(reader) : null;
-    }
+    public Task<CandidateProfile?> FindByUserIdAsync(Guid userId, CancellationToken cancellationToken)
+        => QuerySingleProfileAsync(
+            StoredProcedures.Candidates.FindByUserId,
+            command => command.Parameters.AddWithValue("@UserId", userId),
+            cancellationToken);
 
     public async Task<IReadOnlyCollection<CandidateProfile>> GetVisibleToPartnerEmployersAsync(
         CancellationToken cancellationToken)
     {
-        const string query = """
-            SELECT
-                Id,
-                FullName,
-                DateOfBirth,
-                Age,
-                Province,
-                EducationLevel,
-                IsAvailableForContact,
-                PhotoUrl,
-                Email,
-                EmailConfirmed,
-                CreatedAtUtc
-            FROM dbo.PartnerEmployerVisibleCandidateProfiles
-            ORDER BY CreatedAtUtc DESC;
-            """;
-
         List<CandidateProfile> candidateProfiles = [];
 
-        await using SqlConnection connection = new(connectionString);
-        await connection.OpenAsync(cancellationToken);
+        await using SqlConnection connection =
+            await SqlStoredProcedure.OpenConnectionAsync(connectionString, cancellationToken);
 
-        await using SqlCommand command = new(query, connection);
+        await using SqlCommand command =
+            connection.CreateStoredProcedureCommand(StoredProcedures.Candidates.GetVisibleToPartnerEmployers);
         await using SqlDataReader reader = await command.ExecuteReaderAsync(cancellationToken);
 
         while (await reader.ReadAsync(cancellationToken))
@@ -108,51 +40,20 @@ public sealed class SqlCandidateRepository(string connectionString) : ICandidate
 
     public async Task SaveAsync(CandidateProfile candidateProfile, CancellationToken cancellationToken)
     {
-        const string sql = """
-            INSERT INTO dbo.CandidateProfiles
-            (
-                Id,
-                UserId,
-                FullName,
-                DateOfBirth,
-                Age,
-                Province,
-                EducationLevel,
-                IsVisibleToPartnerEmployers,
-                IsAvailableForContact,
-                PhotoUrl,
-                CreatedAtUtc
-            )
-            VALUES
-            (
-                @Id,
-                @UserId,
-                @FullName,
-                @DateOfBirth,
-                @Age,
-                @Province,
-                @EducationLevel,
-                @IsVisibleToPartnerEmployers,
-                @IsAvailableForContact,
-                @PhotoUrl,
-                @CreatedAtUtc
-            );
-            """;
+        await using SqlConnection connection =
+            await SqlStoredProcedure.OpenConnectionAsync(connectionString, cancellationToken);
 
-        await using SqlConnection connection = new(connectionString);
-        await connection.OpenAsync(cancellationToken);
-
-        await using SqlCommand command = new(sql, connection);
+        await using SqlCommand command =
+            connection.CreateStoredProcedureCommand(StoredProcedures.Candidates.Save);
         command.Parameters.AddWithValue("@Id", candidateProfile.Id);
         command.Parameters.AddWithValue("@UserId", candidateProfile.UserId);
         command.Parameters.AddWithValue("@FullName", candidateProfile.FullName);
         command.Parameters.AddWithValue("@DateOfBirth", candidateProfile.DateOfBirth.ToDateTime(TimeOnly.MinValue));
-        command.Parameters.AddWithValue("@Age", CalculateAge(candidateProfile.DateOfBirth));
         command.Parameters.AddWithValue("@Province", candidateProfile.Province);
         command.Parameters.AddWithValue("@EducationLevel", candidateProfile.EducationLevel);
         command.Parameters.AddWithValue("@IsVisibleToPartnerEmployers", candidateProfile.IsVisibleToPartnerEmployers);
         command.Parameters.AddWithValue("@IsAvailableForContact", candidateProfile.IsAvailableForContact);
-        command.Parameters.AddWithValue("@PhotoUrl", (object?)candidateProfile.PhotoUrl ?? DBNull.Value);
+        command.Parameters.AddNullableWithValue("@PhotoUrl", candidateProfile.PhotoUrl);
         command.Parameters.AddWithValue("@CreatedAtUtc", candidateProfile.CreatedAtUtc);
 
         await command.ExecuteNonQueryAsync(cancellationToken);
@@ -160,46 +61,29 @@ public sealed class SqlCandidateRepository(string connectionString) : ICandidate
 
     public async Task UpdateAsync(CandidateProfile candidateProfile, CancellationToken cancellationToken)
     {
-        const string sql = """
-            UPDATE dbo.CandidateProfiles
-            SET FullName = @FullName,
-                DateOfBirth = @DateOfBirth,
-                Age = @Age,
-                Province = @Province,
-                EducationLevel = @EducationLevel,
-                PhotoUrl = @PhotoUrl
-            WHERE Id = @Id
-                AND UserId = @UserId;
-            """;
+        await using SqlConnection connection =
+            await SqlStoredProcedure.OpenConnectionAsync(connectionString, cancellationToken);
 
-        await using SqlConnection connection = new(connectionString);
-        await connection.OpenAsync(cancellationToken);
-
-        await using SqlCommand command = new(sql, connection);
+        await using SqlCommand command =
+            connection.CreateStoredProcedureCommand(StoredProcedures.Candidates.Update);
         command.Parameters.AddWithValue("@Id", candidateProfile.Id);
         command.Parameters.AddWithValue("@UserId", candidateProfile.UserId);
         command.Parameters.AddWithValue("@FullName", candidateProfile.FullName);
         command.Parameters.AddWithValue("@DateOfBirth", candidateProfile.DateOfBirth.ToDateTime(TimeOnly.MinValue));
-        command.Parameters.AddWithValue("@Age", CalculateAge(candidateProfile.DateOfBirth));
         command.Parameters.AddWithValue("@Province", candidateProfile.Province);
         command.Parameters.AddWithValue("@EducationLevel", candidateProfile.EducationLevel);
-        command.Parameters.AddWithValue("@PhotoUrl", (object?)candidateProfile.PhotoUrl ?? DBNull.Value);
+        command.Parameters.AddNullableWithValue("@PhotoUrl", candidateProfile.PhotoUrl);
 
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
     public async Task UpdateAvailabilityAsync(Guid profileId, bool isAvailableForContact, CancellationToken cancellationToken)
     {
-        const string sql = """
-            UPDATE dbo.CandidateProfiles
-            SET IsAvailableForContact = @IsAvailableForContact
-            WHERE Id = @Id;
-            """;
+        await using SqlConnection connection =
+            await SqlStoredProcedure.OpenConnectionAsync(connectionString, cancellationToken);
 
-        await using SqlConnection connection = new(connectionString);
-        await connection.OpenAsync(cancellationToken);
-
-        await using SqlCommand command = new(sql, connection);
+        await using SqlCommand command =
+            connection.CreateStoredProcedureCommand(StoredProcedures.Candidates.UpdateAvailability);
         command.Parameters.AddWithValue("@Id", profileId);
         command.Parameters.AddWithValue("@IsAvailableForContact", isAvailableForContact);
 
@@ -208,18 +92,11 @@ public sealed class SqlCandidateRepository(string connectionString) : ICandidate
 
     public async Task MarkEmailConfirmationSentAsync(Guid candidateProfileId, CancellationToken cancellationToken)
     {
-        const string sql = """
-            UPDATE u
-            SET u.EmailConfirmed = 1
-            FROM dbo.Users u
-            INNER JOIN dbo.CandidateProfiles cp ON u.Id = cp.UserId
-            WHERE cp.Id = @Id;
-            """;
+        await using SqlConnection connection =
+            await SqlStoredProcedure.OpenConnectionAsync(connectionString, cancellationToken);
 
-        await using SqlConnection connection = new(connectionString);
-        await connection.OpenAsync(cancellationToken);
-
-        await using SqlCommand command = new(sql, connection);
+        await using SqlCommand command =
+            connection.CreateStoredProcedureCommand(StoredProcedures.Candidates.MarkEmailConfirmationSent);
         command.Parameters.AddWithValue("@Id", candidateProfileId);
 
         await command.ExecuteNonQueryAsync(cancellationToken);
@@ -231,19 +108,13 @@ public sealed class SqlCandidateRepository(string connectionString) : ICandidate
         Guid candidateProfileId,
         CancellationToken cancellationToken)
     {
-        const string query = """
-            SELECT Id, CandidateProfileId, Empresa, Cargo, FechaInicio, FechaFin, EsTrabajoActual, Descripcion
-            FROM dbo.ExperienciasLaborales
-            WHERE CandidateProfileId = @CandidateProfileId
-            ORDER BY FechaInicio DESC;
-            """;
-
         List<ExperienciaLaboral> result = [];
 
-        await using SqlConnection connection = new(connectionString);
-        await connection.OpenAsync(cancellationToken);
+        await using SqlConnection connection =
+            await SqlStoredProcedure.OpenConnectionAsync(connectionString, cancellationToken);
 
-        await using SqlCommand command = new(query, connection);
+        await using SqlCommand command =
+            connection.CreateStoredProcedureCommand(StoredProcedures.Candidates.GetExperiencias);
         command.Parameters.AddWithValue("@CandidateProfileId", candidateProfileId);
 
         await using SqlDataReader reader = await command.ExecuteReaderAsync(cancellationToken);
@@ -258,42 +129,34 @@ public sealed class SqlCandidateRepository(string connectionString) : ICandidate
 
     public async Task SaveExperienciaAsync(ExperienciaLaboral experiencia, CancellationToken cancellationToken)
     {
-        const string sql = """
-            INSERT INTO dbo.ExperienciasLaborales
-            (Id, CandidateProfileId, Empresa, Cargo, FechaInicio, FechaFin, EsTrabajoActual, Descripcion)
-            VALUES
-            (@Id, @CandidateProfileId, @Empresa, @Cargo, @FechaInicio, @FechaFin, @EsTrabajoActual, @Descripcion);
-            """;
+        await using SqlConnection connection =
+            await SqlStoredProcedure.OpenConnectionAsync(connectionString, cancellationToken);
 
-        await using SqlConnection connection = new(connectionString);
-        await connection.OpenAsync(cancellationToken);
-
-        await using SqlCommand command = new(sql, connection);
+        await using SqlCommand command =
+            connection.CreateStoredProcedureCommand(StoredProcedures.Candidates.SaveExperiencia);
         command.Parameters.AddWithValue("@Id", experiencia.Id);
         command.Parameters.AddWithValue("@CandidateProfileId", experiencia.CandidateProfileId);
         command.Parameters.AddWithValue("@Empresa", experiencia.Empresa);
         command.Parameters.AddWithValue("@Cargo", experiencia.Cargo);
         command.Parameters.AddWithValue("@FechaInicio", experiencia.FechaInicio.ToDateTime(TimeOnly.MinValue));
-        command.Parameters.AddWithValue("@FechaFin", experiencia.FechaFin.HasValue
-            ? (object)experiencia.FechaFin.Value.ToDateTime(TimeOnly.MinValue)
-            : DBNull.Value);
+        command.Parameters.AddNullableWithValue(
+            "@FechaFin",
+            experiencia.FechaFin.HasValue
+                ? experiencia.FechaFin.Value.ToDateTime(TimeOnly.MinValue)
+                : null);
         command.Parameters.AddWithValue("@EsTrabajoActual", experiencia.EsTrabajoActual);
-        command.Parameters.AddWithValue("@Descripcion", (object?)experiencia.Descripcion ?? DBNull.Value);
+        command.Parameters.AddNullableWithValue("@Descripcion", experiencia.Descripcion);
 
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
     public async Task DeleteExperienciaAsync(Guid id, Guid candidateProfileId, CancellationToken cancellationToken)
     {
-        const string sql = """
-            DELETE FROM dbo.ExperienciasLaborales
-            WHERE Id = @Id AND CandidateProfileId = @CandidateProfileId;
-            """;
+        await using SqlConnection connection =
+            await SqlStoredProcedure.OpenConnectionAsync(connectionString, cancellationToken);
 
-        await using SqlConnection connection = new(connectionString);
-        await connection.OpenAsync(cancellationToken);
-
-        await using SqlCommand command = new(sql, connection);
+        await using SqlCommand command =
+            connection.CreateStoredProcedureCommand(StoredProcedures.Candidates.DeleteExperiencia);
         command.Parameters.AddWithValue("@Id", id);
         command.Parameters.AddWithValue("@CandidateProfileId", candidateProfileId);
 
@@ -306,19 +169,13 @@ public sealed class SqlCandidateRepository(string connectionString) : ICandidate
         Guid candidateProfileId,
         CancellationToken cancellationToken)
     {
-        const string query = """
-            SELECT Id, CandidateProfileId, Nombre
-            FROM dbo.Habilidades
-            WHERE CandidateProfileId = @CandidateProfileId
-            ORDER BY Nombre;
-            """;
-
         List<Habilidad> result = [];
 
-        await using SqlConnection connection = new(connectionString);
-        await connection.OpenAsync(cancellationToken);
+        await using SqlConnection connection =
+            await SqlStoredProcedure.OpenConnectionAsync(connectionString, cancellationToken);
 
-        await using SqlCommand command = new(query, connection);
+        await using SqlCommand command =
+            connection.CreateStoredProcedureCommand(StoredProcedures.Candidates.GetHabilidades);
         command.Parameters.AddWithValue("@CandidateProfileId", candidateProfileId);
 
         await using SqlDataReader reader = await command.ExecuteReaderAsync(cancellationToken);
@@ -338,15 +195,11 @@ public sealed class SqlCandidateRepository(string connectionString) : ICandidate
 
     public async Task SaveHabilidadAsync(Habilidad habilidad, CancellationToken cancellationToken)
     {
-        const string sql = """
-            INSERT INTO dbo.Habilidades (Id, CandidateProfileId, Nombre)
-            VALUES (@Id, @CandidateProfileId, @Nombre);
-            """;
+        await using SqlConnection connection =
+            await SqlStoredProcedure.OpenConnectionAsync(connectionString, cancellationToken);
 
-        await using SqlConnection connection = new(connectionString);
-        await connection.OpenAsync(cancellationToken);
-
-        await using SqlCommand command = new(sql, connection);
+        await using SqlCommand command =
+            connection.CreateStoredProcedureCommand(StoredProcedures.Candidates.SaveHabilidad);
         command.Parameters.AddWithValue("@Id", habilidad.Id);
         command.Parameters.AddWithValue("@CandidateProfileId", habilidad.CandidateProfileId);
         command.Parameters.AddWithValue("@Nombre", habilidad.Nombre);
@@ -356,15 +209,11 @@ public sealed class SqlCandidateRepository(string connectionString) : ICandidate
 
     public async Task DeleteHabilidadAsync(Guid id, Guid candidateProfileId, CancellationToken cancellationToken)
     {
-        const string sql = """
-            DELETE FROM dbo.Habilidades
-            WHERE Id = @Id AND CandidateProfileId = @CandidateProfileId;
-            """;
+        await using SqlConnection connection =
+            await SqlStoredProcedure.OpenConnectionAsync(connectionString, cancellationToken);
 
-        await using SqlConnection connection = new(connectionString);
-        await connection.OpenAsync(cancellationToken);
-
-        await using SqlCommand command = new(sql, connection);
+        await using SqlCommand command =
+            connection.CreateStoredProcedureCommand(StoredProcedures.Candidates.DeleteHabilidad);
         command.Parameters.AddWithValue("@Id", id);
         command.Parameters.AddWithValue("@CandidateProfileId", candidateProfileId);
 
@@ -377,19 +226,13 @@ public sealed class SqlCandidateRepository(string connectionString) : ICandidate
         Guid candidateProfileId,
         CancellationToken cancellationToken)
     {
-        const string query = """
-            SELECT Id, CandidateProfileId, NombreCurso, Institucion, FechaCompletado, EsDePlataforma
-            FROM dbo.CursosCompletados
-            WHERE CandidateProfileId = @CandidateProfileId
-            ORDER BY FechaCompletado DESC;
-            """;
-
         List<CursoCompletado> result = [];
 
-        await using SqlConnection connection = new(connectionString);
-        await connection.OpenAsync(cancellationToken);
+        await using SqlConnection connection =
+            await SqlStoredProcedure.OpenConnectionAsync(connectionString, cancellationToken);
 
-        await using SqlCommand command = new(query, connection);
+        await using SqlCommand command =
+            connection.CreateStoredProcedureCommand(StoredProcedures.Candidates.GetCursos);
         command.Parameters.AddWithValue("@CandidateProfileId", candidateProfileId);
 
         await using SqlDataReader reader = await command.ExecuteReaderAsync(cancellationToken);
@@ -412,17 +255,11 @@ public sealed class SqlCandidateRepository(string connectionString) : ICandidate
 
     public async Task SaveCursoAsync(CursoCompletado curso, CancellationToken cancellationToken)
     {
-        const string sql = """
-            INSERT INTO dbo.CursosCompletados
-            (Id, CandidateProfileId, NombreCurso, Institucion, FechaCompletado, EsDePlataforma)
-            VALUES
-            (@Id, @CandidateProfileId, @NombreCurso, @Institucion, @FechaCompletado, @EsDePlataforma);
-            """;
+        await using SqlConnection connection =
+            await SqlStoredProcedure.OpenConnectionAsync(connectionString, cancellationToken);
 
-        await using SqlConnection connection = new(connectionString);
-        await connection.OpenAsync(cancellationToken);
-
-        await using SqlCommand command = new(sql, connection);
+        await using SqlCommand command =
+            connection.CreateStoredProcedureCommand(StoredProcedures.Candidates.SaveCurso);
         command.Parameters.AddWithValue("@Id", curso.Id);
         command.Parameters.AddWithValue("@CandidateProfileId", curso.CandidateProfileId);
         command.Parameters.AddWithValue("@NombreCurso", curso.NombreCurso);
@@ -435,15 +272,11 @@ public sealed class SqlCandidateRepository(string connectionString) : ICandidate
 
     public async Task DeleteCursoAsync(Guid id, Guid candidateProfileId, CancellationToken cancellationToken)
     {
-        const string sql = """
-            DELETE FROM dbo.CursosCompletados
-            WHERE Id = @Id AND CandidateProfileId = @CandidateProfileId;
-            """;
+        await using SqlConnection connection =
+            await SqlStoredProcedure.OpenConnectionAsync(connectionString, cancellationToken);
 
-        await using SqlConnection connection = new(connectionString);
-        await connection.OpenAsync(cancellationToken);
-
-        await using SqlCommand command = new(sql, connection);
+        await using SqlCommand command =
+            connection.CreateStoredProcedureCommand(StoredProcedures.Candidates.DeleteCurso);
         command.Parameters.AddWithValue("@Id", id);
         command.Parameters.AddWithValue("@CandidateProfileId", candidateProfileId);
 
@@ -451,6 +284,22 @@ public sealed class SqlCandidateRepository(string connectionString) : ICandidate
     }
 
     // -- Mappers privados --
+
+    private async Task<CandidateProfile?> QuerySingleProfileAsync(
+        string procedureName,
+        Action<SqlCommand> bindParams,
+        CancellationToken cancellationToken)
+    {
+        await using SqlConnection connection =
+            await SqlStoredProcedure.OpenConnectionAsync(connectionString, cancellationToken);
+
+        await using SqlCommand command = connection.CreateStoredProcedureCommand(procedureName);
+        bindParams(command);
+
+        await using SqlDataReader reader = await command.ExecuteReaderAsync(cancellationToken);
+
+        return await reader.ReadAsync(cancellationToken) ? MapCandidateProfile(reader) : null;
+    }
 
     private static CandidateProfile MapCandidateProfile(SqlDataReader reader)
     {
@@ -490,19 +339,6 @@ public sealed class SqlCandidateRepository(string connectionString) : ICandidate
                 ? null
                 : reader.GetString(reader.GetOrdinal("Descripcion"))
         };
-    }
-
-    private static int CalculateAge(DateOnly dateOfBirth)
-    {
-        DateOnly today = DateOnly.FromDateTime(DateTime.UtcNow);
-        int age = today.Year - dateOfBirth.Year;
-
-        if (dateOfBirth > today.AddYears(-age))
-        {
-            age--;
-        }
-
-        return age;
     }
 
     private static CandidateProfile MapCandidateProfileFromView(SqlDataReader reader)

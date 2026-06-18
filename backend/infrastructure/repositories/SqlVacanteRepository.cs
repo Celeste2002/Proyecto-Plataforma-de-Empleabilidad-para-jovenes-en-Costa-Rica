@@ -8,34 +8,13 @@ public sealed class SqlVacanteRepository(string connectionString) : IVacanteRepo
 {
     public async Task<IReadOnlyCollection<Vacante>> GetActiveAsync(CancellationToken cancellationToken)
     {
-        const string query = """
-            SELECT
-                v.Id,
-                v.EmployerProfileId,
-                v.JobTitle,
-                v.Province,
-                v.Sector,
-                v.Modality,
-                v.ExperienceLevel,
-                v.Description,
-                v.Requirements,
-                v.SalaryRange,
-                v.IsActive,
-                v.PublishedAt,
-                v.CreatedAtUtc,
-                ep.CompanyName
-            FROM dbo.Vacantes v
-            INNER JOIN dbo.EmployerProfiles ep ON v.EmployerProfileId = ep.Id
-            WHERE v.IsActive = 1
-            ORDER BY v.PublishedAt DESC;
-            """;
-
         List<Vacante> vacantes = [];
 
-        await using SqlConnection connection = new(connectionString);
-        await connection.OpenAsync(cancellationToken);
+        await using SqlConnection connection =
+            await SqlStoredProcedure.OpenConnectionAsync(connectionString, cancellationToken);
 
-        await using SqlCommand command = new(query, connection);
+        await using SqlCommand command =
+            connection.CreateStoredProcedureCommand(StoredProcedures.Vacantes.GetActive);
         await using SqlDataReader reader = await command.ExecuteReaderAsync(cancellationToken);
 
         while (await reader.ReadAsync(cancellationToken))
@@ -50,34 +29,13 @@ public sealed class SqlVacanteRepository(string connectionString) : IVacanteRepo
         Guid employerProfileId,
         CancellationToken cancellationToken)
     {
-        const string query = """
-            SELECT
-                v.Id,
-                v.EmployerProfileId,
-                v.JobTitle,
-                v.Province,
-                v.Sector,
-                v.Modality,
-                v.ExperienceLevel,
-                v.Description,
-                v.Requirements,
-                v.SalaryRange,
-                v.IsActive,
-                v.PublishedAt,
-                v.CreatedAtUtc,
-                ep.CompanyName
-            FROM dbo.Vacantes v
-            INNER JOIN dbo.EmployerProfiles ep ON v.EmployerProfileId = ep.Id
-            WHERE v.EmployerProfileId = @EmployerProfileId
-            ORDER BY v.PublishedAt DESC;
-            """;
-
         List<Vacante> vacantes = [];
 
-        await using SqlConnection connection = new(connectionString);
-        await connection.OpenAsync(cancellationToken);
+        await using SqlConnection connection =
+            await SqlStoredProcedure.OpenConnectionAsync(connectionString, cancellationToken);
 
-        await using SqlCommand command = new(query, connection);
+        await using SqlCommand command =
+            connection.CreateStoredProcedureCommand(StoredProcedures.Vacantes.GetByEmployerProfileId);
         command.Parameters.AddWithValue("@EmployerProfileId", employerProfileId);
 
         await using SqlDataReader reader = await command.ExecuteReaderAsync(cancellationToken);
@@ -92,31 +50,11 @@ public sealed class SqlVacanteRepository(string connectionString) : IVacanteRepo
 
     public async Task<Vacante?> FindByIdAsync(Guid id, CancellationToken cancellationToken)
     {
-        const string query = """
-            SELECT TOP (1)
-                v.Id,
-                v.EmployerProfileId,
-                v.JobTitle,
-                v.Province,
-                v.Sector,
-                v.Modality,
-                v.ExperienceLevel,
-                v.Description,
-                v.Requirements,
-                v.SalaryRange,
-                v.IsActive,
-                v.PublishedAt,
-                v.CreatedAtUtc,
-                ep.CompanyName
-            FROM dbo.Vacantes v
-            INNER JOIN dbo.EmployerProfiles ep ON v.EmployerProfileId = ep.Id
-            WHERE v.Id = @Id;
-            """;
+        await using SqlConnection connection =
+            await SqlStoredProcedure.OpenConnectionAsync(connectionString, cancellationToken);
 
-        await using SqlConnection connection = new(connectionString);
-        await connection.OpenAsync(cancellationToken);
-
-        await using SqlCommand command = new(query, connection);
+        await using SqlCommand command =
+            connection.CreateStoredProcedureCommand(StoredProcedures.Vacantes.FindById);
         command.Parameters.AddWithValue("@Id", id);
 
         await using SqlDataReader reader = await command.ExecuteReaderAsync(cancellationToken);
@@ -126,19 +64,11 @@ public sealed class SqlVacanteRepository(string connectionString) : IVacanteRepo
 
     public async Task SaveAsync(Vacante vacante, CancellationToken cancellationToken)
     {
-        const string query = """
-            INSERT INTO dbo.Vacantes
-                (Id, EmployerProfileId, JobTitle, Province, Sector, Modality, ExperienceLevel,
-                 Description, Requirements, SalaryRange, IsActive, PublishedAt, CreatedAtUtc)
-            VALUES
-                (@Id, @EmployerProfileId, @JobTitle, @Province, @Sector, @Modality, @ExperienceLevel,
-                 @Description, @Requirements, @SalaryRange, @IsActive, @PublishedAt, @CreatedAtUtc);
-            """;
+        await using SqlConnection connection =
+            await SqlStoredProcedure.OpenConnectionAsync(connectionString, cancellationToken);
 
-        await using SqlConnection connection = new(connectionString);
-        await connection.OpenAsync(cancellationToken);
-
-        await using SqlCommand command = new(query, connection);
+        await using SqlCommand command =
+            connection.CreateStoredProcedureCommand(StoredProcedures.Vacantes.Save);
         command.Parameters.AddWithValue("@Id", vacante.Id);
         command.Parameters.AddWithValue("@EmployerProfileId", vacante.EmployerProfileId);
         command.Parameters.AddWithValue("@JobTitle", vacante.JobTitle);
@@ -146,9 +76,9 @@ public sealed class SqlVacanteRepository(string connectionString) : IVacanteRepo
         command.Parameters.AddWithValue("@Sector", vacante.Sector);
         command.Parameters.AddWithValue("@Modality", vacante.Modality);
         command.Parameters.AddWithValue("@ExperienceLevel", vacante.ExperienceLevel);
-        command.Parameters.AddWithValue("@Description", (object?)vacante.Description ?? DBNull.Value);
-        command.Parameters.AddWithValue("@Requirements", (object?)vacante.Requirements ?? DBNull.Value);
-        command.Parameters.AddWithValue("@SalaryRange", (object?)vacante.SalaryRange ?? DBNull.Value);
+        command.Parameters.AddNullableWithValue("@Description", vacante.Description);
+        command.Parameters.AddNullableWithValue("@Requirements", vacante.Requirements);
+        command.Parameters.AddNullableWithValue("@SalaryRange", vacante.SalaryRange);
         command.Parameters.AddWithValue("@IsActive", vacante.IsActive);
         command.Parameters.AddWithValue("@PublishedAt", vacante.PublishedAt);
         command.Parameters.AddWithValue("@CreatedAtUtc", vacante.CreatedAtUtc);
@@ -164,29 +94,19 @@ public sealed class SqlVacanteRepository(string connectionString) : IVacanteRepo
         string? salaryRange,
         CancellationToken cancellationToken)
     {
-        const string query = """
-            UPDATE dbo.Vacantes
-            SET
-                Description = @Description,
-                Requirements = @Requirements,
-                SalaryRange = @SalaryRange
-            WHERE Id = @Id
-                AND EmployerProfileId = @EmployerProfileId
-                AND IsActive = 1;
-            """;
+        await using SqlConnection connection =
+            await SqlStoredProcedure.OpenConnectionAsync(connectionString, cancellationToken);
 
-        await using SqlConnection connection = new(connectionString);
-        await connection.OpenAsync(cancellationToken);
-
-        await using SqlCommand command = new(query, connection);
+        await using SqlCommand command =
+            connection.CreateStoredProcedureCommand(StoredProcedures.Vacantes.UpdateEditableFields);
         command.Parameters.AddWithValue("@Id", id);
         command.Parameters.AddWithValue("@EmployerProfileId", employerProfileId);
-        command.Parameters.AddWithValue("@Description", (object?)description ?? DBNull.Value);
-        command.Parameters.AddWithValue("@Requirements", (object?)requirements ?? DBNull.Value);
-        command.Parameters.AddWithValue("@SalaryRange", (object?)salaryRange ?? DBNull.Value);
+        command.Parameters.AddNullableWithValue("@Description", description);
+        command.Parameters.AddNullableWithValue("@Requirements", requirements);
+        command.Parameters.AddNullableWithValue("@SalaryRange", salaryRange);
 
-        int affectedRows = await command.ExecuteNonQueryAsync(cancellationToken);
-        return affectedRows > 0;
+        object? affectedRows = await command.ExecuteScalarAsync(cancellationToken);
+        return Convert.ToInt32(affectedRows) > 0;
     }
 
     private static Vacante MapVacante(SqlDataReader reader) =>

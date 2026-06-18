@@ -8,17 +8,11 @@ public sealed class SqlNotificacionRepository(string connectionString) : INotifi
 {
     public async Task SaveAsync(Notificacion notificacion, CancellationToken cancellationToken)
     {
-        const string sql = """
-            INSERT INTO dbo.Notificaciones
-                (Id, EmployerProfileId, PostulacionId, VacanteId, Message, IsRead, CreatedAtUtc)
-            VALUES
-                (@Id, @EmployerProfileId, @PostulacionId, @VacanteId, @Message, @IsRead, @CreatedAtUtc);
-            """;
+        await using SqlConnection connection =
+            await SqlStoredProcedure.OpenConnectionAsync(connectionString, cancellationToken);
 
-        await using SqlConnection connection = new(connectionString);
-        await connection.OpenAsync(cancellationToken);
-
-        await using SqlCommand command = new(sql, connection);
+        await using SqlCommand command =
+            connection.CreateStoredProcedureCommand(StoredProcedures.Notificaciones.Save);
         command.Parameters.AddWithValue("@Id", notificacion.Id);
         command.Parameters.AddWithValue("@EmployerProfileId", notificacion.EmployerProfileId);
         command.Parameters.AddWithValue("@PostulacionId", notificacion.PostulacionId);
@@ -35,24 +29,15 @@ public sealed class SqlNotificacionRepository(string connectionString) : INotifi
         Guid? vacanteId,
         CancellationToken cancellationToken)
     {
-        string query = """
-            SELECT Id, EmployerProfileId, PostulacionId, VacanteId, Message, IsRead, CreatedAtUtc
-            FROM dbo.Notificaciones
-            WHERE EmployerProfileId = @EmployerProfileId
-            """ +
-            (vacanteId.HasValue ? " AND VacanteId = @VacanteId" : string.Empty) +
-            " ORDER BY CreatedAtUtc DESC;";
-
         List<Notificacion> notificaciones = [];
 
-        await using SqlConnection connection = new(connectionString);
-        await connection.OpenAsync(cancellationToken);
+        await using SqlConnection connection =
+            await SqlStoredProcedure.OpenConnectionAsync(connectionString, cancellationToken);
 
-        await using SqlCommand command = new(query, connection);
+        await using SqlCommand command =
+            connection.CreateStoredProcedureCommand(StoredProcedures.Notificaciones.GetByEmployerProfileId);
         command.Parameters.AddWithValue("@EmployerProfileId", employerProfileId);
-
-        if (vacanteId.HasValue)
-            command.Parameters.AddWithValue("@VacanteId", vacanteId.Value);
+        command.Parameters.AddNullableWithValue("@VacanteId", vacanteId);
 
         await using SqlDataReader reader = await command.ExecuteReaderAsync(cancellationToken);
 
@@ -69,17 +54,11 @@ public sealed class SqlNotificacionRepository(string connectionString) : INotifi
         Guid employerProfileId,
         CancellationToken cancellationToken)
     {
-        const string sql = """
-            UPDATE dbo.Notificaciones
-            SET IsRead = 1
-            WHERE Id = @Id
-              AND EmployerProfileId = @EmployerProfileId;
-            """;
+        await using SqlConnection connection =
+            await SqlStoredProcedure.OpenConnectionAsync(connectionString, cancellationToken);
 
-        await using SqlConnection connection = new(connectionString);
-        await connection.OpenAsync(cancellationToken);
-
-        await using SqlCommand command = new(sql, connection);
+        await using SqlCommand command =
+            connection.CreateStoredProcedureCommand(StoredProcedures.Notificaciones.MarkAsRead);
         command.Parameters.AddWithValue("@Id", notificacionId);
         command.Parameters.AddWithValue("@EmployerProfileId", employerProfileId);
 
@@ -90,21 +69,15 @@ public sealed class SqlNotificacionRepository(string connectionString) : INotifi
         Guid employerProfileId,
         CancellationToken cancellationToken)
     {
-        const string query = """
-            SELECT COUNT(1)
-            FROM dbo.Notificaciones
-            WHERE EmployerProfileId = @EmployerProfileId
-              AND IsRead = 0;
-            """;
+        await using SqlConnection connection =
+            await SqlStoredProcedure.OpenConnectionAsync(connectionString, cancellationToken);
 
-        await using SqlConnection connection = new(connectionString);
-        await connection.OpenAsync(cancellationToken);
-
-        await using SqlCommand command = new(query, connection);
+        await using SqlCommand command =
+            connection.CreateStoredProcedureCommand(StoredProcedures.Notificaciones.GetUnreadCount);
         command.Parameters.AddWithValue("@EmployerProfileId", employerProfileId);
 
-        int count = (int)(await command.ExecuteScalarAsync(cancellationToken) ?? 0);
-        return count;
+        object? count = await command.ExecuteScalarAsync(cancellationToken);
+        return Convert.ToInt32(count);
     }
 
     private static Notificacion MapNotificacion(SqlDataReader reader) =>
