@@ -104,6 +104,51 @@ public sealed class VacanteService(
         return MapVacanteResponse(vacante);
     }
 
+    public async Task<VacanteResponse> UpdateVacanteStatusAsync(
+        Guid employerUserId,
+        Guid vacanteId,
+        bool isActive,
+        CancellationToken cancellationToken)
+    {
+        EmployerProfile? employer =
+            await employerRepository.FindByUserIdAsync(employerUserId, cancellationToken);
+
+        if (employer is null)
+        {
+            throw new NotFoundException("No se encontrÃ³ el perfil del empleador.");
+        }
+
+        Vacante? vacante = await vacanteRepository.FindByIdAsync(vacanteId, cancellationToken);
+
+        if (vacante is null || vacante.EmployerProfileId != employer.Id)
+        {
+            throw new NotFoundException("La vacante no existe o no pertenece a este empleador.");
+        }
+
+        if (vacante.IsActive != isActive)
+        {
+            await vacanteRepository.UpdateStatusAsync(vacanteId, isActive, cancellationToken);
+        }
+
+        return MapVacanteResponse(new Vacante
+        {
+            Id = vacante.Id,
+            EmployerProfileId = vacante.EmployerProfileId,
+            JobTitle = vacante.JobTitle,
+            Province = vacante.Province,
+            Sector = vacante.Sector,
+            Modality = vacante.Modality,
+            ExperienceLevel = vacante.ExperienceLevel,
+            Description = vacante.Description,
+            Requirements = vacante.Requirements,
+            SalaryRange = vacante.SalaryRange,
+            IsActive = isActive,
+            PublishedAt = vacante.PublishedAt,
+            CreatedAtUtc = vacante.CreatedAtUtc,
+            CompanyName = vacante.CompanyName
+        });
+    }
+
     public async Task ApplyAsync(
         Guid candidateUserId,
         ApplyToVacanteRequest request,
@@ -184,7 +229,7 @@ public sealed class VacanteService(
 
     private static VacanteResponse MapVacanteResponse(Vacante v) =>
         new(v.Id, v.JobTitle, v.CompanyName, v.Province, v.Sector, v.Modality, v.ExperienceLevel,
-            v.Description, v.Requirements, v.SalaryRange, v.PublishedAt);
+            v.Description, v.Requirements, v.SalaryRange, v.IsActive, v.PublishedAt);
 
     private static PostulacionResponse MapPostulacionResponse(Postulacion p) =>
         new(p.Id, p.VacanteId, p.JobTitle, p.CompanyName, p.Province, p.Status, p.AppliedAt, p.UpdatedAtUtc);

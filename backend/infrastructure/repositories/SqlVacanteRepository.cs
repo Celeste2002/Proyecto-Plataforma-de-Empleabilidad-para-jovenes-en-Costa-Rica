@@ -156,6 +156,24 @@ public sealed class SqlVacanteRepository(string connectionString) : IVacanteRepo
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
+    public async Task UpdateStatusAsync(Guid id, bool isActive, CancellationToken cancellationToken)
+    {
+        const string query = """
+            UPDATE dbo.Vacantes
+            SET IsActive = @IsActive
+            WHERE Id = @Id;
+            """;
+
+        await using SqlConnection connection = new(connectionString);
+        await connection.OpenAsync(cancellationToken);
+
+        await using SqlCommand command = new(query, connection);
+        command.Parameters.AddWithValue("@Id", id);
+        command.Parameters.AddWithValue("@IsActive", isActive);
+
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
     private static Vacante MapVacante(SqlDataReader reader) =>
         new()
         {

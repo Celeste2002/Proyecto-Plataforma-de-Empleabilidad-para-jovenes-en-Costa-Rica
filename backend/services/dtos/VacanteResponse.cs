@@ -11,4 +11,5 @@ public sealed record VacanteResponse(
     string? Description,
     string? Requirements,
     string? SalaryRange,
+    bool IsActive,
     DateTime PublishedAt);

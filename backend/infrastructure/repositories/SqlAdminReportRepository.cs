@@ -43,6 +43,20 @@ public sealed class SqlAdminReportRepository(string connectionString) : IAdminRe
             FROM dbo.Vacantes
             GROUP BY Province
             ORDER BY COUNT(*) DESC;
+
+            SELECT COUNT(*) AS TotalMicrocursos
+            FROM (
+                SELECT mc.Id
+                FROM dbo.MicroCursos mc
+                LEFT JOIN dbo.MicroCursoValidacionesEmpleador mcv
+                    ON mc.Id = mcv.MicroCursoId
+                LEFT JOIN dbo.EmployerProfiles ep
+                    ON mcv.EmployerProfileId = ep.Id
+                    AND ep.Status = N'Active'
+                WHERE mc.IsActive = 1
+                GROUP BY mc.Id
+                HAVING COUNT(DISTINCT ep.Id) >= 3
+            ) validatedMicroCursos;
             """;
 
         await using SqlConnection connection = new(connectionString);
@@ -102,6 +116,11 @@ public sealed class SqlAdminReportRepository(string connectionString) : IAdminRe
                 reader.GetInt32(reader.GetOrdinal("Count"))));
         }
 
+        // Result 7: validated micro-course count
+        await reader.NextResultAsync(cancellationToken);
+        await reader.ReadAsync(cancellationToken);
+        int totalMicrocursos = reader.GetInt32(reader.GetOrdinal("TotalMicrocursos"));
+
         return new AdminReportResponse(
             TotalUsers:                  totalUsers,
             TotalCandidates:             totalCandidates,
@@ -116,7 +135,7 @@ public sealed class SqlAdminReportRepository(string connectionString) : IAdminRe
             PostulacionesByStatus:       byStatus,
             CandidatesByProvince:        candidatesByProvince,
             VacantesByProvince:          vacantesByProvince,
-            TotalMicrocursos:            0,
+            TotalMicrocursos:            totalMicrocursos,
             GeneratedAt:                 DateTime.UtcNow);
     }
 }

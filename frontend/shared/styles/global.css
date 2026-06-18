@@ -943,6 +943,16 @@ dd {
   color: var(--success);
 }
 
+.vacante-badge--active {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.vacante-badge--closed {
+  background: #e5e7eb;
+  color: #4b5563;
+}
+
 .vacante-card__details {
   display: grid;
   gap: 12px;
@@ -983,6 +993,142 @@ dd {
 
 .vacante-card__apply-btn {
   width: auto;
+}
+
+.vacante-status-action {
+  width: auto;
+}
+
+/* -- Microcursos -- */
+
+.microcurso-toolbar {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.microcurso-filter-row {
+  align-items: end;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(220px, 360px) auto;
+}
+
+.microcurso-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.microcurso-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+}
+
+.microcurso-card__header {
+  align-items: flex-start;
+  display: flex;
+  gap: 14px;
+}
+
+.microcurso-card__icon {
+  align-items: center;
+  background: var(--primary-soft);
+  border-radius: 8px;
+  color: var(--primary);
+  display: flex;
+  flex-shrink: 0;
+  height: 46px;
+  justify-content: center;
+  width: 46px;
+}
+
+.microcurso-card__area {
+  color: var(--primary);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  margin: 0 0 3px;
+  text-transform: uppercase;
+}
+
+.microcurso-card__title {
+  font-size: 1.05rem;
+  margin: 0;
+}
+
+.microcurso-card__description,
+.microcurso-detail__description {
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.microcurso-card__details,
+.microcurso-detail__data {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+}
+
+.microcurso-card__details dd {
+  align-items: center;
+  display: flex;
+  gap: 6px;
+}
+
+.microcurso-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.microcurso-card__footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.microcurso-card__footer .secondary-action {
+  width: auto;
+}
+
+.microcurso-detail {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgb(16 36 58 / 0.06);
+  display: grid;
+  gap: 16px;
+  padding: 24px;
+}
+
+.microcurso-detail__header {
+  align-items: flex-start;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+}
+
+.microcurso-detail__header h3 {
+  font-size: 1.2rem;
+  margin: 0;
+}
+
+.microcurso-skill-block {
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+}
+
+.habilidad-tag--match {
+  background: #e6f5ed;
+  color: var(--success);
 }
 
 /* -- Postulaciones -- */
@@ -1253,7 +1399,9 @@ dd {
 @media (max-width: 860px) {
   .vacantes-filters__grid,
   .vacante-card__details,
-  .postulacion-card__details {
+  .postulacion-card__details,
+  .microcurso-card__details,
+  .microcurso-detail__data {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -1276,18 +1424,31 @@ dd {
     align-items: stretch;
   }
 
+  .microcurso-toolbar,
+  .microcurso-detail__header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .microcurso-grid {
+    grid-template-columns: 1fr;
+  }
+
   .vacante-card__apply-btn {
     width: 100%;
   }
 }
 
 @media (max-width: 560px) {
-  .vacantes-filters__grid {
+  .vacantes-filters__grid,
+  .microcurso-filter-row {
     grid-template-columns: 1fr;
   }
 
   .vacante-card__details,
-  .postulacion-card__details {
+  .postulacion-card__details,
+  .microcurso-card__details,
+  .microcurso-detail__data {
     grid-template-columns: 1fr;
   }
 }

@@ -1,4 +1,4 @@
-import { BriefcaseBusiness, ClipboardList, KeyRound, LogOut, UserRound, UserCircle } from 'lucide-react';
+import { BookOpenCheck, BriefcaseBusiness, ClipboardList, KeyRound, LogOut, UserRound, UserCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getMyCandidateProfile } from '../api/candidatesApi.js';
@@ -86,6 +86,14 @@ export function CandidateDashboardPage() {
             </div>
             <h3>Mis postulaciones</h3>
             <p>Consulta el estado de todas tus postulaciones: enviada, en revisión, entrevista o finalizada.</p>
+          </Link>
+
+          <Link className="dashboard-card dashboard-card-link" to="/candidato/microcursos">
+            <div className="dashboard-card-icon">
+              <BookOpenCheck aria-hidden="true" size={28} />
+            </div>
+            <h3>Microcursos</h3>
+            <p>Explora cursos validados y revisa recomendaciones conectadas con tus habilidades.</p>
           </Link>
         </div>
       </section>

@@ -97,6 +97,9 @@ builder.Services.AddSingleton<IPostulacionRepository>(_ =>
 builder.Services.AddSingleton<INotificacionRepository>(_ =>
     new SqlNotificacionRepository(defaultConnectionString));
 
+builder.Services.AddSingleton<IMicroCursoRepository>(_ =>
+    new SqlMicroCursoRepository(defaultConnectionString));
+
 builder.Services.AddSingleton<IEmailConfirmationSender>(_ =>
 {
     EmailSettings emailSettings = builder.Configuration
@@ -189,6 +192,11 @@ builder.Services.AddScoped<IEmployerPostulacionService>(sp =>
         sp.GetRequiredService<IVacanteRepository>(),
         sp.GetRequiredService<IPostulacionRepository>(),
         sp.GetRequiredService<INotificacionRepository>()));
+
+builder.Services.AddScoped<IMicroCursoService>(sp =>
+    new MicroCursoService(
+        sp.GetRequiredService<IMicroCursoRepository>(),
+        sp.GetRequiredService<ICandidateRepository>()));
 
 WebApplication app = builder.Build();
 
@@ -413,6 +421,23 @@ employerRoutes.MapPost("/me/vacantes", async (
     return Results.Created($"/api/employers/me/vacantes/{vacante.Id}", vacante);
 }).RequireAuthorization();
 
+employerRoutes.MapPatch("/me/vacantes/{vacanteId:guid}/estado", async (
+    Guid vacanteId,
+    ClaimsPrincipal user,
+    UpdateVacanteStatusRequest request,
+    IVacanteService vacanteService,
+    CancellationToken cancellationToken) =>
+{
+    VacanteResponse vacante =
+        await vacanteService.UpdateVacanteStatusAsync(
+            GetAuthenticatedUserId(user),
+            vacanteId,
+            request.IsActive,
+            cancellationToken);
+
+    return Results.Ok(vacante);
+}).RequireAuthorization();
+
 employerRoutes.MapGet("/me/vacantes/{vacanteId:guid}/postulaciones", async (
     Guid vacanteId,
     ClaimsPrincipal user,
@@ -597,6 +622,43 @@ candidateRoutes.MapGet("/me/postulaciones", async (
 
     return Results.Ok(postulaciones);
 }).RequireAuthorization();
+
+// -- Rutas de microcursos --
+
+RouteGroupBuilder microCursoRoutes = app.MapGroup("/api/microcursos").RequireAuthorization();
+
+microCursoRoutes.MapGet("/", async (
+    string? area,
+    IMicroCursoService microCursoService,
+    CancellationToken cancellationToken) =>
+{
+    IReadOnlyCollection<MicroCursoResponse> microCursos =
+        await microCursoService.GetCatalogoAsync(area, cancellationToken);
+
+    return Results.Ok(microCursos);
+});
+
+microCursoRoutes.MapGet("/recomendados", async (
+    ClaimsPrincipal user,
+    IMicroCursoService microCursoService,
+    CancellationToken cancellationToken) =>
+{
+    IReadOnlyCollection<MicroCursoResponse> microCursos =
+        await microCursoService.GetRecomendadosAsync(GetAuthenticatedUserId(user), cancellationToken);
+
+    return Results.Ok(microCursos);
+});
+
+microCursoRoutes.MapGet("/{id:guid}", async (
+    Guid id,
+    IMicroCursoService microCursoService,
+    CancellationToken cancellationToken) =>
+{
+    MicroCursoResponse microCurso =
+        await microCursoService.GetDetalleAsync(id, cancellationToken);
+
+    return Results.Ok(microCurso);
+});
 
 // -- Health check --
 

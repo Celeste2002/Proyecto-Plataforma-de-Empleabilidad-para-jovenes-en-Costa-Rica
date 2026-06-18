@@ -11,6 +11,7 @@ import { CandidateRegistrationPage } from './pages/CandidateRegistrationPage.jsx
 import { VacantesPage } from './pages/VacantesPage.jsx';
 import { PostulacionesPage } from './pages/PostulacionesPage.jsx';
 import { MiPerfilPage } from './pages/MiPerfilPage.jsx';
+import { MicroCursosPage } from './pages/MicroCursosPage.jsx';
 
 export function App() {
   return (
@@ -59,6 +60,14 @@ export function App() {
             element={
               <ProtectedRoute>
                 <MiPerfilPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/candidato/microcursos"
+            element={
+              <ProtectedRoute>
+                <MicroCursosPage />
               </ProtectedRoute>
             }
           />

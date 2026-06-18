@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, BriefcaseBusiness, ClipboardList, MapPin, Plus, RefreshCw } from 'lucide-react';
+import { ArrowLeft, BriefcaseBusiness, ClipboardList, MapPin, Plus, Power, RefreshCw, RotateCcw } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
-import { getMyVacantes } from '../api/employerApi.js';
+import { getMyVacantes, updateVacanteStatus } from '../api/employerApi.js';
 import { StatusMessage } from '../../shared/components/StatusMessage.jsx';
 import { useAuth } from '../../shared/context/AuthContext.jsx';
 
@@ -19,6 +19,7 @@ export function MisVacantesPage() {
 
   const [vacantes, setVacantes] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [updatingStatusId, setUpdatingStatusId] = useState(null);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState(
     location.state?.created ? 'Vacante publicada correctamente.' : '',
@@ -35,6 +36,28 @@ export function MisVacantesPage() {
       setErrorMessage(error.message);
     } finally {
       setIsLoading(false);
+    }
+  }
+
+  async function handleToggleStatus(vacante) {
+    setUpdatingStatusId(vacante.id);
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    try {
+      const updated = await updateVacanteStatus(token, vacante.id, !vacante.isActive);
+      setVacantes((current) =>
+        current.map((item) =>
+          item.id === vacante.id ? { ...item, isActive: updated.isActive } : item,
+        ),
+      );
+      setSuccessMessage(updated.isActive
+        ? 'Vacante reactivada correctamente.'
+        : 'Vacante desactivada correctamente. Las postulaciones existentes se conservaron.');
+    } catch (error) {
+      setErrorMessage(error.message);
+    } finally {
+      setUpdatingStatusId(null);
     }
   }
 
@@ -113,6 +136,9 @@ export function MisVacantesPage() {
                     <p className="vacante-card__company">{vacante.companyName}</p>
                   </div>
                   <div className="vacante-card__meta">
+                    <span className={`vacante-badge ${vacante.isActive ? 'vacante-badge--active' : 'vacante-badge--closed'}`}>
+                      {vacante.isActive ? 'Activa' : 'Cerrada'}
+                    </span>
                     <span className="vacante-badge vacante-badge--modality">{vacante.modality}</span>
                     <span className="vacante-badge vacante-badge--experience">{vacante.experienceLevel}</span>
                   </div>
@@ -150,6 +176,21 @@ export function MisVacantesPage() {
                   </div>
                 )}
                 <div className="vacante-card__footer">
+                  <button
+                    className="secondary-action vacante-status-action"
+                    disabled={updatingStatusId === vacante.id}
+                    onClick={() => handleToggleStatus(vacante)}
+                    type="button"
+                  >
+                    {vacante.isActive ? (
+                      <Power aria-hidden="true" size={15} />
+                    ) : (
+                      <RotateCcw aria-hidden="true" size={15} />
+                    )}
+                    {updatingStatusId === vacante.id
+                      ? 'Actualizando...'
+                      : vacante.isActive ? 'Desactivar' : 'Reactivar'}
+                  </button>
                   <Link
                     className="secondary-action"
                     to={`/empleador/vacantes/${vacante.id}/postulaciones`}

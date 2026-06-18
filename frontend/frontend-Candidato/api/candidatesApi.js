@@ -90,6 +90,25 @@ export async function getMyPostulaciones(token) {
   });
 }
 
+export async function getMicroCursos(token, area = '') {
+  const query = area ? `?area=${encodeURIComponent(area)}` : '';
+  return sendApiRequest(`${apiBaseUrl}/api/microcursos${query}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function getRecommendedMicroCursos(token) {
+  return sendApiRequest(`${apiBaseUrl}/api/microcursos/recomendados`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function getMicroCursoDetail(token, microCursoId) {
+  return sendApiRequest(`${apiBaseUrl}/api/microcursos/${microCursoId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
 export async function getMyFullProfile(token) {
   return sendApiRequest(`${apiBaseUrl}/api/candidates/me/perfil`, {
     headers: { Authorization: `Bearer ${token}` },

@@ -86,6 +86,17 @@ export async function createVacante(token, data) {
   });
 }
 
+export async function updateVacanteStatus(token, vacanteId, isActive) {
+  return sendApiRequest(`${apiBaseUrl}/api/employers/me/vacantes/${vacanteId}/estado`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ isActive }),
+  });
+}
+
 export async function getPostulacionesByVacante(token, vacanteId) {
   return sendApiRequest(
     `${apiBaseUrl}/api/employers/me/vacantes/${vacanteId}/postulaciones`,
