@@ -108,6 +108,8 @@ export async function getVacantePostulaciones(token, vacanteId) {
   });
 }
 
+export const getPostulacionesByVacante = getVacantePostulaciones;
+
 export async function requestInterview(token, postulacionId) {
   return sendApiRequest(`${apiBaseUrl}/api/employers/me/postulaciones/${postulacionId}/solicitar-entrevista`, {
     method: 'POST',

@@ -81,6 +81,8 @@ public sealed class SqlCandidateRepository(string connectionString) : ICandidate
                 Age,
                 Province,
                 EducationLevel,
+                IsAvailableForContact,
+                PhotoUrl,
                 Email,
                 EmailConfirmed,
                 CreatedAtUtc
@@ -514,7 +516,8 @@ public sealed class SqlCandidateRepository(string connectionString) : ICandidate
             Province = reader.GetString(reader.GetOrdinal("Province")),
             EducationLevel = reader.GetString(reader.GetOrdinal("EducationLevel")),
             IsVisibleToPartnerEmployers = true,
-            IsAvailableForContact = true,
+            IsAvailableForContact = reader.GetBoolean(reader.GetOrdinal("IsAvailableForContact")),
+            PhotoUrl = reader.IsDBNull(reader.GetOrdinal("PhotoUrl")) ? null : reader.GetString(reader.GetOrdinal("PhotoUrl")),
             CreatedAtUtc = reader.GetDateTime(reader.GetOrdinal("CreatedAtUtc")),
             Email = reader.GetString(reader.GetOrdinal("Email")),
             EmailConfirmationSent = reader.GetBoolean(reader.GetOrdinal("EmailConfirmed"))

@@ -21,7 +21,10 @@ public sealed class EmployerPostulacionService(
         await VerifyVacanteOwnershipAsync(vacanteId, employer.Id, cancellationToken);
 
         IReadOnlyCollection<Postulacion> postulaciones =
-            await postulacionRepository.GetByVacanteIdAsync(vacanteId, cancellationToken);
+            await postulacionRepository.GetByVacanteForEmployerAsync(
+                vacanteId,
+                employer.Id,
+                cancellationToken);
 
         return postulaciones
             .Select(p => new PostulacionSummaryResponse(
@@ -41,10 +44,11 @@ public sealed class EmployerPostulacionService(
     {
         EmployerProfile employer = await ResolveEmployerAsync(employerUserId, cancellationToken);
 
-        Postulacion postulacion = await postulacionRepository.FindByIdAsync(postulacionId, cancellationToken)
+        Postulacion postulacion = await postulacionRepository.FindByIdForEmployerAsync(
+                postulacionId,
+                employer.Id,
+                cancellationToken)
             ?? throw new NotFoundException("La postulación no existe.");
-
-        await VerifyVacanteOwnershipAsync(postulacion.VacanteId, employer.Id, cancellationToken);
 
         DateTime now = DateTime.UtcNow;
         string effectiveStatus = postulacion.Status;
@@ -52,8 +56,9 @@ public sealed class EmployerPostulacionService(
 
         if (postulacion.Status == PostulacionStatuses.Enviada)
         {
-            await postulacionRepository.UpdateStatusAsync(
+            await postulacionRepository.UpdateStatusForEmployerAsync(
                 postulacionId,
+                employer.Id,
                 PostulacionStatuses.Vista,
                 now,
                 cancellationToken);
@@ -102,18 +107,20 @@ public sealed class EmployerPostulacionService(
 
         EmployerProfile employer = await ResolveEmployerAsync(employerUserId, cancellationToken);
 
-        Postulacion postulacion = await postulacionRepository.FindByIdAsync(postulacionId, cancellationToken)
+        Postulacion postulacion = await postulacionRepository.FindByIdForEmployerAsync(
+                postulacionId,
+                employer.Id,
+                cancellationToken)
             ?? throw new NotFoundException("La postulación no existe.");
-
-        await VerifyVacanteOwnershipAsync(postulacion.VacanteId, employer.Id, cancellationToken);
 
         if (postulacion.Status == newStatus)
         {
             throw new RequestValidationException([$"La postulación ya se encuentra en estado '{newStatus}'."]);
         }
 
-        await postulacionRepository.UpdateStatusAsync(
+        await postulacionRepository.UpdateStatusForEmployerAsync(
             postulacionId,
+            employer.Id,
             newStatus,
             DateTime.UtcNow,
             cancellationToken);

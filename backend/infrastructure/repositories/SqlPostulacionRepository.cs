@@ -111,6 +111,7 @@ public sealed class SqlPostulacionRepository(string connectionString) : IPostula
                 cp.FullName AS CandidateFullName,
                 cp.Province AS CandidateProvince,
                 cp.EducationLevel AS CandidateEducationLevel,
+                cp.DateOfBirth AS CandidateDateOfBirth,
                 u.Email AS CandidateEmail
             FROM dbo.Postulaciones p
             INNER JOIN dbo.Vacantes v ON p.VacanteId = v.Id
@@ -135,23 +136,15 @@ public sealed class SqlPostulacionRepository(string connectionString) : IPostula
 
         while (await reader.ReadAsync(cancellationToken))
         {
-            postulaciones.Add(new Postulacion
-            {
-                Id = reader.GetGuid(reader.GetOrdinal("Id")),
-                VacanteId = reader.GetGuid(reader.GetOrdinal("VacanteId")),
-                CandidateProfileId = reader.GetGuid(reader.GetOrdinal("CandidateProfileId")),
-                Status = reader.GetString(reader.GetOrdinal("Status")),
-                AppliedAt = reader.GetDateTime(reader.GetOrdinal("AppliedAt")),
-                UpdatedAtUtc = reader.GetDateTime(reader.GetOrdinal("UpdatedAtUtc")),
-                CandidateFullName = reader.GetString(reader.GetOrdinal("CandidateFullName"))
-            });
+            postulaciones.Add(MapEmployerPostulacion(reader));
         }
 
         return postulaciones;
     }
 
-    public async Task<Postulacion?> FindByIdAsync(
-        Guid postulacionId,
+    public async Task<Postulacion?> FindByIdForEmployerAsync(
+        Guid id,
+        Guid employerProfileId,
         CancellationToken cancellationToken)
     {
         const string query = """
@@ -168,6 +161,7 @@ public sealed class SqlPostulacionRepository(string connectionString) : IPostula
                 cp.FullName AS CandidateFullName,
                 cp.Province AS CandidateProvince,
                 cp.EducationLevel AS CandidateEducationLevel,
+                cp.DateOfBirth AS CandidateDateOfBirth,
                 u.Email AS CandidateEmail
             FROM dbo.Postulaciones p
             INNER JOIN dbo.Vacantes v ON p.VacanteId = v.Id
@@ -250,6 +244,7 @@ public sealed class SqlPostulacionRepository(string connectionString) : IPostula
             CandidateFullName = reader.GetString(reader.GetOrdinal("CandidateFullName")),
             CandidateEmail = reader.GetString(reader.GetOrdinal("CandidateEmail")),
             CandidateProvince = reader.GetString(reader.GetOrdinal("CandidateProvince")),
-            CandidateEducationLevel = reader.GetString(reader.GetOrdinal("CandidateEducationLevel"))
+            CandidateEducationLevel = reader.GetString(reader.GetOrdinal("CandidateEducationLevel")),
+            CandidateDateOfBirth = DateOnly.FromDateTime(reader.GetDateTime(reader.GetOrdinal("CandidateDateOfBirth")))
         };
 }

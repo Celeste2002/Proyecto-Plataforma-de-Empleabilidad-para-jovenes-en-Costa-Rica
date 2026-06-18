@@ -11,6 +11,7 @@ public sealed class VacanteService(
     IPostulacionRepository postulacionRepository,
     ICandidateRepository candidateRepository,
     IEmployerRepository employerRepository,
+    INotificacionRepository notificacionRepository,
     IInterviewRequestSender interviewRequestSender) : IVacanteService
 {
     public async Task<IReadOnlyCollection<VacanteResponse>> GetActiveVacantesAsync(

@@ -10,8 +10,7 @@ import {
   Save,
   UsersRound,
   X,
-  ClipboardList, 
-  MapPin
+  ClipboardList,
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import {

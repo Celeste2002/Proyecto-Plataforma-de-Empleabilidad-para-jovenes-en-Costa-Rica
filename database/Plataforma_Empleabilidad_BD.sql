@@ -7,6 +7,15 @@ GO
 USE Plataforma_Empleabilidad_BD;
 GO
 
+SET ANSI_NULLS ON;
+SET QUOTED_IDENTIFIER ON;
+SET ANSI_PADDING ON;
+SET ANSI_WARNINGS ON;
+SET CONCAT_NULL_YIELDS_NULL ON;
+SET ARITHABORT ON;
+SET NUMERIC_ROUNDABORT OFF;
+GO
+
 /* =============================================================
    TABLA: Users (autenticacion y roles)
    ============================================================= */
@@ -129,6 +138,11 @@ BEGIN
         IsVisibleToPartnerEmployers BIT NOT NULL
             CONSTRAINT DF_CandidateProfiles_IsVisibleToPartnerEmployers DEFAULT 1,
 
+        PhotoUrl NVARCHAR(500) NULL,
+
+        IsAvailableForContact BIT NOT NULL
+            CONSTRAINT DF_CandidateProfiles_IsAvailableForContact DEFAULT 1,
+
         CreatedAtUtc DATETIME2(0) NOT NULL
             CONSTRAINT DF_CandidateProfiles_CreatedAtUtc DEFAULT SYSUTCDATETIME()
     );
@@ -188,6 +202,22 @@ BEGIN
 END;
 GO
 
+IF COL_LENGTH(N'dbo.CandidateProfiles', N'PhotoUrl') IS NULL
+BEGIN
+    ALTER TABLE dbo.CandidateProfiles
+        ADD PhotoUrl NVARCHAR(500) NULL;
+END;
+GO
+
+IF COL_LENGTH(N'dbo.CandidateProfiles', N'IsAvailableForContact') IS NULL
+BEGIN
+    ALTER TABLE dbo.CandidateProfiles
+        ADD IsAvailableForContact BIT NOT NULL
+            CONSTRAINT DF_CandidateProfiles_IsAvailableForContact DEFAULT 1
+            WITH VALUES;
+END;
+GO
+
 CREATE OR ALTER VIEW dbo.PartnerEmployerVisibleCandidateProfiles
 AS
 SELECT
@@ -203,6 +233,8 @@ SELECT
         END AS Age,
     cp.Province,
     cp.EducationLevel,
+    cp.IsAvailableForContact,
+    cp.PhotoUrl,
     u.Email,
     u.EmailConfirmed,
     cp.CreatedAtUtc
@@ -403,6 +435,174 @@ IF NOT EXISTS
 BEGIN
     CREATE NONCLUSTERED INDEX IX_Postulaciones_VacanteId
         ON dbo.Postulaciones (VacanteId, AppliedAt DESC);
+END;
+GO
+
+/* =============================================================
+   TABLAS: Perfil publico del candidato
+   ============================================================= */
+
+IF OBJECT_ID(N'dbo.ExperienciasLaborales', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.ExperienciasLaborales
+    (
+        Id UNIQUEIDENTIFIER NOT NULL
+            CONSTRAINT PK_ExperienciasLaborales PRIMARY KEY
+            DEFAULT NEWID(),
+
+        CandidateProfileId UNIQUEIDENTIFIER NOT NULL
+            CONSTRAINT FK_ExperienciasLaborales_CandidateProfiles
+                FOREIGN KEY REFERENCES dbo.CandidateProfiles (Id)
+                ON DELETE CASCADE,
+
+        Empresa NVARCHAR(200) NOT NULL,
+        Cargo NVARCHAR(200) NOT NULL,
+        FechaInicio DATE NOT NULL,
+        FechaFin DATE NULL,
+        EsTrabajoActual BIT NOT NULL
+            CONSTRAINT DF_ExperienciasLaborales_EsTrabajoActual DEFAULT 0,
+        Descripcion NVARCHAR(1000) NULL
+    );
+END;
+GO
+
+IF NOT EXISTS
+(
+    SELECT 1
+    FROM sys.indexes
+    WHERE name = N'IX_ExperienciasLaborales_CandidateProfileId'
+        AND object_id = OBJECT_ID(N'dbo.ExperienciasLaborales')
+)
+BEGIN
+    CREATE NONCLUSTERED INDEX IX_ExperienciasLaborales_CandidateProfileId
+        ON dbo.ExperienciasLaborales (CandidateProfileId, FechaInicio DESC);
+END;
+GO
+
+IF OBJECT_ID(N'dbo.Habilidades', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.Habilidades
+    (
+        Id UNIQUEIDENTIFIER NOT NULL
+            CONSTRAINT PK_Habilidades PRIMARY KEY
+            DEFAULT NEWID(),
+
+        CandidateProfileId UNIQUEIDENTIFIER NOT NULL
+            CONSTRAINT FK_Habilidades_CandidateProfiles
+                FOREIGN KEY REFERENCES dbo.CandidateProfiles (Id)
+                ON DELETE CASCADE,
+
+        Nombre NVARCHAR(100) NOT NULL
+    );
+END;
+GO
+
+IF NOT EXISTS
+(
+    SELECT 1
+    FROM sys.indexes
+    WHERE name = N'IX_Habilidades_CandidateProfileId'
+        AND object_id = OBJECT_ID(N'dbo.Habilidades')
+)
+BEGIN
+    CREATE NONCLUSTERED INDEX IX_Habilidades_CandidateProfileId
+        ON dbo.Habilidades (CandidateProfileId, Nombre);
+END;
+GO
+
+IF OBJECT_ID(N'dbo.CursosCompletados', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.CursosCompletados
+    (
+        Id UNIQUEIDENTIFIER NOT NULL
+            CONSTRAINT PK_CursosCompletados PRIMARY KEY
+            DEFAULT NEWID(),
+
+        CandidateProfileId UNIQUEIDENTIFIER NOT NULL
+            CONSTRAINT FK_CursosCompletados_CandidateProfiles
+                FOREIGN KEY REFERENCES dbo.CandidateProfiles (Id)
+                ON DELETE CASCADE,
+
+        NombreCurso NVARCHAR(200) NOT NULL,
+        Institucion NVARCHAR(200) NOT NULL,
+        FechaCompletado DATE NOT NULL,
+        EsDePlataforma BIT NOT NULL
+            CONSTRAINT DF_CursosCompletados_EsDePlataforma DEFAULT 0
+    );
+END;
+GO
+
+IF NOT EXISTS
+(
+    SELECT 1
+    FROM sys.indexes
+    WHERE name = N'IX_CursosCompletados_CandidateProfileId'
+        AND object_id = OBJECT_ID(N'dbo.CursosCompletados')
+)
+BEGIN
+    CREATE NONCLUSTERED INDEX IX_CursosCompletados_CandidateProfileId
+        ON dbo.CursosCompletados (CandidateProfileId, FechaCompletado DESC);
+END;
+GO
+
+/* =============================================================
+   TABLA: Notificaciones (alertas para empleadores)
+   ============================================================= */
+
+IF OBJECT_ID(N'dbo.Notificaciones', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.Notificaciones
+    (
+        Id UNIQUEIDENTIFIER NOT NULL
+            CONSTRAINT PK_Notificaciones PRIMARY KEY
+            DEFAULT NEWID(),
+
+        EmployerProfileId UNIQUEIDENTIFIER NOT NULL
+            CONSTRAINT FK_Notificaciones_EmployerProfiles
+                FOREIGN KEY REFERENCES dbo.EmployerProfiles (Id),
+
+        PostulacionId UNIQUEIDENTIFIER NOT NULL
+            CONSTRAINT FK_Notificaciones_Postulaciones
+                FOREIGN KEY REFERENCES dbo.Postulaciones (Id),
+
+        VacanteId UNIQUEIDENTIFIER NOT NULL
+            CONSTRAINT FK_Notificaciones_Vacantes
+                FOREIGN KEY REFERENCES dbo.Vacantes (Id),
+
+        Message NVARCHAR(300) NOT NULL,
+
+        IsRead BIT NOT NULL
+            CONSTRAINT DF_Notificaciones_IsRead DEFAULT 0,
+
+        CreatedAtUtc DATETIME2(0) NOT NULL
+            CONSTRAINT DF_Notificaciones_CreatedAtUtc DEFAULT SYSUTCDATETIME()
+    );
+END;
+GO
+
+IF NOT EXISTS
+(
+    SELECT 1
+    FROM sys.indexes
+    WHERE name = N'IX_Notificaciones_EmployerProfileId'
+        AND object_id = OBJECT_ID(N'dbo.Notificaciones')
+)
+BEGIN
+    CREATE NONCLUSTERED INDEX IX_Notificaciones_EmployerProfileId
+        ON dbo.Notificaciones (EmployerProfileId, IsRead, CreatedAtUtc DESC);
+END;
+GO
+
+IF NOT EXISTS
+(
+    SELECT 1
+    FROM sys.indexes
+    WHERE name = N'IX_Notificaciones_VacanteId'
+        AND object_id = OBJECT_ID(N'dbo.Notificaciones')
+)
+BEGIN
+    CREATE NONCLUSTERED INDEX IX_Notificaciones_VacanteId
+        ON dbo.Notificaciones (VacanteId, CreatedAtUtc DESC);
 END;
 GO
 

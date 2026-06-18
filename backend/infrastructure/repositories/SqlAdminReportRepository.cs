@@ -12,15 +12,15 @@ public sealed class SqlAdminReportRepository(string connectionString) : IAdminRe
         const string sql = """
             SELECT
                 COUNT(*)                                                              AS TotalUsers,
-                SUM(CASE WHEN Role = 'CANDIDATE'      THEN 1 ELSE 0 END)             AS TotalCandidates,
-                SUM(CASE WHEN Role = 'EMPLOYER'       THEN 1 ELSE 0 END)             AS TotalEmployers,
-                SUM(CASE WHEN Role = 'ADMINISTRATOR'  THEN 1 ELSE 0 END)             AS TotalAdministrators
+                COALESCE(SUM(CASE WHEN Role = 'CANDIDATE'      THEN 1 ELSE 0 END), 0) AS TotalCandidates,
+                COALESCE(SUM(CASE WHEN Role = 'EMPLOYER'       THEN 1 ELSE 0 END), 0) AS TotalEmployers,
+                COALESCE(SUM(CASE WHEN Role = 'ADMINISTRATOR'  THEN 1 ELSE 0 END), 0) AS TotalAdministrators
             FROM dbo.Users;
 
             SELECT
                 COUNT(*)                                                              AS TotalVacantes,
-                SUM(CASE WHEN IsActive = 1 THEN 1 ELSE 0 END)                        AS ActiveVacantes,
-                SUM(CASE WHEN IsActive = 0 THEN 1 ELSE 0 END)                        AS ClosedVacantes
+                COALESCE(SUM(CASE WHEN IsActive = 1 THEN 1 ELSE 0 END), 0)           AS ActiveVacantes,
+                COALESCE(SUM(CASE WHEN IsActive = 0 THEN 1 ELSE 0 END), 0)           AS ClosedVacantes
             FROM dbo.Vacantes;
 
             SELECT
