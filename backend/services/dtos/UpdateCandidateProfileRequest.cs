@@ -4,4 +4,5 @@ public sealed record UpdateCandidateProfileRequest(
     string FullName,
     DateOnly DateOfBirth,
     string Province,
-    string EducationLevel);
+    string EducationLevel,
+    string? PhotoUrl);

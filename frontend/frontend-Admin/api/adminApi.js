@@ -18,7 +18,11 @@ async function sendApiRequest(url, options) {
 async function readApiResponse(response) {
   const body = await response.json().catch(() => ({}));
   if (!response.ok) {
+    if (response.status === 401) {
+      window.dispatchEvent(new Event('auth:unauthorized'));
+    }
     const error = new Error(body.message ?? 'Error inesperado del servidor.');
+    error.status = response.status;
     error.validationErrors = body.errors ?? [];
     throw error;
   }
@@ -33,6 +37,12 @@ export async function getUsers(token) {
 
 export async function getVacantes(token) {
   return sendApiRequest(`${apiBaseUrl}/api/admin/vacantes`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function getReportData(token) {
+  return sendApiRequest(`${apiBaseUrl}/api/admin/report/data`, {
     headers: { Authorization: `Bearer ${token}` },
   });
 }

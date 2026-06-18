@@ -20,7 +20,11 @@ async function readApiResponse(response) {
   const responseBody = responseText ? JSON.parse(responseText) : {};
 
   if (!response.ok) {
+    if (response.status === 401) {
+      window.dispatchEvent(new Event('auth:unauthorized'));
+    }
     const apiError = new Error(responseBody.message ?? 'No se pudo completar la solicitud.');
+    apiError.status = response.status;
     apiError.validationErrors = responseBody.errors ?? [];
     throw apiError;
   }
@@ -82,6 +86,96 @@ export async function applyToVacante(token, vacanteId) {
 
 export async function getMyPostulaciones(token) {
   return sendApiRequest(`${apiBaseUrl}/api/candidates/me/postulaciones`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function getMicroCursos(token, area = '') {
+  const query = area ? `?area=${encodeURIComponent(area)}` : '';
+  return sendApiRequest(`${apiBaseUrl}/api/microcursos${query}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function getRecommendedMicroCursos(token) {
+  return sendApiRequest(`${apiBaseUrl}/api/microcursos/recomendados`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function getMicroCursoDetail(token, microCursoId) {
+  return sendApiRequest(`${apiBaseUrl}/api/microcursos/${microCursoId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function getMyFullProfile(token) {
+  return sendApiRequest(`${apiBaseUrl}/api/candidates/me/perfil`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function updateMyAvailability(token, isAvailableForContact) {
+  return sendApiRequest(`${apiBaseUrl}/api/candidates/me/disponibilidad`, {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ isAvailableForContact }),
+  });
+}
+
+export async function addExperiencia(token, experiencia) {
+  return sendApiRequest(`${apiBaseUrl}/api/candidates/me/experiencias`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(experiencia),
+  });
+}
+
+export async function deleteExperiencia(token, id) {
+  return sendApiRequest(`${apiBaseUrl}/api/candidates/me/experiencias/${id}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function addHabilidad(token, nombre) {
+  return sendApiRequest(`${apiBaseUrl}/api/candidates/me/habilidades`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ nombre }),
+  });
+}
+
+export async function deleteHabilidad(token, id) {
+  return sendApiRequest(`${apiBaseUrl}/api/candidates/me/habilidades/${id}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function addCurso(token, curso) {
+  return sendApiRequest(`${apiBaseUrl}/api/candidates/me/cursos`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(curso),
+  });
+}
+
+export async function deleteCurso(token, id) {
+  return sendApiRequest(`${apiBaseUrl}/api/candidates/me/cursos/${id}`, {
+    method: 'DELETE',
     headers: { Authorization: `Bearer ${token}` },
   });
 }

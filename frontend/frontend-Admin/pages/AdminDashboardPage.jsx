@@ -1,7 +1,19 @@
-import { BriefcaseBusiness, CircleCheck, CircleOff, KeyRound, LogOut, Shield, Users } from 'lucide-react';
+import {
+  BookOpen,
+  BriefcaseBusiness,
+  CircleCheck,
+  CircleOff,
+  ClipboardList,
+  FileDown,
+  KeyRound,
+  LogOut,
+  Shield,
+  Users,
+} from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getUsers, getVacantes, updateUserRole, updateVacanteStatus } from '../api/adminApi.js';
+import { getReportData, getUsers, getVacantes, updateUserRole, updateVacanteStatus } from '../api/adminApi.js';
+import { generateReportPdf } from '../utils/generatePdfReport.js';
 import { StatusMessage } from '../../shared/components/StatusMessage.jsx';
 import { AUTH_ROUTES } from '../../shared/constants/authRoutes.js';
 import { useAuth } from '../../shared/context/AuthContext.jsx';
@@ -18,11 +30,24 @@ function RoleBadge({ role }) {
   return <span className={`role-badge role-badge--${role.toLowerCase()}`}>{ROLE_LABELS[role] ?? role}</span>;
 }
 
+function StatCard({ icon, value, label, accent }) {
+  return (
+    <div className="admin-stat" style={accent ? { borderLeft: `3px solid ${accent}` } : {}}>
+      {icon}
+      <div>
+        <p className="admin-stat__value">{value ?? '-'}</p>
+        <p className="admin-stat__label">{label}</p>
+      </div>
+    </div>
+  );
+}
+
 export function AdminDashboardPage() {
   const { user, token, logout } = useAuth();
 
   const [users, setUsers] = useState([]);
   const [vacantes, setVacantes] = useState([]);
+  const [reportData, setReportData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
   const [pendingRoles, setPendingRoles] = useState({});
@@ -30,6 +55,8 @@ export function AdminDashboardPage() {
   const [successId, setSuccessId] = useState(null);
   const [savingVacanteId, setSavingVacanteId] = useState(null);
   const [successVacanteId, setSuccessVacanteId] = useState(null);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [pdfError, setPdfError] = useState('');
 
   const loadAdminData = useCallback(async (showLoading = false) => {
     if (showLoading) {
@@ -39,12 +66,14 @@ export function AdminDashboardPage() {
     setErrorMessage('');
 
     try {
-      const [usersData, vacantesData] = await Promise.all([
+      const [usersData, vacantesData, report] = await Promise.all([
         getUsers(token),
         getVacantes(token),
+        getReportData(token),
       ]);
       setUsers(usersData);
       setVacantes(vacantesData);
+      setReportData(report);
     } catch (err) {
       setErrorMessage(err.message);
     } finally {
@@ -77,7 +106,7 @@ export function AdminDashboardPage() {
     try {
       await updateUserRole(userId, newRole, token);
       setUsers((prev) =>
-        prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u))
+        prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u)),
       );
       setPendingRoles((prev) => {
         const next = { ...prev };
@@ -102,6 +131,14 @@ export function AdminDashboardPage() {
       setVacantes((prev) => prev.map((vacante) => (
         vacante.id === vacanteId ? updatedVacante : vacante
       )));
+      setReportData((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          activeVacantes: prev.activeVacantes + (isActive ? 1 : -1),
+          closedVacantes: prev.closedVacantes + (isActive ? -1 : 1),
+        };
+      });
       setSuccessVacanteId(vacanteId);
       setTimeout(() => setSuccessVacanteId(null), 2000);
     } catch (err) {
@@ -111,13 +148,27 @@ export function AdminDashboardPage() {
     }
   }
 
-  const counts = users.reduce(
-    (acc, u) => {
-      acc[u.role] = (acc[u.role] ?? 0) + 1;
-      return acc;
-    },
-    {}
-  );
+  async function handleGeneratePdf() {
+    setIsGeneratingPdf(true);
+    setPdfError('');
+    try {
+      let data = reportData;
+      if (!data) {
+        data = await getReportData(token);
+        setReportData(data);
+      }
+      generateReportPdf(data, user?.email);
+    } catch (err) {
+      setPdfError(err.message ?? 'Error al generar el reporte PDF.');
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  }
+
+  const counts = users.reduce((acc, u) => {
+    acc[u.role] = (acc[u.role] ?? 0) + 1;
+    return acc;
+  }, {});
 
   const vacancyCounts = vacantes.reduce(
     (acc, vacante) => {
@@ -129,8 +180,12 @@ export function AdminDashboardPage() {
       }
       return acc;
     },
-    { total: 0, active: 0, inactive: 0 }
+    { total: 0, active: 0, inactive: 0 },
   );
+
+  const totalVacantes = reportData?.totalVacantes ?? vacancyCounts.total;
+  const activeVacantes = reportData?.activeVacantes ?? vacancyCounts.active;
+  const closedVacantes = reportData?.closedVacantes ?? vacancyCounts.inactive;
 
   return (
     <div className="admin-shell">
@@ -153,55 +208,85 @@ export function AdminDashboardPage() {
       </header>
 
       <main className="admin-main">
+        <div className="admin-report-bar">
+          <div>
+            <p className="admin-section__title" style={{ margin: 0 }}>Panel de control</p>
+            <p style={{ fontSize: '0.82rem', color: '#6b7280', marginTop: 2 }}>
+              Datos en tiempo real desde la base de datos
+            </p>
+          </div>
+          <button
+            className="admin-pdf-btn"
+            disabled={isGeneratingPdf}
+            onClick={handleGeneratePdf}
+            type="button"
+          >
+            <FileDown size={16} />
+            {isGeneratingPdf ? 'Generando PDF...' : 'Generar Reporte PDF'}
+          </button>
+        </div>
+
+        <StatusMessage message={errorMessage} tone="error" />
+
+        {pdfError && (
+          <div style={{ margin: '0 0 12px', padding: '8px 12px', background: '#fef2f2', borderRadius: 6, color: '#b91c1c', fontSize: '0.85rem' }}>
+            {pdfError}
+          </div>
+        )}
+
+        <p className="admin-stats-section-label">Usuarios</p>
         <div className="admin-stats">
-          <div className="admin-stat">
-            <Users size={20} />
-            <div>
-              <p className="admin-stat__value">{users.length}</p>
-              <p className="admin-stat__label">Usuarios totales</p>
+          <StatCard icon={<Users size={20} />} value={users.length} label="Usuarios totales" />
+          <StatCard icon={<div className="admin-stat__dot admin-stat__dot--candidate" />} value={counts.CANDIDATE ?? 0} label="Candidatos" />
+          <StatCard icon={<div className="admin-stat__dot admin-stat__dot--employer" />} value={counts.EMPLOYER ?? 0} label="Empleadores" />
+          <StatCard icon={<div className="admin-stat__dot admin-stat__dot--administrator" />} value={counts.ADMINISTRATOR ?? 0} label="Administradores" />
+        </div>
+
+        <p className="admin-stats-section-label">Vacantes</p>
+        <div className="admin-stats">
+          <StatCard icon={<BriefcaseBusiness size={20} />} value={totalVacantes} label="Vacantes totales" />
+          <StatCard icon={<div className="admin-stat__dot" style={{ background: '#16a34a' }} />} value={activeVacantes} label="Activas" accent="#16a34a" />
+          <StatCard icon={<div className="admin-stat__dot" style={{ background: '#9ca3af' }} />} value={closedVacantes} label="Cerradas" accent="#9ca3af" />
+        </div>
+
+        <p className="admin-stats-section-label">Postulaciones</p>
+        <div className="admin-stats">
+          <StatCard icon={<ClipboardList size={20} />} value={reportData?.totalPostulaciones} label="Postulaciones totales" />
+          <StatCard icon={<div className="admin-stat__dot" style={{ background: '#7c3aed' }} />} value={reportData?.candidatesWithPostulaciones} label="Candidatos postulados" />
+          <StatCard icon={<div className="admin-stat__dot" style={{ background: '#0ea5e9' }} />} value={reportData?.vacantesWithPostulaciones} label="Vacantes con postulaciones" />
+        </div>
+
+        {reportData?.postulacionesByStatus?.length > 0 && (
+          <div className="admin-section" style={{ marginTop: 8 }}>
+            <h3 className="admin-section__title" style={{ fontSize: '0.9rem' }}>Estado de postulaciones</h3>
+            <div className="admin-table-wrapper">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Estado</th>
+                    <th>Cantidad</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {reportData.postulacionesByStatus.map((s) => (
+                    <tr key={s.status}>
+                      <td>{s.status}</td>
+                      <td style={{ textAlign: 'center' }}>{s.count}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
-          <div className="admin-stat">
-            <div className="admin-stat__dot admin-stat__dot--candidate" />
-            <div>
-              <p className="admin-stat__value">{counts.CANDIDATE ?? 0}</p>
-              <p className="admin-stat__label">Candidatos</p>
-            </div>
-          </div>
-          <div className="admin-stat">
-            <div className="admin-stat__dot admin-stat__dot--employer" />
-            <div>
-              <p className="admin-stat__value">{counts.EMPLOYER ?? 0}</p>
-              <p className="admin-stat__label">Empleadores</p>
-            </div>
-          </div>
-          <div className="admin-stat">
-            <div className="admin-stat__dot admin-stat__dot--administrator" />
-            <div>
-              <p className="admin-stat__value">{counts.ADMINISTRATOR ?? 0}</p>
-              <p className="admin-stat__label">Administradores</p>
-            </div>
-          </div>
-          <div className="admin-stat">
-            <BriefcaseBusiness size={20} />
-            <div>
-              <p className="admin-stat__value">{vacancyCounts.total}</p>
-              <p className="admin-stat__label">Vacantes totales</p>
-            </div>
-          </div>
-          <div className="admin-stat">
-            <div className="admin-stat__dot admin-stat__dot--vacancy" />
-            <div>
-              <p className="admin-stat__value">{vacancyCounts.active}</p>
-              <p className="admin-stat__label">Vacantes activas</p>
-            </div>
-          </div>
+        )}
+
+        <p className="admin-stats-section-label">Formacion</p>
+        <div className="admin-stats">
+          <StatCard icon={<BookOpen size={20} />} value={reportData?.totalMicrocursos ?? 0} label="Microcursos disponibles" />
         </div>
 
         <section className="admin-section">
           <h2 className="admin-section__title">Gestion de usuarios</h2>
-
-          <StatusMessage message={errorMessage} tone="error" />
 
           {isLoading ? (
             <p className="admin-loading">Cargando usuarios...</p>

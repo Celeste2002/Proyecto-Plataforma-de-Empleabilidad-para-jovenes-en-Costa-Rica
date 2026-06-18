@@ -21,6 +21,10 @@ public sealed record CandidateProfile
 
     public bool IsVisibleToPartnerEmployers { get; init; } = true;
 
+    public bool IsAvailableForContact { get; init; } = true;
+
+    public string? PhotoUrl { get; init; }
+
     // Populado desde Users.EmailConfirmed via JOIN — no se almacena en CandidateProfiles
     public bool EmailConfirmationSent { get; init; }
 }

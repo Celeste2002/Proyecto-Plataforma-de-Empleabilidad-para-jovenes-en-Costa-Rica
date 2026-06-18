@@ -11,4 +11,9 @@ public sealed class Postulacion
     public string JobTitle { get; init; } = string.Empty;
     public string CompanyName { get; init; } = string.Empty;
     public string Province { get; init; } = string.Empty;
+    public string CandidateFullName { get; init; } = string.Empty;
+    public string CandidateEmail { get; init; } = string.Empty;
+    public string CandidateProvince { get; init; } = string.Empty;
+    public string CandidateEducationLevel { get; init; } = string.Empty;
+    public DateOnly CandidateDateOfBirth { get; init; }
 }

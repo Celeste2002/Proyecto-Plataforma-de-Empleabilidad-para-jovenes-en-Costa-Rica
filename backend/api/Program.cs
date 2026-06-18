@@ -94,6 +94,12 @@ builder.Services.AddSingleton<IVacanteRepository>(_ =>
 builder.Services.AddSingleton<IPostulacionRepository>(_ =>
     new SqlPostulacionRepository(defaultConnectionString));
 
+builder.Services.AddSingleton<INotificacionRepository>(_ =>
+    new SqlNotificacionRepository(defaultConnectionString));
+
+builder.Services.AddSingleton<IMicroCursoRepository>(_ =>
+    new SqlMicroCursoRepository(defaultConnectionString));
+
 builder.Services.AddSingleton<IEmailConfirmationSender>(_ =>
 {
     EmailSettings emailSettings = builder.Configuration
@@ -165,13 +171,46 @@ builder.Services.AddSingleton<IPasswordHasher, BcryptPasswordHasher>();
 builder.Services.AddScoped<ICandidateRegistrationService, CandidateRegistrationService>();
 builder.Services.AddScoped<IEmployerRegistrationService, EmployerRegistrationService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<IAdminService, AdminService>();
-builder.Services.AddScoped<IVacanteService, VacanteService>();
+builder.Services.AddSingleton<IAdminReportRepository>(_ =>
+    new SqlAdminReportRepository(defaultConnectionString));
+
+builder.Services.AddScoped<IAdminService>(sp =>
+    new AdminService(
+        sp.GetRequiredService<IUserRepository>(),
+        sp.GetRequiredService<IAdminReportRepository>()));
+builder.Services.AddScoped<IVacanteService>(sp =>
+    new VacanteService(
+        sp.GetRequiredService<IVacanteRepository>(),
+        sp.GetRequiredService<IPostulacionRepository>(),
+        sp.GetRequiredService<ICandidateRepository>(),
+        sp.GetRequiredService<IEmployerRepository>(),
+        sp.GetRequiredService<INotificacionRepository>()));
+
+builder.Services.AddScoped<IEmployerPostulacionService>(sp =>
+    new EmployerPostulacionService(
+        sp.GetRequiredService<IEmployerRepository>(),
+        sp.GetRequiredService<IVacanteRepository>(),
+        sp.GetRequiredService<IPostulacionRepository>(),
+        sp.GetRequiredService<INotificacionRepository>()));
+
+builder.Services.AddScoped<IMicroCursoService>(sp =>
+    new MicroCursoService(
+        sp.GetRequiredService<IMicroCursoRepository>(),
+        sp.GetRequiredService<ICandidateRepository>()));
 
 WebApplication app = builder.Build();
 
 app.UseMiddleware<ErrorHandlingMiddleware>();
 app.UseCors(frontendCorsPolicyName);
+
+// Impide que el navegador almacene en caché las respuestas de la API
+app.Use(async (context, next) =>
+{
+    context.Response.Headers["Cache-Control"] = "no-store, no-cache, must-revalidate, private";
+    context.Response.Headers["Pragma"] = "no-cache";
+    await next();
+});
+
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -216,6 +255,95 @@ candidateRoutes.MapPut("/me", async (
             cancellationToken);
 
     return Results.Ok(candidateProfileResponse);
+}).RequireAuthorization();
+
+candidateRoutes.MapGet("/me/perfil", async (
+    ClaimsPrincipal user,
+    ICandidateRegistrationService candidateRegistrationService,
+    CancellationToken cancellationToken) =>
+{
+    CandidatoPerfilCompletoResponse perfil =
+        await candidateRegistrationService.GetFullProfileAsync(GetAuthenticatedUserId(user), cancellationToken);
+
+    return Results.Ok(perfil);
+}).RequireAuthorization();
+
+candidateRoutes.MapPatch("/me/disponibilidad", async (
+    ClaimsPrincipal user,
+    UpdateAvailabilityRequest request,
+    ICandidateRegistrationService candidateRegistrationService,
+    CancellationToken cancellationToken) =>
+{
+    await candidateRegistrationService.UpdateAvailabilityAsync(
+        GetAuthenticatedUserId(user), request.IsAvailableForContact, cancellationToken);
+
+    return Results.Ok(new { message = "Disponibilidad actualizada correctamente." });
+}).RequireAuthorization();
+
+candidateRoutes.MapPost("/me/experiencias", async (
+    ClaimsPrincipal user,
+    AddExperienciaLaboralRequest request,
+    ICandidateRegistrationService candidateRegistrationService,
+    CancellationToken cancellationToken) =>
+{
+    ExperienciaLaboralResponse response =
+        await candidateRegistrationService.AddExperienciaAsync(GetAuthenticatedUserId(user), request, cancellationToken);
+
+    return Results.Created($"/api/candidates/me/experiencias/{response.Id}", response);
+}).RequireAuthorization();
+
+candidateRoutes.MapDelete("/me/experiencias/{id:guid}", async (
+    Guid id,
+    ClaimsPrincipal user,
+    ICandidateRegistrationService candidateRegistrationService,
+    CancellationToken cancellationToken) =>
+{
+    await candidateRegistrationService.DeleteExperienciaAsync(GetAuthenticatedUserId(user), id, cancellationToken);
+    return Results.NoContent();
+}).RequireAuthorization();
+
+candidateRoutes.MapPost("/me/habilidades", async (
+    ClaimsPrincipal user,
+    AddHabilidadRequest request,
+    ICandidateRegistrationService candidateRegistrationService,
+    CancellationToken cancellationToken) =>
+{
+    HabilidadResponse response =
+        await candidateRegistrationService.AddHabilidadAsync(GetAuthenticatedUserId(user), request, cancellationToken);
+
+    return Results.Created($"/api/candidates/me/habilidades/{response.Id}", response);
+}).RequireAuthorization();
+
+candidateRoutes.MapDelete("/me/habilidades/{id:guid}", async (
+    Guid id,
+    ClaimsPrincipal user,
+    ICandidateRegistrationService candidateRegistrationService,
+    CancellationToken cancellationToken) =>
+{
+    await candidateRegistrationService.DeleteHabilidadAsync(GetAuthenticatedUserId(user), id, cancellationToken);
+    return Results.NoContent();
+}).RequireAuthorization();
+
+candidateRoutes.MapPost("/me/cursos", async (
+    ClaimsPrincipal user,
+    AddCursoCompletadoRequest request,
+    ICandidateRegistrationService candidateRegistrationService,
+    CancellationToken cancellationToken) =>
+{
+    CursoCompletadoResponse response =
+        await candidateRegistrationService.AddCursoAsync(GetAuthenticatedUserId(user), request, cancellationToken);
+
+    return Results.Created($"/api/candidates/me/cursos/{response.Id}", response);
+}).RequireAuthorization();
+
+candidateRoutes.MapDelete("/me/cursos/{id:guid}", async (
+    Guid id,
+    ClaimsPrincipal user,
+    ICandidateRegistrationService candidateRegistrationService,
+    CancellationToken cancellationToken) =>
+{
+    await candidateRegistrationService.DeleteCursoAsync(GetAuthenticatedUserId(user), id, cancellationToken);
+    return Results.NoContent();
 }).RequireAuthorization();
 
 candidateRoutes.MapPut("/me/password", async (
@@ -298,6 +426,110 @@ employerRoutes.MapPut("/me/vacantes/{id:guid}/status", async (
     return Results.Ok(vacante);
 }).RequireAuthorization();
 
+employerRoutes.MapPost("/me/vacantes", async (
+    ClaimsPrincipal user,
+    CreateVacanteRequest createVacanteRequest,
+    IVacanteService vacanteService,
+    CancellationToken cancellationToken) =>
+{
+    VacanteResponse vacante =
+        await vacanteService.CreateVacanteAsync(GetAuthenticatedUserId(user), createVacanteRequest, cancellationToken);
+
+    return Results.Created($"/api/employers/me/vacantes/{vacante.Id}", vacante);
+}).RequireAuthorization();
+
+employerRoutes.MapPatch("/me/vacantes/{vacanteId:guid}/estado", async (
+    Guid vacanteId,
+    ClaimsPrincipal user,
+    UpdateVacanteStatusRequest request,
+    IVacanteService vacanteService,
+    CancellationToken cancellationToken) =>
+{
+    VacanteResponse vacante =
+        await vacanteService.UpdateVacanteStatusAsync(
+            GetAuthenticatedUserId(user),
+            vacanteId,
+            request.IsActive,
+            cancellationToken);
+
+    return Results.Ok(vacante);
+}).RequireAuthorization();
+
+employerRoutes.MapGet("/me/vacantes/{vacanteId:guid}/postulaciones", async (
+    Guid vacanteId,
+    ClaimsPrincipal user,
+    IEmployerPostulacionService employerPostulacionService,
+    CancellationToken cancellationToken) =>
+{
+    IReadOnlyCollection<PostulacionSummaryResponse> postulaciones =
+        await employerPostulacionService.GetPostulacionesByVacanteAsync(
+            GetAuthenticatedUserId(user), vacanteId, cancellationToken);
+
+    return Results.Ok(postulaciones);
+}).RequireAuthorization();
+
+employerRoutes.MapGet("/me/postulaciones/{postulacionId:guid}", async (
+    Guid postulacionId,
+    ClaimsPrincipal user,
+    IEmployerPostulacionService employerPostulacionService,
+    CancellationToken cancellationToken) =>
+{
+    PostulacionDetailResponse detail =
+        await employerPostulacionService.GetPostulacionDetailAsync(
+            GetAuthenticatedUserId(user), postulacionId, cancellationToken);
+
+    return Results.Ok(detail);
+}).RequireAuthorization();
+
+employerRoutes.MapPut("/me/postulaciones/{postulacionId:guid}/status", async (
+    Guid postulacionId,
+    UpdatePostulacionStatusRequest request,
+    ClaimsPrincipal user,
+    IEmployerPostulacionService employerPostulacionService,
+    CancellationToken cancellationToken) =>
+{
+    await employerPostulacionService.UpdatePostulacionStatusAsync(
+        GetAuthenticatedUserId(user), postulacionId, request.Status, cancellationToken);
+
+    return Results.Ok(new { message = $"Estado actualizado a '{request.Status}'." });
+}).RequireAuthorization();
+
+employerRoutes.MapGet("/me/notificaciones/unread-count", async (
+    ClaimsPrincipal user,
+    IEmployerPostulacionService employerPostulacionService,
+    CancellationToken cancellationToken) =>
+{
+    int count = await employerPostulacionService.GetUnreadNotificacionCountAsync(
+        GetAuthenticatedUserId(user), cancellationToken);
+
+    return Results.Ok(new { count });
+}).RequireAuthorization();
+
+employerRoutes.MapGet("/me/notificaciones", async (
+    Guid? vacanteId,
+    ClaimsPrincipal user,
+    IEmployerPostulacionService employerPostulacionService,
+    CancellationToken cancellationToken) =>
+{
+    IReadOnlyCollection<NotificacionResponse> notificaciones =
+        await employerPostulacionService.GetNotificacionesAsync(
+            GetAuthenticatedUserId(user), vacanteId, cancellationToken);
+
+    return Results.Ok(notificaciones);
+}).RequireAuthorization();
+
+employerRoutes.MapPut("/me/notificaciones/{id:guid}/read", async (
+    Guid id,
+    ClaimsPrincipal user,
+    IEmployerPostulacionService employerPostulacionService,
+    CancellationToken cancellationToken) =>
+{
+    await employerPostulacionService.MarkNotificacionReadAsync(
+        GetAuthenticatedUserId(user), id, cancellationToken);
+
+    return Results.Ok(new { message = "Notificación marcada como leída." });
+}).RequireAuthorization();
+
 // -- Rutas de autenticacion --
 
 RouteGroupBuilder authRoutes = app.MapGroup("/api/auth");
@@ -352,6 +584,14 @@ adminRoutes.MapPut("/users/{id:guid}/role", async (
 {
     await adminService.UpdateUserRoleAsync(id, updateUserRoleRequest.NewRole, cancellationToken);
     return Results.NoContent();
+});
+
+adminRoutes.MapGet("/report/data", async (
+    IAdminService adminService,
+    CancellationToken cancellationToken) =>
+{
+    AdminReportResponse report = await adminService.GetReportDataAsync(cancellationToken);
+    return Results.Ok(report);
 });
 
 adminRoutes.MapPost("/employers/{id:guid}/activate", async (
@@ -421,6 +661,43 @@ candidateRoutes.MapGet("/me/postulaciones", async (
 
     return Results.Ok(postulaciones);
 }).RequireAuthorization();
+
+// -- Rutas de microcursos --
+
+RouteGroupBuilder microCursoRoutes = app.MapGroup("/api/microcursos").RequireAuthorization();
+
+microCursoRoutes.MapGet("/", async (
+    string? area,
+    IMicroCursoService microCursoService,
+    CancellationToken cancellationToken) =>
+{
+    IReadOnlyCollection<MicroCursoResponse> microCursos =
+        await microCursoService.GetCatalogoAsync(area, cancellationToken);
+
+    return Results.Ok(microCursos);
+});
+
+microCursoRoutes.MapGet("/recomendados", async (
+    ClaimsPrincipal user,
+    IMicroCursoService microCursoService,
+    CancellationToken cancellationToken) =>
+{
+    IReadOnlyCollection<MicroCursoResponse> microCursos =
+        await microCursoService.GetRecomendadosAsync(GetAuthenticatedUserId(user), cancellationToken);
+
+    return Results.Ok(microCursos);
+});
+
+microCursoRoutes.MapGet("/{id:guid}", async (
+    Guid id,
+    IMicroCursoService microCursoService,
+    CancellationToken cancellationToken) =>
+{
+    MicroCursoResponse microCurso =
+        await microCursoService.GetDetalleAsync(id, cancellationToken);
+
+    return Results.Ok(microCurso);
+});
 
 // -- Health check --
 

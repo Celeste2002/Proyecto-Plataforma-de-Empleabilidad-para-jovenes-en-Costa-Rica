@@ -10,6 +10,8 @@ public sealed class Vacante
     public required string Modality { get; init; }
     public required string ExperienceLevel { get; init; }
     public string? Description { get; init; }
+    public string? Requirements { get; init; }
+    public string? SalaryRange { get; init; }
     public bool IsActive { get; init; }
     public DateTime PublishedAt { get; init; }
     public DateTime CreatedAtUtc { get; init; }

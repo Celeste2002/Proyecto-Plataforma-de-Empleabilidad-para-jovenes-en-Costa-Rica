@@ -6,7 +6,11 @@ import { ResetPasswordPage } from '../shared/pages/ResetPasswordPage.jsx';
 import { ProtectedRoute } from './components/ProtectedRoute.jsx';
 import { LoginPage } from './pages/LoginPage.jsx';
 import { EmployerDashboardPage } from './pages/EmployerDashboardPage.jsx';
+import { MisVacantesPage } from './pages/MisVacantesPage.jsx';
+import { PublicarVacantePage } from './pages/PublicarVacantePage.jsx';
 import { RegisterPage } from './pages/RegisterPage.jsx';
+import { PostulacionesVacanteEmpleadorPage } from './pages/PostulacionesVacanteEmpleadorPage.jsx';
+import { PostulacionDetailPage } from './pages/PostulacionDetailPage.jsx';
 
 export function App() {
   return (
@@ -23,6 +27,38 @@ export function App() {
             element={
               <ProtectedRoute>
                 <EmployerDashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/empleador/vacantes"
+            element={
+              <ProtectedRoute>
+                <MisVacantesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/empleador/vacantes/nueva"
+            element={
+              <ProtectedRoute>
+                <PublicarVacantePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/empleador/vacantes/:vacanteId/postulaciones"
+            element={
+              <ProtectedRoute>
+                <PostulacionesVacanteEmpleadorPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/empleador/postulaciones/:postulacionId"
+            element={
+              <ProtectedRoute>
+                <PostulacionDetailPage />
               </ProtectedRoute>
             }
           />

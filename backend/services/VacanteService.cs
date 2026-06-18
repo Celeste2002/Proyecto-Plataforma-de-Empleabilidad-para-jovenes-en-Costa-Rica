@@ -10,7 +10,8 @@ public sealed class VacanteService(
     IVacanteRepository vacanteRepository,
     IPostulacionRepository postulacionRepository,
     ICandidateRepository candidateRepository,
-    IEmployerRepository employerRepository) : IVacanteService
+    IEmployerRepository employerRepository,
+    INotificacionRepository notificacionRepository) : IVacanteService
 {
     public async Task<IReadOnlyCollection<VacanteResponse>> GetActiveVacantesAsync(
         CancellationToken cancellationToken)
@@ -38,20 +39,119 @@ public sealed class VacanteService(
         Guid employerUserId,
         CancellationToken cancellationToken)
     {
-        EmployerProfile? employerProfile =
+        EmployerProfile? employer =
             await employerRepository.FindByUserIdAsync(employerUserId, cancellationToken);
 
-        if (employerProfile is null)
+        if (employer is null)
         {
             throw new NotFoundException("No se encontró el perfil del empleador.");
         }
 
         IReadOnlyCollection<Vacante> vacantes =
-            await vacanteRepository.GetByEmployerProfileIdAsync(employerProfile.Id, cancellationToken);
+            await vacanteRepository.GetByEmployerProfileIdAsync(employer.Id, cancellationToken);
 
         return vacantes
             .Select(MapVacanteResponse)
             .ToArray();
+    }
+
+    public async Task<VacanteResponse> CreateVacanteAsync(
+        Guid employerUserId,
+        CreateVacanteRequest request,
+        CancellationToken cancellationToken)
+    {
+        EmployerProfile? employer =
+            await employerRepository.FindByUserIdAsync(employerUserId, cancellationToken);
+
+        if (employer is null)
+        {
+            throw new NotFoundException("No se encontró el perfil del empleador.");
+        }
+
+        List<string> errors = [];
+
+        if (string.IsNullOrWhiteSpace(request.JobTitle) || request.JobTitle.Length > 100)
+        {
+            errors.Add("El título del puesto es obligatorio y no puede superar los 100 caracteres.");
+        }
+
+        if (!CandidateCatalogs.CostaRicaProvinces.Contains(request.Province))
+        {
+            errors.Add("La provincia seleccionada no es válida.");
+        }
+
+        if (!EmployerSectors.All.Contains(request.Sector))
+        {
+            errors.Add("El sector seleccionado no es válido.");
+        }
+
+        if (!VacanteModalities.All.Contains(request.Modality))
+        {
+            errors.Add("La modalidad seleccionada no es válida.");
+        }
+
+        if (!ExperienceLevels.All.Contains(request.ExperienceLevel))
+        {
+            errors.Add("El nivel de experiencia seleccionado no es válido.");
+        }
+
+        if (errors.Count > 0)
+        {
+            throw new RequestValidationException(errors);
+        }
+
+        DateTime now = DateTime.UtcNow;
+
+        Vacante vacante = new()
+        {
+            Id = Guid.NewGuid(),
+            EmployerProfileId = employer.Id,
+            JobTitle = request.JobTitle.Trim(),
+            Province = request.Province,
+            Sector = request.Sector,
+            Modality = request.Modality,
+            ExperienceLevel = request.ExperienceLevel,
+            Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim(),
+            Requirements = string.IsNullOrWhiteSpace(request.Requirements) ? null : request.Requirements.Trim(),
+            SalaryRange = string.IsNullOrWhiteSpace(request.SalaryRange) ? null : request.SalaryRange.Trim(),
+            IsActive = true,
+            PublishedAt = now,
+            CreatedAtUtc = now,
+            CompanyName = employer.CompanyName
+        };
+
+        await vacanteRepository.SaveAsync(vacante, cancellationToken);
+
+        return MapVacanteResponse(vacante);
+    }
+
+    public async Task<VacanteResponse> UpdateVacanteStatusAsync(
+        Guid employerUserId,
+        Guid vacanteId,
+        bool isActive,
+        CancellationToken cancellationToken)
+    {
+        EmployerProfile? employer =
+            await employerRepository.FindByUserIdAsync(employerUserId, cancellationToken);
+
+        if (employer is null)
+        {
+            throw new NotFoundException("No se encontró el perfil del empleador.");
+        }
+
+        Vacante? vacante = await vacanteRepository.FindByIdAsync(vacanteId, cancellationToken);
+
+        if (vacante is null || vacante.EmployerProfileId != employer.Id)
+        {
+            throw new NotFoundException("La vacante no existe o no pertenece a este empleador.");
+        }
+
+        if (vacante.IsActive != isActive)
+        {
+            await vacanteRepository.UpdateStatusAsync(vacanteId, isActive, cancellationToken);
+        }
+
+        return MapVacanteResponse(CopyWithStatus(vacante, isActive));
     }
 
     public async Task ApplyAsync(
@@ -95,6 +195,19 @@ public sealed class VacanteService(
         };
 
         await postulacionRepository.SaveAsync(postulacion, cancellationToken);
+
+        Notificacion notificacion = new()
+        {
+            Id = Guid.NewGuid(),
+            EmployerProfileId = vacante.EmployerProfileId,
+            PostulacionId = postulacion.Id,
+            VacanteId = vacante.Id,
+            Message = $"{candidateProfile.FullName} se ha postulado a la vacante {vacante.JobTitle}",
+            IsRead = false,
+            CreatedAtUtc = DateTime.UtcNow
+        };
+
+        await notificacionRepository.SaveAsync(notificacion, cancellationToken);
     }
 
     public async Task<IReadOnlyCollection<PostulacionResponse>> GetMyPostulacionesAsync(
@@ -125,26 +238,7 @@ public sealed class VacanteService(
         UpdateVacanteStatusRequest request,
         CancellationToken cancellationToken)
     {
-        EmployerProfile? employerProfile =
-            await employerRepository.FindByUserIdAsync(employerUserId, cancellationToken);
-
-        if (employerProfile is null)
-        {
-            throw new NotFoundException("No se encontró el perfil del empleador.");
-        }
-
-        Vacante? vacante = await vacanteRepository.FindByIdAsync(vacanteId, cancellationToken);
-
-        if (vacante is null || vacante.EmployerProfileId != employerProfile.Id)
-        {
-            throw new NotFoundException("No se encontró la vacante solicitada.");
-        }
-
-        await vacanteRepository.UpdateIsActiveAsync(vacanteId, request.IsActive, cancellationToken);
-
-        Vacante? updatedVacante = await vacanteRepository.FindByIdAsync(vacanteId, cancellationToken);
-
-        return MapVacanteResponse(updatedVacante ?? vacante);
+        return await UpdateVacanteStatusAsync(employerUserId, vacanteId, request.IsActive, cancellationToken);
     }
 
     public async Task<VacanteResponse> UpdateVacanteStatusAsAdminAsync(
@@ -159,15 +253,36 @@ public sealed class VacanteService(
             throw new NotFoundException("No se encontró la vacante solicitada.");
         }
 
-        await vacanteRepository.UpdateIsActiveAsync(vacanteId, request.IsActive, cancellationToken);
+        if (vacante.IsActive != request.IsActive)
+        {
+            await vacanteRepository.UpdateStatusAsync(vacanteId, request.IsActive, cancellationToken);
+        }
 
-        Vacante? updatedVacante = await vacanteRepository.FindByIdAsync(vacanteId, cancellationToken);
-
-        return MapVacanteResponse(updatedVacante ?? vacante);
+        return MapVacanteResponse(CopyWithStatus(vacante, request.IsActive));
     }
 
+    private static Vacante CopyWithStatus(Vacante vacante, bool isActive) =>
+        new()
+        {
+            Id = vacante.Id,
+            EmployerProfileId = vacante.EmployerProfileId,
+            JobTitle = vacante.JobTitle,
+            Province = vacante.Province,
+            Sector = vacante.Sector,
+            Modality = vacante.Modality,
+            ExperienceLevel = vacante.ExperienceLevel,
+            Description = vacante.Description,
+            Requirements = vacante.Requirements,
+            SalaryRange = vacante.SalaryRange,
+            IsActive = isActive,
+            PublishedAt = vacante.PublishedAt,
+            CreatedAtUtc = vacante.CreatedAtUtc,
+            CompanyName = vacante.CompanyName
+        };
+
     private static VacanteResponse MapVacanteResponse(Vacante v) =>
-        new(v.Id, v.JobTitle, v.CompanyName, v.Province, v.Sector, v.Modality, v.ExperienceLevel, v.Description, v.IsActive, v.PublishedAt);
+        new(v.Id, v.JobTitle, v.CompanyName, v.Province, v.Sector, v.Modality, v.ExperienceLevel,
+            v.Description, v.Requirements, v.SalaryRange, v.IsActive, v.PublishedAt);
 
     private static PostulacionResponse MapPostulacionResponse(Postulacion p) =>
         new(p.Id, p.VacanteId, p.JobTitle, p.CompanyName, p.Province, p.Status, p.AppliedAt, p.UpdatedAtUtc);
