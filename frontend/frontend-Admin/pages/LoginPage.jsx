@@ -2,6 +2,7 @@ import { LogIn } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { login } from '../../shared/api/authApi.js';
+import { BrandHomeLink } from '../../shared/components/BrandHomeLink.jsx';
 import { StatusMessage } from '../../shared/components/StatusMessage.jsx';
 import { AUTH_ROUTES } from '../../shared/constants/authRoutes.js';
 import { useAuth } from '../../shared/context/AuthContext.jsx';
@@ -47,15 +48,7 @@ export function LoginPage() {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <div className="auth-brand">
-          <img
-            alt="Sinergia"
-            className="brand-logo"
-            onError={(e) => { e.currentTarget.style.display = 'none'; }}
-            src="/Logo_Sinergia.png"
-          />
-          <h1>Sinergia</h1>
-        </div>
+        <BrandHomeLink className="auth-brand" to="/login" />
 
         <div className="section-heading">
           <p className="eyebrow">Panel de administracion</p>

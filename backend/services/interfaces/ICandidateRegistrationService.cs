@@ -41,6 +41,8 @@ public interface ICandidateRegistrationService
 
     Task DeleteExperienciaAsync(Guid userId, Guid experienciaId, CancellationToken cancellationToken);
 
+    Task<IReadOnlyCollection<string>> GetHabilidadesBlandasSugeridasAsync(CancellationToken cancellationToken);
+
     Task<HabilidadResponse> AddHabilidadAsync(
         Guid userId,
         AddHabilidadRequest request,

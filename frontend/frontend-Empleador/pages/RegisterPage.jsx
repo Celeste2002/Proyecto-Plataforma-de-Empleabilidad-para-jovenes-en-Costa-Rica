@@ -1,6 +1,7 @@
 import { Building2 } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { BrandHomeLink } from '../../shared/components/BrandHomeLink.jsx';
 import { StatusMessage } from '../../shared/components/StatusMessage.jsx';
 import { registerEmployer } from '../api/employerApi.js';
 
@@ -69,15 +70,7 @@ export function RegisterPage() {
     return (
       <div className="auth-page">
         <div className="auth-card">
-          <div className="auth-brand">
-            <img
-              alt="Sinergia"
-              className="brand-logo"
-              onError={(e) => { e.currentTarget.style.display = 'none'; }}
-              src="/Logo_Sinergia.png"
-            />
-            <h1>Sinergia</h1>
-          </div>
+          <BrandHomeLink className="auth-brand" to="/login" />
           <StatusMessage message={successMessage} tone="success" />
           <p style={{ textAlign: 'center', marginTop: '1rem', fontSize: '0.9rem', color: '#666' }}>
             Serás redirigido al inicio de sesión en unos segundos…
@@ -90,15 +83,7 @@ export function RegisterPage() {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <div className="auth-brand">
-          <img
-            alt="Sinergia"
-            className="brand-logo"
-            onError={(e) => { e.currentTarget.style.display = 'none'; }}
-            src="/Logo_Sinergia.png"
-          />
-          <h1>Sinergia</h1>
-        </div>
+        <BrandHomeLink className="auth-brand" to="/login" />
 
         <div className="section-heading">
           <p className="eyebrow">Registro de empresa</p>

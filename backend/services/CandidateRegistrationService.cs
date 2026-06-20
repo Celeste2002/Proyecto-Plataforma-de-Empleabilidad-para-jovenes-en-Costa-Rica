@@ -242,6 +242,10 @@ public sealed class CandidateRegistrationService(
         await candidateRepository.DeleteExperienciaAsync(experienciaId, profile.Id, cancellationToken);
     }
 
+    public Task<IReadOnlyCollection<string>> GetHabilidadesBlandasSugeridasAsync(
+        CancellationToken cancellationToken) =>
+        candidateRepository.GetHabilidadesBlandasSugeridasAsync(cancellationToken);
+
     public async Task<HabilidadResponse> AddHabilidadAsync(
         Guid userId,
         AddHabilidadRequest request,
@@ -250,16 +254,27 @@ public sealed class CandidateRegistrationService(
         if (string.IsNullOrWhiteSpace(request.Nombre))
             throw new RequestValidationException(["El nombre de la habilidad es obligatorio."]);
 
+        string nombre = request.Nombre.Trim();
+
+        if (nombre.Length > 100)
+            throw new RequestValidationException(["El nombre de la habilidad no puede superar 100 caracteres."]);
+
         CandidateProfile? profile = await candidateRepository.FindByUserIdAsync(userId, cancellationToken);
 
         if (profile is null)
             throw new NotFoundException("No se encontro el perfil del candidato.");
 
+        IReadOnlyCollection<domain.entities.Habilidad> habilidades =
+            await candidateRepository.GetHabilidadesAsync(profile.Id, cancellationToken);
+
+        if (habilidades.Any(h => string.Equals(h.Nombre, nombre, StringComparison.OrdinalIgnoreCase)))
+            throw new RequestValidationException(["Ya agregaste esa habilidad a tu perfil."]);
+
         domain.entities.Habilidad habilidad = new()
         {
             Id = Guid.NewGuid(),
             CandidateProfileId = profile.Id,
-            Nombre = request.Nombre.Trim()
+            Nombre = nombre
         };
 
         await candidateRepository.SaveHabilidadAsync(habilidad, cancellationToken);

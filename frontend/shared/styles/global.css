@@ -85,6 +85,23 @@ button:disabled {
   gap: 16px;
 }
 
+.brand-home-link {
+  border-radius: 8px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.brand-home-link:hover .brand-logo,
+.brand-home-link:focus-visible .brand-logo {
+  border-color: var(--primary);
+  box-shadow: 0 10px 28px rgb(7 90 156 / 0.18);
+}
+
+.brand-home-link:focus-visible {
+  outline: 3px solid rgb(7 90 156 / 0.24);
+  outline-offset: 6px;
+}
+
 .brand-logo {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -1898,6 +1915,22 @@ textarea:focus {
   width: auto;
 }
 
+.habilidad-suggestion-row {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(220px, 0.45fr) minmax(0, 1fr);
+}
+
+.habilidad-suggestion-row select,
+.habilidad-suggestion-row input {
+  width: 100%;
+}
+
+.habilidad-add-button {
+  justify-self: flex-start;
+  width: auto;
+}
+
 .habilidades-tags {
   display: flex;
   flex-wrap: wrap;
@@ -1998,6 +2031,10 @@ textarea:focus {
     flex-direction: column;
   }
 
+  .habilidad-suggestion-row {
+    grid-template-columns: 1fr;
+  }
+
   .habilidad-input-row .primary-action {
     width: 100%;
   }
@@ -2075,6 +2112,22 @@ textarea:focus {
   font-size: 1rem;
   font-weight: 700;
   gap: 10px;
+}
+
+.admin-header__brand-link {
+  border-radius: 6px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.admin-header__brand-link:hover,
+.admin-header__brand-link:focus-visible {
+  color: #bfdbfe;
+}
+
+.admin-header__brand-link:focus-visible {
+  outline: 2px solid rgb(191 219 254 / 0.7);
+  outline-offset: 4px;
 }
 
 .admin-header__user {

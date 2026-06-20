@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, Award, BookOpenCheck, Building2, Clock3, Filter, RefreshCw, Search, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { BrandHomeLink } from '../../shared/components/BrandHomeLink.jsx';
 import { StatusMessage } from '../../shared/components/StatusMessage.jsx';
 import { useAuth } from '../../shared/context/AuthContext.jsx';
 import {
@@ -169,17 +170,7 @@ export function MicroCursosPage() {
   return (
     <main className="application-shell">
       <header className="top-bar">
-        <div className="brand-lockup">
-          <img
-            alt="Sinergia"
-            className="brand-logo"
-            onError={(e) => { e.currentTarget.style.display = 'none'; }}
-            src="/Logo_Sinergia.png"
-          />
-          <div>
-            <h1>Sinergia</h1>
-          </div>
-        </div>
+        <BrandHomeLink to="/candidato" />
         <nav className="dashboard-nav" aria-label="Navegacion del candidato">
           <Link className="secondary-action" to="/candidato">
             <ArrowLeft aria-hidden="true" size={16} />

@@ -18,9 +18,11 @@ import {
   deleteCurso,
   deleteExperiencia,
   deleteHabilidad,
+  getHabilidadesBlandasSugeridas,
   getMyFullProfile,
   updateMyAvailability,
 } from '../api/candidatesApi.js';
+import { BrandHomeLink } from '../../shared/components/BrandHomeLink.jsx';
 import { FieldError } from '../../shared/components/FieldError.jsx';
 import { StatusMessage } from '../../shared/components/StatusMessage.jsx';
 import { useAuth } from '../../shared/context/AuthContext.jsx';
@@ -46,9 +48,12 @@ export function MiPerfilPage() {
   const [perfil, setPerfil] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [globalError, setGlobalError] = useState('');
+  const [softSkillSuggestions, setSoftSkillSuggestions] = useState([]);
+  const [suggestionsError, setSuggestionsError] = useState('');
 
   useEffect(() => {
     loadPerfil();
+    loadSoftSkillSuggestions();
   }, [token]);
 
   async function loadPerfil() {
@@ -61,6 +66,17 @@ export function MiPerfilPage() {
       setGlobalError(error.message);
     } finally {
       setIsLoading(false);
+    }
+  }
+
+  async function loadSoftSkillSuggestions() {
+    setSuggestionsError('');
+    try {
+      const suggestions = await getHabilidadesBlandasSugeridas(token);
+      setSoftSkillSuggestions(suggestions);
+    } catch (error) {
+      setSuggestionsError(error.message);
+      setSoftSkillSuggestions([]);
     }
   }
 
@@ -142,6 +158,8 @@ export function MiPerfilPage() {
           {/* Habilidades */}
           <HabilidadesSection
             habilidades={perfil.habilidades}
+            softSkillSuggestions={softSkillSuggestions}
+            suggestionsError={suggestionsError}
             onAdd={async (nombre) => {
               const nueva = await addHabilidad(token, nombre);
               setPerfil((prev) => ({
@@ -185,17 +203,7 @@ export function MiPerfilPage() {
 function ProfileHeader() {
   return (
     <header className="top-bar">
-      <div className="brand-lockup">
-        <img
-          alt="Sinergia"
-          className="brand-logo"
-          onError={(e) => { e.currentTarget.style.display = 'none'; }}
-          src="/Logo_Sinergia.png"
-        />
-        <div>
-          <h1>Sinergia</h1>
-        </div>
-      </div>
+      <BrandHomeLink to="/candidato" />
       <nav className="dashboard-nav" aria-label="Navegación del perfil">
         <Link className="secondary-action" to="/candidato">
           <ArrowLeft aria-hidden="true" size={16} />
@@ -418,10 +426,21 @@ function ExperienciasSection({ experiencias, onAdd, onDelete }) {
   );
 }
 
-function HabilidadesSection({ habilidades, onAdd, onDelete }) {
+function HabilidadesSection({ habilidades, softSkillSuggestions, suggestionsError, onAdd, onDelete }) {
   const [newHabilidad, setNewHabilidad] = useState('');
   const [errors, setErrors] = useState([]);
   const [isSaving, setIsSaving] = useState(false);
+  const habilidadesRegistradas = new Set(
+    habilidades.map((hab) => hab.nombre.toLocaleLowerCase('es-CR')),
+  );
+  const availableSuggestions = softSkillSuggestions.filter(
+    (suggestion) => !habilidadesRegistradas.has(suggestion.toLocaleLowerCase('es-CR')),
+  );
+
+  function handleSuggestionChange(event) {
+    setNewHabilidad(event.target.value);
+    setErrors([]);
+  }
 
   async function handleAdd(e) {
     e.preventDefault();
@@ -449,18 +468,43 @@ function HabilidadesSection({ habilidades, onAdd, onDelete }) {
       </div>
 
       <form className="habilidad-add-form" noValidate onSubmit={handleAdd}>
-        <div className="habilidad-input-row">
-          <input
-            onChange={(e) => setNewHabilidad(e.target.value)}
-            placeholder="Ej. Microsoft Excel, Trabajo en equipo..."
-            type="text"
-            value={newHabilidad}
-          />
-          <button className="primary-action" disabled={isSaving} type="submit">
-            <Plus aria-hidden="true" size={16} />
-            {isSaving ? 'Agregando...' : 'Agregar'}
-          </button>
+        <div className="habilidad-suggestion-row">
+          <label>
+            Habilidad blanda sugerida
+            <select
+              onChange={handleSuggestionChange}
+              value=""
+            >
+              <option value="">Seleccionar sugerencia</option>
+              {availableSuggestions.length === 0 && (
+                <option disabled value="">No hay sugerencias disponibles</option>
+              )}
+              {availableSuggestions.map((suggestion) => (
+                <option key={suggestion} value={suggestion}>
+                  {suggestion}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Habilidad
+            <input
+              onChange={(e) => setNewHabilidad(e.target.value)}
+              placeholder="Ej. Microsoft Excel, Trabajo en equipo..."
+              type="text"
+              value={newHabilidad}
+            />
+          </label>
         </div>
+        <button className="primary-action habilidad-add-button" disabled={isSaving} type="submit">
+          <Plus aria-hidden="true" size={16} />
+          {isSaving ? 'Agregando...' : 'Agregar'}
+        </button>
+        {suggestionsError && (
+          <p className="empty-state-small">
+            No se pudieron cargar sugerencias. Puedes escribir tu habilidad manualmente.
+          </p>
+        )}
         <FieldError errors={errors} />
       </form>
 

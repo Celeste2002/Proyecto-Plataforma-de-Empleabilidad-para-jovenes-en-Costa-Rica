@@ -28,6 +28,8 @@ public interface ICandidateRepository
     // Habilidades
     Task<IReadOnlyCollection<Habilidad>> GetHabilidadesAsync(Guid candidateProfileId, CancellationToken cancellationToken);
 
+    Task<IReadOnlyCollection<string>> GetHabilidadesBlandasSugeridasAsync(CancellationToken cancellationToken);
+
     Task SaveHabilidadAsync(Habilidad habilidad, CancellationToken cancellationToken);
 
     Task DeleteHabilidadAsync(Guid id, Guid candidateProfileId, CancellationToken cancellationToken);

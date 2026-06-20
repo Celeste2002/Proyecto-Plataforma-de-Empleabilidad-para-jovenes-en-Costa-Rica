@@ -2,6 +2,7 @@ import { BookOpenCheck, BriefcaseBusiness, ClipboardList, KeyRound, LogOut, User
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getMyCandidateProfile } from '../api/candidatesApi.js';
+import { BrandHomeLink } from '../../shared/components/BrandHomeLink.jsx';
 import { AUTH_ROUTES } from '../../shared/constants/authRoutes.js';
 import { useAuth } from '../../shared/context/AuthContext.jsx';
 
@@ -26,18 +27,7 @@ export function CandidateDashboardPage() {
   return (
     <main className="application-shell">
       <header className="top-bar">
-        <div className="brand-lockup">
-          <img
-            alt="Sinergia"
-            className="brand-logo"
-            onError={(e) => { e.currentTarget.style.display = 'none'; }}
-            src="/Logo_Sinergia.png"
-          />
-          <div>
-            <h1>Sinergia</h1>
-            <p className="brand-subtitle">Panel del candidato</p>
-          </div>
-        </div>
+        <BrandHomeLink subtitle="Panel del candidato" to="/candidato" />
         <nav className="dashboard-nav" aria-label="Navegación del candidato">
           <span className="dashboard-user-email">{user?.email}</span>
           <Link className="secondary-action" to={AUTH_ROUTES.recoverPassword}>

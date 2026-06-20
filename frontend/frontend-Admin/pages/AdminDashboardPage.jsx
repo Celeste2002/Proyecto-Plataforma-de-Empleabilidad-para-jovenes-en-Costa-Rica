@@ -190,10 +190,10 @@ export function AdminDashboardPage() {
   return (
     <div className="admin-shell">
       <header className="admin-header">
-        <div className="admin-header__brand">
+        <Link className="admin-header__brand admin-header__brand-link" to="/admin">
           <Shield size={22} />
           <span>Panel de Administracion</span>
-        </div>
+        </Link>
         <div className="admin-header__user">
           <span className="admin-header__email">{user?.email}</span>
           <Link className="admin-header__link" to={AUTH_ROUTES.recoverPassword}>

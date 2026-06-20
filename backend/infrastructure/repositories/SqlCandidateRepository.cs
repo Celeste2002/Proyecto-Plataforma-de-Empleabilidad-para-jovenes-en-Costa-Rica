@@ -193,6 +193,27 @@ public sealed class SqlCandidateRepository(string connectionString) : ICandidate
         return result;
     }
 
+    public async Task<IReadOnlyCollection<string>> GetHabilidadesBlandasSugeridasAsync(
+        CancellationToken cancellationToken)
+    {
+        List<string> result = [];
+
+        await using SqlConnection connection =
+            await SqlStoredProcedure.OpenConnectionAsync(connectionString, cancellationToken);
+
+        await using SqlCommand command =
+            connection.CreateStoredProcedureCommand(StoredProcedures.Candidates.GetHabilidadesBlandasSugeridas);
+
+        await using SqlDataReader reader = await command.ExecuteReaderAsync(cancellationToken);
+
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            result.Add(reader.GetString(reader.GetOrdinal("Nombre")));
+        }
+
+        return result;
+    }
+
     public async Task SaveHabilidadAsync(Habilidad habilidad, CancellationToken cancellationToken)
     {
         await using SqlConnection connection =

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, BriefcaseBusiness, MapPin, Search, Send } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { BrandHomeLink } from '../../shared/components/BrandHomeLink.jsx';
 import { useAuth } from '../../shared/context/AuthContext.jsx';
 import { applyToVacante, getMyPostulaciones, getVacantes } from '../api/candidatesApi.js';
 import { costaRicaProvinces } from '../constants/candidateCatalogs.js';
@@ -109,17 +110,7 @@ export function VacantesPage() {
   return (
     <main className="application-shell">
       <header className="top-bar">
-        <div className="brand-lockup">
-          <img
-            alt="Sinergia"
-            className="brand-logo"
-            onError={(e) => { e.currentTarget.style.display = 'none'; }}
-            src="/Logo_Sinergia.png"
-          />
-          <div>
-            <h1>Sinergia</h1>
-          </div>
-        </div>
+        <BrandHomeLink to="/candidato" />
         <nav className="dashboard-nav" aria-label="Navegación del candidato">
           <Link className="secondary-action" to="/candidato">
             <ArrowLeft aria-hidden="true" size={16} />

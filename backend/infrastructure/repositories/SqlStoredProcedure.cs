@@ -62,6 +62,7 @@ internal static class StoredProcedures
         public const string SaveExperiencia = "dbo.usp_Candidate_SaveExperiencia";
         public const string DeleteExperiencia = "dbo.usp_Candidate_DeleteExperiencia";
         public const string GetHabilidades = "dbo.usp_Candidate_GetHabilidades";
+        public const string GetHabilidadesBlandasSugeridas = "dbo.usp_Candidate_GetHabilidadesBlandasSugeridas";
         public const string SaveHabilidad = "dbo.usp_Candidate_SaveHabilidad";
         public const string DeleteHabilidad = "dbo.usp_Candidate_DeleteHabilidad";
         public const string GetCursos = "dbo.usp_Candidate_GetCursos";

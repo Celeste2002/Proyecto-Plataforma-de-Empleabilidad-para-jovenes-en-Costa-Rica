@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { ArrowLeft, Bell, ClipboardList, MapPin, UserRound } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import { getNotificaciones, getPostulacionesByVacante, markNotificacionRead } from '../api/employerApi.js';
+import { BrandHomeLink } from '../../shared/components/BrandHomeLink.jsx';
 import { StatusMessage } from '../../shared/components/StatusMessage.jsx';
 import { useAuth } from '../../shared/context/AuthContext.jsx';
 
@@ -82,17 +83,7 @@ export function PostulacionesVacanteEmpleadorPage() {
   return (
     <main className="application-shell">
       <header className="top-bar">
-        <div className="brand-lockup">
-          <img
-            alt="Sinergia"
-            className="brand-logo"
-            onError={(e) => { e.currentTarget.style.display = 'none'; }}
-            src="/Logo_Sinergia.png"
-          />
-          <div>
-            <h1>Sinergia</h1>
-          </div>
-        </div>
+        <BrandHomeLink to="/empleador" />
         <nav className="dashboard-nav" aria-label="Navegación del empleador">
           <Link className="secondary-action" to="/empleador/vacantes">
             <ArrowLeft aria-hidden="true" size={16} />

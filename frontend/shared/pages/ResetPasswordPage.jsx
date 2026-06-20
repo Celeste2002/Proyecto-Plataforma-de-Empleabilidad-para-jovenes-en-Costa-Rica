@@ -2,6 +2,7 @@ import { KeyRound, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { resetPassword } from '../api/authApi.js';
+import { BrandHomeLink } from '../components/BrandHomeLink.jsx';
 import { FieldError } from '../components/FieldError.jsx';
 import { StatusMessage } from '../components/StatusMessage.jsx';
 import { AUTH_ROUTES } from '../constants/authRoutes.js';
@@ -63,15 +64,7 @@ export function ResetPasswordPage() {
   return (
     <div className="auth-page">
       <div className="auth-card auth-card--recovery">
-        <div className="auth-brand auth-brand--spacious">
-          <img
-            alt="Sinergia"
-            className="brand-logo"
-            onError={(e) => { e.currentTarget.style.display = 'none'; }}
-            src="/Logo_Sinergia.png"
-          />
-          <h1>Sinergia</h1>
-        </div>
+        <BrandHomeLink className="auth-brand auth-brand--spacious" to={AUTH_ROUTES.login} />
 
         <div className="section-heading auth-heading">
           <p className="eyebrow">Nueva contraseña</p>

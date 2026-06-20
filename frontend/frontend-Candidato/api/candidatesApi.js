@@ -115,6 +115,12 @@ export async function getMyFullProfile(token) {
   });
 }
 
+export async function getHabilidadesBlandasSugeridas(token) {
+  return sendApiRequest(`${apiBaseUrl}/api/candidates/habilidades-blandas-sugeridas`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
 export async function updateMyAvailability(token, isAvailableForContact) {
   return sendApiRequest(`${apiBaseUrl}/api/candidates/me/disponibilidad`, {
     method: 'PATCH',

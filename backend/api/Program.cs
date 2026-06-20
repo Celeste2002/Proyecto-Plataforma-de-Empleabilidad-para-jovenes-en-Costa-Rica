@@ -241,6 +241,16 @@ app.UseAuthorization();
 
 RouteGroupBuilder candidateRoutes = app.MapGroup("/api/candidates");
 
+candidateRoutes.MapGet("/habilidades-blandas-sugeridas", async (
+    ICandidateRegistrationService candidateRegistrationService,
+    CancellationToken cancellationToken) =>
+{
+    IReadOnlyCollection<string> habilidades =
+        await candidateRegistrationService.GetHabilidadesBlandasSugeridasAsync(cancellationToken);
+
+    return Results.Ok(habilidades);
+}).RequireAuthorization("CandidateOnly");
+
 candidateRoutes.MapPost("/register", async (
     RegisterCandidateRequest registerCandidateRequest,
     ICandidateRegistrationService candidateRegistrationService,
