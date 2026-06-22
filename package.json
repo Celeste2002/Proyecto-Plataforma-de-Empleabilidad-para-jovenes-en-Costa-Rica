@@ -4,15 +4,17 @@
   "version": "0.1.0",
   "scripts": {
     "setup": "npm run install:frontends && npm run restore:backend",
-    "install:frontends": "cd frontend/frontend-Candidato && npm install && cd ../frontend-Empleador && npm install && cd ../frontend-Admin && npm install",
+    "install:frontends": "npm --prefix frontend/frontend-Candidato install && npm --prefix frontend/frontend-Empleador install && npm --prefix frontend/frontend-Admin install",
     "restore:backend": "dotnet restore backend/api/api.csproj",
     "dev:backend": "dotnet run --project backend/api/api.csproj --launch-profile http",
-    "dev:candidato": "cd frontend/frontend-Candidato && npm run dev",
-    "dev:empleador": "cd frontend/frontend-Empleador && npm run dev",
-    "dev:admin": "cd frontend/frontend-Admin && npm run dev",
+    "dev:candidato": "npm --prefix frontend/frontend-Candidato run dev",
+    "dev:empleador": "npm --prefix frontend/frontend-Empleador run dev",
+    "dev:admin": "npm --prefix frontend/frontend-Admin run dev",
     "dev:frontends": "concurrently --kill-others-on-fail -n candidato,empleador,admin -c green,cyan,magenta \"npm run dev:candidato\" \"npm run dev:empleador\" \"npm run dev:admin\"",
     "dev:all": "concurrently --kill-others-on-fail -n backend,candidato,empleador,admin -c yellow,green,cyan,magenta \"npm run dev:backend\" \"npm run dev:candidato\" \"npm run dev:empleador\" \"npm run dev:admin\"",
-    "build:frontends": "cd frontend/frontend-Candidato && npm run build && cd ../frontend-Empleador && npm run build && cd ../frontend-Admin && npm run build"
+    "build:backend": "dotnet build backend/api/api.csproj",
+    "build:frontends": "npm --prefix frontend/frontend-Candidato run build && npm --prefix frontend/frontend-Empleador run build && npm --prefix frontend/frontend-Admin run build",
+    "build:all": "npm run build:backend && npm run build:frontends"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"

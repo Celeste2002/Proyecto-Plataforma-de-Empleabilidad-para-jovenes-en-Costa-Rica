@@ -1,6 +1,14 @@
-import { BookOpenCheck, BriefcaseBusiness, ClipboardList, KeyRound, LogOut, UserRound, UserCircle } from 'lucide-react';
+import {
+  BookOpenCheck,
+  BriefcaseBusiness,
+  ClipboardList,
+  KeyRound,
+  LogOut,
+  MessageSquare,
+  UserCircle,
+  UserRound,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { BriefcaseBusiness, ClipboardList, KeyRound, LogOut, MessageSquare, UserRound } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getMyCandidateProfile } from '../api/candidatesApi.js';
 import { BrandHomeLink } from '../../shared/components/BrandHomeLink.jsx';
@@ -85,15 +93,15 @@ export function CandidateDashboardPage() {
             </div>
             <h3>Microcursos</h3>
             <p>Explora cursos validados y revisa recomendaciones conectadas con tus habilidades.</p>
-          </article>
+          </Link>
 
-          <article className="dashboard-card">
+          <Link className="dashboard-card dashboard-card-link" to="/candidato/mensajes">
             <div className="dashboard-card-icon">
               <MessageSquare aria-hidden="true" size={28} />
             </div>
             <h3>Mis mensajes</h3>
             <p>Lee los mensajes que los empleadores te han enviado sobre tus postulaciones.</p>
-          </article>
+          </Link>
         </div>
 
         <div className="dashboard-actions">

@@ -40,7 +40,10 @@ ScaffoldingReadMe.txt
 .env
 **/node_modules/
 frontend/**/dist/
+frontend/index/
 backend/api/data/
+backend/**/obj-buildcheck/
+**/bun.lock
 
 # Others
 ~$*
@@ -58,15 +61,6 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
-
-/frontend/node_modules/
-/frontend/frontend-Admin/node_modules/
-/frontend/frontend-Candidato/node_modules/
-/frontend/frontend-Empleador/node_modules/
-
-frontend/frontend-Candidato/bun.lock
-frontend/frontend-Admin/bun.lock
-frontend/frontend-Empleador/bun.lock
 
 .claude
 .codex-run-logs/

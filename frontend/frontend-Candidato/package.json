@@ -15,5 +15,8 @@
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.15.1",
     "vite": "^7.0.0"
+  },
+  "overrides": {
+    "esbuild": "^0.28.1"
   }
 }

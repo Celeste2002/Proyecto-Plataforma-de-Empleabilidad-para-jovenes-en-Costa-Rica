@@ -30,7 +30,10 @@ public sealed class MensajeService(
             throw new NotFoundException("No se encontró el perfil del empleador.");
 
         Postulacion? postulacion =
-            await postulacionRepository.FindByIdAsync(request.PostulacionId, cancellationToken);
+            await postulacionRepository.FindByIdForEmployerAsync(
+                request.PostulacionId,
+                employer.Id,
+                cancellationToken);
 
         if (postulacion is null)
             throw new NotFoundException("La postulación no existe.");
@@ -38,7 +41,7 @@ public sealed class MensajeService(
         Vacante? vacante =
             await vacanteRepository.FindByIdAsync(postulacion.VacanteId, cancellationToken);
 
-        if (vacante is null || vacante.EmployerProfileId != employer.Id)
+        if (vacante is null)
             throw new NotFoundException("No tiene permiso para enviar mensajes en esta postulación.");
 
         Mensaje mensaje = new()
