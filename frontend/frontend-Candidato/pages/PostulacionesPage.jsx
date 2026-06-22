@@ -11,6 +11,8 @@ const STATUS_CONFIG = {
   'Entrevista': { className: 'postulacion-status--entrevista', label: 'Entrevista programada' },
   'En revisión': { className: 'postulacion-status--revision', label: 'En revisión' },
   'Entrevista solicitada': { className: 'postulacion-status--entrevista', label: 'Entrevista solicitada' },
+  'Entrevista programada': { className: 'postulacion-status--entrevista', label: 'Entrevista programada' },
+  'Descartado': { className: 'postulacion-status--descartado', label: 'Descartado' },
   'Finalizada': { className: 'postulacion-status--finalizada', label: 'Finalizada' },
 };
 

@@ -177,3 +177,46 @@ export async function getUnreadNotificacionCount(token) {
     { headers: { Authorization: `Bearer ${token}` } },
   );
 }
+
+export async function getMisCandidatos(token) {
+  const headers = { Authorization: `Bearer ${token}` };
+  const vacantes = await sendApiRequest(`${apiBaseUrl}/api/employers/me/vacantes`, { headers });
+  return Promise.all(
+    vacantes.map(async (vacante) => {
+      const postulaciones = await sendApiRequest(
+        `${apiBaseUrl}/api/employers/me/vacantes/${vacante.id}/postulaciones`,
+        { headers },
+      );
+      const postulantes = await Promise.all(
+        postulaciones.map(async (p) => {
+          const detail = await sendApiRequest(
+            `${apiBaseUrl}/api/employers/me/postulaciones/${p.id}`,
+            { headers },
+          );
+          return {
+            postulacionId: detail.id,
+            candidateFullName: detail.candidateFullName,
+            candidateEducationLevel: detail.candidateEducationLevel,
+            candidateProvince: detail.candidateProvince,
+            candidateAge: detail.candidateAge,
+            candidateEmail: detail.candidateEmail,
+            appliedAt: detail.appliedAt,
+            status: detail.status,
+          };
+        }),
+      );
+      return { vacanteId: vacante.id, jobTitle: vacante.jobTitle, postulantes };
+    }),
+  );
+}
+
+export async function enviarMensaje(token, postulacionId, body) {
+  return sendApiRequest(`${apiBaseUrl}/api/mensajes`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ postulacionId, body }),
+  });
+}

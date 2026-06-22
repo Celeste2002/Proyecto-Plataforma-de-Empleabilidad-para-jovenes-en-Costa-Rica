@@ -1,5 +1,6 @@
 import { BookOpenCheck, BriefcaseBusiness, ClipboardList, KeyRound, LogOut, UserRound, UserCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { BriefcaseBusiness, ClipboardList, KeyRound, LogOut, MessageSquare, UserRound } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getMyCandidateProfile } from '../api/candidatesApi.js';
 import { BrandHomeLink } from '../../shared/components/BrandHomeLink.jsx';
@@ -84,6 +85,32 @@ export function CandidateDashboardPage() {
             </div>
             <h3>Microcursos</h3>
             <p>Explora cursos validados y revisa recomendaciones conectadas con tus habilidades.</p>
+          </article>
+
+          <article className="dashboard-card">
+            <div className="dashboard-card-icon">
+              <MessageSquare aria-hidden="true" size={28} />
+            </div>
+            <h3>Mis mensajes</h3>
+            <p>Lee los mensajes que los empleadores te han enviado sobre tus postulaciones.</p>
+          </article>
+        </div>
+
+        <div className="dashboard-actions">
+          <Link className="secondary-action" to="/candidato/vacantes">
+            <BriefcaseBusiness aria-hidden="true" size={16} />
+            Ver vacantes
+          </Link>
+          <Link className="secondary-action" to="/candidato/postulaciones">
+            <ClipboardList aria-hidden="true" size={16} />
+            Mis postulaciones
+          </Link>
+          <Link className="secondary-action" to="/candidato/mensajes">
+            <MessageSquare aria-hidden="true" size={16} />
+            Mis mensajes
+          </Link>
+          <Link className="secondary-action" to="/candidato/actualizar-registro">
+            Actualizar registro
           </Link>
         </div>
       </section>
