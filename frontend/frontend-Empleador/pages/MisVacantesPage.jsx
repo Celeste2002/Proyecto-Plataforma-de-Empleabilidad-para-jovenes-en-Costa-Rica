@@ -200,7 +200,7 @@ export function MisVacantesPage() {
         ...prev,
         [updatedPostulacion.id]: {
           success: true,
-          message: 'Correo enviado y estado actualizado.',
+          message: 'Solicitud de entrevista enviada por correo.',
         },
       }));
     } catch (error) {
@@ -458,7 +458,12 @@ export function MisVacantesPage() {
                                 const statusClass = POSTULACION_STATUS_CLASS[postulacion.status] ?? '';
                                 const interviewMessage = interviewMessages[postulacion.id];
                                 const interviewAlreadyRequested = postulacion.status === 'Entrevista solicitada';
-                                const isFinalized = postulacion.status === 'Finalizada';
+                                const interviewAlreadyProgrammed =
+                                  postulacion.status === 'Entrevista' ||
+                                  postulacion.status === 'Entrevista programada';
+                                const isClosed =
+                                  postulacion.status === 'Finalizada' ||
+                                  postulacion.status === 'Descartado';
 
                                 return (
                                   <article className="postulante-card" key={postulacion.id}>
@@ -499,7 +504,8 @@ export function MisVacantesPage() {
                                         disabled={
                                           requestingInterviewId === postulacion.id
                                           || interviewAlreadyRequested
-                                          || isFinalized
+                                          || interviewAlreadyProgrammed
+                                          || isClosed
                                         }
                                         onClick={() => handleRequestInterview(postulacion.id)}
                                         type="button"
@@ -509,7 +515,7 @@ export function MisVacantesPage() {
                                           ? 'Enviando...'
                                           : interviewAlreadyRequested
                                             ? 'Entrevista solicitada'
-                                            : 'Solicitar entrevista'}
+                                            : 'Solicitar entrevista por correo'}
                                       </button>
                                     </div>
                                   </article>

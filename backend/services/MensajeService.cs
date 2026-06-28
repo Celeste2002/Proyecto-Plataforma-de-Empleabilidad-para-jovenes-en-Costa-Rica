@@ -94,4 +94,40 @@ public sealed class MensajeService(
                 IsReadByCandidate: m.IsReadByCandidate))
             .ToArray();
     }
+
+    public async Task<IReadOnlyCollection<MensajeResponse>> GetConversacionForEmployerAsync(
+        Guid employerUserId,
+        Guid postulacionId,
+        CancellationToken cancellationToken)
+    {
+        EmployerProfile? employer =
+            await employerRepository.FindByUserIdAsync(employerUserId, cancellationToken);
+
+        if (employer is null)
+            throw new NotFoundException("No se encontro el perfil del empleador.");
+
+        Postulacion? postulacion =
+            await postulacionRepository.FindByIdForEmployerAsync(
+                postulacionId,
+                employer.Id,
+                cancellationToken);
+
+        if (postulacion is null)
+            throw new NotFoundException("La postulacion no existe.");
+
+        IReadOnlyCollection<Mensaje> mensajes =
+            await mensajeRepository.GetByPostulacionIdAsync(postulacionId, cancellationToken);
+
+        return mensajes
+            .Select(m => new MensajeResponse(
+                Id: m.Id,
+                PostulacionId: m.PostulacionId,
+                SenderEmployerProfileId: m.SenderEmployerProfileId,
+                SenderCompanyName: m.SenderCompanyName,
+                JobTitle: m.JobTitle,
+                Body: m.Body,
+                SentAtUtc: m.SentAtUtc,
+                IsReadByCandidate: m.IsReadByCandidate))
+            .ToArray();
+    }
 }

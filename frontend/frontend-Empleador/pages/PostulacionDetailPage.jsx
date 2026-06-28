@@ -1,27 +1,49 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, CalendarDays, CheckCircle2, GraduationCap, Mail, MapPin, MessageSquare, UserRound } from 'lucide-react';
+import {
+  ArrowLeft,
+  CalendarDays,
+  CheckCircle2,
+  GraduationCap,
+  Mail,
+  MailPlus,
+  MapPin,
+  UserRound,
+} from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
-import { getPostulacionDetail, updatePostulacionStatus } from '../api/employerApi.js';
+import {
+  getPostulacionDetail,
+  requestInterview,
+  updatePostulacionStatus,
+} from '../api/employerApi.js';
 import { BrandHomeLink } from '../../shared/components/BrandHomeLink.jsx';
-import { EnviarMensajeModal } from '../components/EnviarMensajeModal.jsx';
 import { StatusMessage } from '../../shared/components/StatusMessage.jsx';
 import { useAuth } from '../../shared/context/AuthContext.jsx';
 
 const STATUS_CONFIG = {
   Enviada: { className: 'postulacion-status--enviada', label: 'Enviada' },
   Vista: { className: 'postulacion-status--vista', label: 'Vista' },
-  'En revisión': { className: 'postulacion-status--revision', label: 'En revisión' },
+  'En revision': { className: 'postulacion-status--revision', label: 'En revision' },
+  'En revisión': { className: 'postulacion-status--revision', label: 'En revision' },
   'Entrevista solicitada': { className: 'postulacion-status--entrevista', label: 'Entrevista solicitada' },
   Entrevista: { className: 'postulacion-status--entrevista', label: 'Entrevista programada' },
+  'Entrevista programada': { className: 'postulacion-status--entrevista', label: 'Entrevista programada' },
+  Descartado: { className: 'postulacion-status--finalizada', label: 'Descartado' },
   Finalizada: { className: 'postulacion-status--finalizada', label: 'Finalizada' },
 };
 
 const EMPLOYER_STATUSES = [
-  { value: 'En revisión', label: 'En revisión' },
-  { value: 'Entrevista solicitada', label: 'Entrevista solicitada' },
+  { value: 'En revisión', label: 'En revision' },
   { value: 'Entrevista', label: 'Entrevista programada' },
   { value: 'Finalizada', label: 'Finalizada' },
 ];
+
+const INTERVIEW_LOCKED_STATUSES = new Set([
+  'Entrevista solicitada',
+  'Entrevista',
+  'Entrevista programada',
+  'Descartado',
+  'Finalizada',
+]);
 
 function formatDate(dateString) {
   return new Date(dateString).toLocaleDateString('es-CR', {
@@ -47,9 +69,9 @@ export function PostulacionDetailPage() {
   const [detail, setDetail] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isRequestingInterview, setIsRequestingInterview] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-  const [mensajeModal, setMensajeModal] = useState(false);
 
   async function loadDetail() {
     setIsLoading(true);
@@ -85,11 +107,38 @@ export function PostulacionDetailPage() {
     }
   }
 
+  async function handleRequestInterview() {
+    setIsRequestingInterview(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    try {
+      const updatedPostulacion = await requestInterview(token, postulacionId);
+      setDetail((prev) => ({
+        ...prev,
+        status: updatedPostulacion.status,
+        updatedAtUtc: updatedPostulacion.updatedAtUtc,
+      }));
+      setSuccessMessage('Solicitud de entrevista enviada por correo al candidato.');
+    } catch (error) {
+      setErrorMessage(error.validationErrors?.[0] ?? error.message);
+    } finally {
+      setIsRequestingInterview(false);
+    }
+  }
+
+  const interviewAlreadyRequested = detail?.status === 'Entrevista solicitada';
+  const interviewRequestDisabled =
+    !detail ||
+    isRequestingInterview ||
+    isUpdating ||
+    INTERVIEW_LOCKED_STATUSES.has(detail.status);
+
   return (
     <main className="application-shell">
       <header className="top-bar">
         <BrandHomeLink to="/empleador" />
-        <nav className="dashboard-nav" aria-label="Navegación del empleador">
+        <nav className="dashboard-nav" aria-label="Navegacion del empleador">
           {detail && (
             <Link
               className="secondary-action"
@@ -110,7 +159,7 @@ export function PostulacionDetailPage() {
 
       <section className="employer-view">
         {isLoading && (
-          <p className="empty-state">Cargando información del candidato...</p>
+          <p className="empty-state">Cargando informacion del candidato...</p>
         )}
 
         <StatusMessage message={errorMessage} tone="error" />
@@ -133,11 +182,16 @@ export function PostulacionDetailPage() {
             <div className="status-actions">
               <button
                 className="secondary-action"
-                onClick={() => setMensajeModal(true)}
+                disabled={interviewRequestDisabled}
+                onClick={handleRequestInterview}
                 type="button"
               >
-                <MessageSquare aria-hidden="true" size={15} />
-                Enviar mensaje
+                <MailPlus aria-hidden="true" size={15} />
+                {isRequestingInterview
+                  ? 'Enviando...'
+                  : interviewAlreadyRequested
+                    ? 'Entrevista solicitada'
+                    : 'Solicitar entrevista por correo'}
               </button>
             </div>
 
@@ -166,7 +220,7 @@ export function PostulacionDetailPage() {
                 <div>
                   <dt>
                     <Mail aria-hidden="true" size={15} />
-                    Correo electrónico
+                    Correo electronico
                   </dt>
                   <dd><a href={`mailto:${detail.candidateEmail}`}>{detail.candidateEmail}</a></dd>
                 </div>
@@ -191,25 +245,25 @@ export function PostulacionDetailPage() {
                   </dt>
                   <dd>
                     {formatDateOnly(detail.candidateDateOfBirth)}{' '}
-                    <span className="candidate-age">({detail.candidateAge} años)</span>
+                    <span className="candidate-age">({detail.candidateAge} anos)</span>
                   </dd>
                 </div>
               </dl>
             </div>
 
             <div className="postulacion-meta">
-              <p className="eyebrow">Información de la postulación</p>
+              <p className="eyebrow">Informacion de la postulacion</p>
               <dl className="postulacion-card__details">
                 <div>
                   <dt>Vacante</dt>
                   <dd>{detail.jobTitle}</dd>
                 </div>
                 <div>
-                  <dt>Fecha de postulación</dt>
+                  <dt>Fecha de postulacion</dt>
                   <dd>{formatDate(detail.appliedAt)}</dd>
                 </div>
                 <div>
-                  <dt>Última actualización</dt>
+                  <dt>Ultima actualizacion</dt>
                   <dd>{formatDate(detail.updatedAtUtc)}</dd>
                 </div>
               </dl>
@@ -217,15 +271,6 @@ export function PostulacionDetailPage() {
           </>
         )}
       </section>
-
-      {mensajeModal && detail && (
-        <EnviarMensajeModal
-          candidateName={detail.candidateFullName}
-          onClose={() => setMensajeModal(false)}
-          postulacionId={detail.id}
-          token={token}
-        />
-      )}
     </main>
   );
 }

@@ -189,10 +189,13 @@ export async function getMisCandidatos(token) {
       );
       const postulantes = await Promise.all(
         postulaciones.map(async (p) => {
-          const detail = await sendApiRequest(
-            `${apiBaseUrl}/api/employers/me/postulaciones/${p.id}`,
-            { headers },
-          );
+          const [detail, mensajes] = await Promise.all([
+            sendApiRequest(
+              `${apiBaseUrl}/api/employers/me/postulaciones/${p.id}`,
+              { headers },
+            ),
+            getMensajesPostulacion(token, p.id).catch(() => []),
+          ]);
           return {
             postulacionId: detail.id,
             candidateFullName: detail.candidateFullName,
@@ -202,12 +205,20 @@ export async function getMisCandidatos(token) {
             candidateEmail: detail.candidateEmail,
             appliedAt: detail.appliedAt,
             status: detail.status,
+            mensajesCount: mensajes.length,
+            lastMessageAt: mensajes.length > 0 ? mensajes[mensajes.length - 1].sentAtUtc : null,
           };
         }),
       );
       return { vacanteId: vacante.id, jobTitle: vacante.jobTitle, postulantes };
     }),
   );
+}
+
+export async function getMensajesPostulacion(token, postulacionId) {
+  return sendApiRequest(`${apiBaseUrl}/api/mensajes/postulaciones/${postulacionId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
 }
 
 export async function enviarMensaje(token, postulacionId, body) {

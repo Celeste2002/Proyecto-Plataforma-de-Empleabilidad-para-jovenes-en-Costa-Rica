@@ -791,6 +791,19 @@ candidateRoutes.MapGet("/me/mensajes", async (
 }).RequireAuthorization();
 
 // HU7 — Envío de mensajes del empleador al candidato
+app.MapGet("/api/mensajes/postulaciones/{postulacionId:guid}", async (
+    Guid postulacionId,
+    ClaimsPrincipal user,
+    IMensajeService mensajeService,
+    CancellationToken cancellationToken) =>
+{
+    IReadOnlyCollection<MensajeResponse> mensajes =
+        await mensajeService.GetConversacionForEmployerAsync(
+            GetAuthenticatedUserId(user), postulacionId, cancellationToken);
+
+    return Results.Ok(mensajes);
+}).RequireAuthorization("EmployerOnly");
+
 app.MapPost("/api/mensajes", async (
     ClaimsPrincipal user,
     SendMensajeRequest request,
@@ -801,7 +814,7 @@ app.MapPost("/api/mensajes", async (
         await mensajeService.SendMensajeAsync(GetAuthenticatedUserId(user), request, cancellationToken);
 
     return Results.Created($"/api/mensajes/{response.Id}", response);
-}).RequireAuthorization();
+}).RequireAuthorization("EmployerOnly");
 
 // -- Health check --
 

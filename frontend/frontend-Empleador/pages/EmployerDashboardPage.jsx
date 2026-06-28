@@ -63,6 +63,10 @@ export function EmployerDashboardPage() {
             <BriefcaseBusiness aria-hidden="true" size={16} />
             Mis vacantes
           </Link>
+          <Link className="secondary-action" to="/empleador/candidatos">
+            <UserRoundCheck aria-hidden="true" size={16} />
+            Candidatos
+          </Link>
           <Link className="secondary-action bell-action" to="/empleador/vacantes">
             <Bell aria-hidden="true" size={16} />
             {unreadCount > 0 && (

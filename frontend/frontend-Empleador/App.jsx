@@ -40,6 +40,14 @@ export function App() {
             }
           />
           <Route
+            path="/empleador/candidatos"
+            element={
+              <ProtectedRoute>
+                <PanelCandidatosPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/empleador/vacantes/nueva"
             element={
               <ProtectedRoute>

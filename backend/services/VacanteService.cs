@@ -275,6 +275,17 @@ public sealed class VacanteService(
             throw new NotFoundException("No se encontró la postulación solicitada.");
         }
 
+        if (postulacion.Status == PostulacionStatuses.Entrevista ||
+            postulacion.Status == PostulacionStatuses.EntrevistaProgramada)
+        {
+            throw new RequestValidationException(["La entrevista ya se encuentra programada para esta postulacion."]);
+        }
+
+        if (postulacion.Status == PostulacionStatuses.Descartado)
+        {
+            throw new RequestValidationException(["No se puede solicitar entrevista en una postulacion cerrada."]);
+        }
+
         if (postulacion.Status == PostulacionStatuses.EntrevistaSolicitada)
         {
             throw new RequestValidationException(["La entrevista ya fue solicitada para esta postulación."]);

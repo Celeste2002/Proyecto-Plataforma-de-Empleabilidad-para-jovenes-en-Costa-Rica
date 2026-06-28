@@ -2380,6 +2380,48 @@ textarea:focus {
 
 /* ── HU7 Panel de candidatos (empleador) ─────────────────────── */
 
+.candidate-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.candidate-filter-chip {
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 800;
+  gap: 10px;
+  min-height: 42px;
+  padding: 0 12px;
+}
+
+.candidate-filter-chip:hover {
+  background: #f8fbff;
+}
+
+.candidate-filter-chip.active {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgb(7 90 156 / 0.12);
+  color: var(--primary-strong);
+}
+
+.candidate-filter-chip strong {
+  background: var(--primary-soft);
+  border-radius: 999px;
+  color: var(--primary-strong);
+  font-size: 0.76rem;
+  min-width: 28px;
+  padding: 3px 8px;
+  text-align: center;
+}
+
 .candidatos-panel {
   display: grid;
   gap: 14px;
@@ -2460,7 +2502,7 @@ textarea:focus {
   border-top: 1px solid var(--border);
   display: grid;
   gap: 16px;
-  grid-template-columns: minmax(180px, 0.8fr) minmax(260px, 1.2fr) 200px auto;
+  grid-template-columns: minmax(180px, 0.8fr) minmax(320px, 1.3fr) minmax(180px, 0.6fr) minmax(190px, auto);
   padding: 14px 20px;
 }
 
@@ -2515,6 +2557,7 @@ textarea:focus {
 .candidato-row__details dd {
   font-size: 0.85rem;
   margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .candidato-row__status-control {
@@ -2547,6 +2590,18 @@ textarea:focus {
 
 .candidato-row__status-feedback--err {
   color: var(--error);
+}
+
+.candidato-row__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.candidato-row__actions .secondary-action {
+  justify-content: center;
+  min-height: 36px;
 }
 
 .candidato-row__msg-btn {
@@ -2664,6 +2719,74 @@ textarea:focus {
 
 /* ── Mensajes del candidato ──────────────────────────────────── */
 
+.chat-modal {
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  max-height: min(820px, calc(100vh - 48px));
+  max-width: 640px;
+}
+
+.chat-modal__subtitle {
+  color: var(--muted);
+  font-size: 0.88rem;
+  font-weight: 700;
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.chat-modal__messages {
+  background: #f8fbff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 14px;
+}
+
+.chat-modal__empty {
+  align-items: center;
+  color: var(--muted);
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  min-height: 120px;
+  text-align: center;
+}
+
+.chat-modal__empty p {
+  margin: 0;
+}
+
+.chat-bubble {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 6px;
+  line-height: 1.5;
+  max-width: min(100%, 460px);
+  padding: 12px;
+}
+
+.chat-bubble p {
+  margin: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.chat-bubble time {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.chat-bubble--employer {
+  background: #eaf4ff;
+  border-color: #c5ddf4;
+  justify-self: end;
+}
+
 .mensaje-list {
   display: grid;
   gap: 14px;
@@ -2717,6 +2840,16 @@ textarea:focus {
 /* ── Responsive panel de candidatos ─────────────────────────── */
 
 @media (max-width: 860px) {
+  .candidate-filter-bar {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  .candidate-filter-chip {
+    flex: 0 0 auto;
+  }
+
   .candidato-row {
     grid-template-columns: 1fr;
   }
@@ -2725,8 +2858,21 @@ textarea:focus {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .candidato-row__actions {
+    justify-content: stretch;
+  }
+
   .candidato-row__msg-btn {
     width: 100%;
+  }
+
+  .chat-modal {
+    max-height: calc(100vh - 32px);
+    padding: 20px;
+  }
+
+  .chat-modal__messages {
+    max-height: 280px;
   }
 
   .modal-card__actions {
