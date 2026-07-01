@@ -4,7 +4,6 @@ import {
   ClipboardList,
   KeyRound,
   LogOut,
-  MessageSquare,
   UserCircle,
   UserRound,
 } from 'lucide-react';
@@ -94,14 +93,6 @@ export function CandidateDashboardPage() {
             <h3>Microcursos</h3>
             <p>Explora cursos validados y revisa recomendaciones conectadas con tus habilidades.</p>
           </Link>
-
-          <Link className="dashboard-card dashboard-card-link" to="/candidato/mensajes">
-            <div className="dashboard-card-icon">
-              <MessageSquare aria-hidden="true" size={28} />
-            </div>
-            <h3>Mis mensajes</h3>
-            <p>Lee los mensajes que los empleadores te han enviado sobre tus postulaciones.</p>
-          </Link>
         </div>
 
         <div className="dashboard-actions">
@@ -112,10 +103,6 @@ export function CandidateDashboardPage() {
           <Link className="secondary-action" to="/candidato/postulaciones">
             <ClipboardList aria-hidden="true" size={16} />
             Mis postulaciones
-          </Link>
-          <Link className="secondary-action" to="/candidato/mensajes">
-            <MessageSquare aria-hidden="true" size={16} />
-            Mis mensajes
           </Link>
           <Link className="secondary-action" to="/candidato/actualizar-registro">
             Actualizar registro

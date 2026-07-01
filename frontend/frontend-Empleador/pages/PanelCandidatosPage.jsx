@@ -2,14 +2,12 @@ import {
   ArrowLeft,
   ChevronDown,
   MailPlus,
-  MessageSquare,
   RefreshCw,
   UserRoundCheck,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getMisCandidatos, requestInterview, updatePostulacionStatus } from '../api/employerApi.js';
-import { CandidatoChatModal } from '../components/CandidatoChatModal.jsx';
 import { StatusMessage } from '../../shared/components/StatusMessage.jsx';
 import { useAuth } from '../../shared/context/AuthContext.jsx';
 
@@ -30,8 +28,6 @@ const INTERVIEW_LOCKED_STATUSES = new Set([
 
 const FILTERS = [
   { value: 'all', label: 'Todas las personas' },
-  { value: 'contacted', label: 'Contactadas' },
-  { value: 'uncontacted', label: 'Sin contactar' },
   { value: 'request-not-sent', label: 'Solicitud no enviada' },
   { value: 'request-pending', label: 'Solicitud pendiente de confirmar' },
   { value: 'request-confirmed', label: 'Solicitud confirmada' },
@@ -46,10 +42,6 @@ function formatDate(dateString) {
 }
 
 function matchesFilter(postulacion, activeFilter) {
-  const messageCount = postulacion.mensajesCount ?? 0;
-
-  if (activeFilter === 'contacted') return messageCount > 0;
-  if (activeFilter === 'uncontacted') return messageCount === 0;
   if (activeFilter === 'request-not-sent') {
     return postulacion.status !== INTERVIEW_REQUESTED_STATUS &&
       !INTERVIEW_CONFIRMED_STATUSES.has(postulacion.status);
@@ -70,7 +62,6 @@ export function PanelCandidatosPage() {
   const [updatingStatusId, setUpdatingStatusId] = useState(null);
   const [requestingInterviewId, setRequestingInterviewId] = useState(null);
   const [statusResults, setStatusResults] = useState({});
-  const [chatModal, setChatModal] = useState(null);
 
   const allPostulantes = useMemo(
     () => vacantesConCandidatos.flatMap((vacante) => vacante.postulantes),
@@ -185,14 +176,6 @@ export function PanelCandidatosPage() {
     }
   }
 
-  function handleMessageSent(postulacionId, sentMessage) {
-    updatePostulante(postulacionId, (postulacion) => ({
-      ...postulacion,
-      mensajesCount: (postulacion.mensajesCount ?? 0) + 1,
-      lastMessageAt: sentMessage.sentAtUtc,
-    }));
-  }
-
   return (
     <main className="application-shell">
       <header className="top-bar">
@@ -291,7 +274,6 @@ export function PanelCandidatosPage() {
                           requestingInterviewId === postulacion.postulacionId ||
                           updatingStatusId === postulacion.postulacionId ||
                           INTERVIEW_LOCKED_STATUSES.has(postulacion.status);
-                        const messageCount = postulacion.mensajesCount ?? 0;
 
                         return (
                           <article key={postulacion.postulacionId} className="candidato-row">
@@ -317,10 +299,6 @@ export function PanelCandidatosPage() {
                               <div>
                                 <dt>Correo</dt>
                                 <dd><a href={`mailto:${postulacion.candidateEmail}`}>{postulacion.candidateEmail}</a></dd>
-                              </div>
-                              <div>
-                                <dt>Mensajes</dt>
-                                <dd>{messageCount > 0 ? `${messageCount} enviados` : 'Sin contactar'}</dd>
                               </div>
                               <div>
                                 <dt>Postulado</dt>
@@ -364,19 +342,7 @@ export function PanelCandidatosPage() {
 
                             <div className="candidato-row__actions">
                               <button
-                                className="secondary-action candidato-row__msg-btn"
-                                onClick={() => setChatModal({
-                                  candidateName: postulacion.candidateFullName,
-                                  candidateEmail: postulacion.candidateEmail,
-                                  postulacionId: postulacion.postulacionId,
-                                })}
-                                type="button"
-                              >
-                                <MessageSquare aria-hidden="true" size={15} />
-                                Abrir chat
-                              </button>
-                              <button
-                                className="secondary-action candidato-row__msg-btn"
+                                className="secondary-action"
                                 disabled={interviewRequestDisabled}
                                 onClick={() => handleRequestInterview(postulacion.postulacionId)}
                                 type="button"
@@ -400,17 +366,6 @@ export function PanelCandidatosPage() {
           </div>
         )}
       </section>
-
-      {chatModal && (
-        <CandidatoChatModal
-          candidateEmail={chatModal.candidateEmail}
-          candidateName={chatModal.candidateName}
-          onClose={() => setChatModal(null)}
-          onMessageSent={(sentMessage) => handleMessageSent(chatModal.postulacionId, sentMessage)}
-          postulacionId={chatModal.postulacionId}
-          token={token}
-        />
-      )}
     </main>
   );
 }

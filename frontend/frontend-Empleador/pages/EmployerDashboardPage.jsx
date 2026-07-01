@@ -129,10 +129,6 @@ export function EmployerDashboardPage() {
                     <dt>Correo</dt>
                     <dd>{candidateProfile.email}</dd>
                   </div>
-                  <div>
-                    <dt>Confirmación</dt>
-                    <dd>{candidateProfile.emailConfirmationSent ? 'Enviada' : 'Pendiente'}</dd>
-                  </div>
                 </dl>
               </article>
             ))}

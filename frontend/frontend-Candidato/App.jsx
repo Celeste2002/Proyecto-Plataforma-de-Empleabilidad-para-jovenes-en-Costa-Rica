@@ -9,7 +9,6 @@ import { CandidateDashboardPage } from './pages/CandidateDashboardPage.jsx';
 import { CandidateProfileUpdatePage } from './pages/CandidateProfileUpdatePage.jsx';
 import { CandidateRegistrationPage } from './pages/CandidateRegistrationPage.jsx';
 import { VacantesPage } from './pages/VacantesPage.jsx';
-import { MisMensajesPage } from './pages/MisMensajesPage.jsx';
 import { PostulacionesPage } from './pages/PostulacionesPage.jsx';
 import { MiPerfilPage } from './pages/MiPerfilPage.jsx';
 import { MicroCursosPage } from './pages/MicroCursosPage.jsx';
@@ -69,14 +68,6 @@ export function App() {
             element={
               <ProtectedRoute>
                 <MicroCursosPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/candidato/mensajes"
-            element={
-              <ProtectedRoute>
-                <MisMensajesPage />
               </ProtectedRoute>
             }
           />

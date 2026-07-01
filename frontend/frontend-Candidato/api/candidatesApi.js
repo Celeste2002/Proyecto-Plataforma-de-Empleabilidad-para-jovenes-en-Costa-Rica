@@ -185,9 +185,3 @@ export async function deleteCurso(token, id) {
     headers: { Authorization: `Bearer ${token}` },
   });
 }
-
-export async function getMisMensajes(token) {
-  return sendApiRequest(`${apiBaseUrl}/api/candidates/me/mensajes`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-}

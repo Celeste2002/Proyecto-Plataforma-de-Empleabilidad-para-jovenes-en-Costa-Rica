@@ -108,16 +108,17 @@ internal static class ProfessionalEmailTemplate
                 <p style="margin:6px 0 0 0;color:{MutedTextColor};">Telefono: {safeEmployerPhone}</p>
             </div>
             <p style="margin:0 0 16px 0;">
-                Para continuar el proceso, responde directamente a este correo o escribe al contacto indicado.
-                La coordinacion de fecha, hora y modalidad se realizara fuera de la plataforma.
+                Para continuar el proceso, comunicate con la persona de contacto usando el correo o telefono
+                mostrados en este mensaje. La coordinacion de fecha, hora y modalidad se realizara fuera de
+                la plataforma.
             </p>
             <p style="margin:0;">
                 Equipo de <strong>{BrandName}</strong>
             </p>
             """,
             $"""
-            Puedes responder este correo para coordinar directamente con el empleador.
-            {BrandName} no usa mensajeria interna para coordinar esta etapa del proceso.
+            Usa los contactos mostrados en este correo para coordinar directamente con el empleador.
+            {BrandName} no usa mensajeria interna para esta etapa del proceso.
             """);
     }
 
