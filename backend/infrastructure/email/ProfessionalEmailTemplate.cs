@@ -45,7 +45,7 @@ internal static class ProfessionalEmailTemplate
         string safeEmail = WebUtility.HtmlEncode(email);
 
         return BuildLayout(
-            $"Recuperación de contraseña | {BrandName}",
+            $"Recuperacion de contrasena | {BrandName}",
             $"""
             <p style="margin:0 0 16px 0;">Hola,</p>
             <p style="margin:0 0 16px 0;">
@@ -57,22 +57,22 @@ internal static class ProfessionalEmailTemplate
                 <p style="margin:6px 0 0 0;color:{MutedTextColor};">Vigencia del enlace: 1 hora</p>
             </div>
             <p style="margin:0 0 20px 0;">
-                Haz clic en el siguiente botón para crear una nueva contraseña:
+                Haz clic en el siguiente boton para crear una nueva contrasena:
             </p>
             <div style="text-align:center;margin:0 0 28px 0;">
                 <a href="{safeResetLink}"
                    style="display:inline-block;background:{PrimaryColor};color:#FFFFFF;text-decoration:none;font-weight:700;padding:14px 28px;border-radius:10px;">
-                    Restablecer contraseña
+                    Restablecer contrasena
                 </a>
             </div>
             <p style="margin:0 0 16px 0;">
-                Si no solicitaste este cambio, puedes ignorar este mensaje y tu contraseña seguirá igual.
+                Si no solicitaste este cambio, puedes ignorar este mensaje y tu contrasena seguira igual.
             </p>
             <p style="margin:0;">
                 Equipo de <strong>{BrandName}</strong>
             </p>
             <p style="margin:12px 0 0 0;color:{MutedTextColor};font-size:13px;">
-                Si el botón no funciona, copia y pega este enlace en tu navegador:<br />
+                Si el boton no funciona, copia y pega este enlace en tu navegador:<br />
                 <a href="{safeResetLink}" style="color:{AccentColor};word-break:break-all;">{safeResetLink}</a>
             </p>
             """);
@@ -105,15 +105,20 @@ internal static class ProfessionalEmailTemplate
                 <p style="margin:0 0 8px 0;"><strong>Contacto del empleador</strong></p>
                 <p style="margin:0;color:{MutedTextColor};">Persona de contacto: {safeEmployerContactName}</p>
                 <p style="margin:6px 0 0 0;color:{MutedTextColor};">Correo: {safeEmployerEmail}</p>
-                <p style="margin:6px 0 0 0;color:{MutedTextColor};">Teléfono: {safeEmployerPhone}</p>
+                <p style="margin:6px 0 0 0;color:{MutedTextColor};">Telefono: {safeEmployerPhone}</p>
             </div>
             <p style="margin:0 0 16px 0;">
-                Para continuar el proceso, responde directamente al correo de la persona de contacto.
-                La coordinación de fecha, hora y modalidad se realizará fuera de la plataforma.
+                Para continuar el proceso, comunicate con la persona de contacto usando el correo o telefono
+                mostrados en este mensaje. La coordinacion de fecha, hora y modalidad se realizara fuera de
+                la plataforma.
             </p>
             <p style="margin:0;">
                 Equipo de <strong>{BrandName}</strong>
             </p>
+            """,
+            $"""
+            Usa los contactos mostrados en este correo para coordinar directamente con el empleador.
+            {BrandName} no usa mensajeria interna para esta etapa del proceso.
             """);
     }
 
@@ -231,8 +236,11 @@ internal static class ProfessionalEmailTemplate
             """);
     }
 
-    private static string BuildLayout(string subject, string content)
+    private static string BuildLayout(string subject, string content, string? footer = null)
     {
+        string footerContent = footer ??
+            $"Este es un mensaje automatico generado por {BrandName}. Por favor, no respondas a este correo.";
+
         return $"""
         <!DOCTYPE html>
         <html lang="es">
@@ -262,7 +270,7 @@ internal static class ProfessionalEmailTemplate
                             <tr>
                                 <td style="padding:0 32px 28px 32px;background:{SurfaceColor};">
                                     <p style="margin:0;color:{MutedTextColor};font-size:13px;line-height:1.6;text-align:center;">
-                                        Este es un mensaje automático generado por {BrandName}. Por favor, no respondas a este correo.
+                                        {footerContent}
                                     </p>
                                 </td>
                             </tr>

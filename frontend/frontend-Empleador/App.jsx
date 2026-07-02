@@ -8,6 +8,7 @@ import { LoginPage } from './pages/LoginPage.jsx';
 import { CandidatosDisponiblesPage } from './pages/CandidatosDisponiblesPage.jsx';
 import { EmployerDashboardPage } from './pages/EmployerDashboardPage.jsx';
 import { MisVacantesPage } from './pages/MisVacantesPage.jsx';
+import { PanelCandidatosPage } from './pages/PanelCandidatosPage.jsx';
 import { PublicarVacantePage } from './pages/PublicarVacantePage.jsx';
 import { RegisterPage } from './pages/RegisterPage.jsx';
 import { PostulacionesVacanteEmpleadorPage } from './pages/PostulacionesVacanteEmpleadorPage.jsx';
@@ -41,6 +42,14 @@ export function App() {
           />
           <Route
             path="/empleador/candidatos"
+            element={
+              <ProtectedRoute>
+                <PanelCandidatosPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/empleador/candidatos/buscar"
             element={
               <ProtectedRoute>
                 <CandidatosDisponiblesPage />

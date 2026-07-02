@@ -2,45 +2,77 @@
 
 ## Estructura
 
-- `backend/api`: endpoints HTTP, CORS y middleware.
+- `backend/api`: endpoints HTTP, CORS, autenticacion y middleware.
 - `backend/domain`: entidades y catalogos del negocio.
 - `backend/services`: casos de uso, contratos, DTOs y validaciones.
-- `backend/infrastructure`: repositorio SQL Server y envio de correo SMTP.
-- `frontend/shared`: contexto de autenticacion, componentes y estilos compartidos entre las 3 apps.
-- `frontend/frontend-Candidato`: app React para jovenes candidatos (puerto 5170).
-- `frontend/frontend-Empleador`: app React para empleadores aliados (puerto 5171).
-- `frontend/frontend-Admin`: app React para administradores de la plataforma (puerto 5172).
+- `backend/infrastructure`: repositorios SQL Server, JWT, hash de contrasenas y correo SMTP.
+- `frontend/shared`: contexto de autenticacion, componentes, estilos y constantes compartidas.
+- `frontend/frontend-Candidato`: app React para jovenes candidatos, puerto `5170`.
+- `frontend/frontend-Empleador`: app React para empleadores aliados, puerto `5171`.
+- `frontend/frontend-Admin`: app React para administradores, puerto `5172`.
+- `database`: script principal de base de datos y scripts incrementales de apoyo.
 
 ## Requisitos
 
-- Bun.
+- Node.js con npm.
 - .NET SDK 9.
-- SQL Server local con la base de datos creada desde `database/Plataforma_Empleabilidad_BD.sql`.
+- SQL Server local.
 
 ## Instalacion inicial
 
 Desde la raiz del repositorio:
 
 ```bash
-bun install
-bun run setup
+npm install
+npm run setup
 ```
 
-`bun install` instala las herramientas del orquestador de la raiz. `bun run setup` instala las dependencias de las 3 apps frontend y restaura el backend .NET.
+`npm install` instala las herramientas del orquestador raiz. `npm run setup` instala dependencias de las tres apps frontend y restaura el backend .NET.
 
-## Comandos unificados
+## Variables de entorno
+
+Crear un archivo `.env` en la raiz del repositorio con la conexion a SQL Server y la configuracion SMTP:
+
+```env
+ConnectionStrings__DefaultConnection=Server=.;Database=Plataforma_Empleabilidad_BD;Integrated Security=True;TrustServerCertificate=True;Encrypt=False
+Jwt__Key=CAMBIA_ESTA_CLAVE_LARGA_Y_SEGURA
+Jwt__Issuer=Sinergia
+Jwt__Audience=Sinergia
+Smtp__Host=smtp-relay.sendinblue.com
+Smtp__Port=587
+Smtp__Username=TU_USUARIO_SMTP
+Smtp__Password=TU_SMTP_KEY
+Smtp__FromName=Sinergia
+Smtp__FromAddress=tu-correo-verificado@example.com
+```
+
+Cada frontend espera la API en `http://localhost:5000`. Si cambia, crear un `.env` dentro de la app correspondiente:
+
+```env
+VITE_API_BASE_URL=http://localhost:5000
+```
+
+## Base de datos
+
+El script principal esta en:
+
+```text
+database/Plataforma_Empleabilidad_BD.sql
+```
+
+Ese archivo es la fuente de verdad del esquema y contiene tablas, columnas, vistas, indices y datos iniciales. Los scripts en `database/scripts` son apoyos incrementales o semillas especificas.
+
+## Comandos
 
 Desde la raiz del repositorio:
 
 ```bash
-# Solo backend
-bun run dev:backend
-
-# Solo los 3 frontends
-bun run dev:frontends
-
-# Backend + los 3 frontends
-bun run dev:all
+npm run dev:backend
+npm run dev:frontends
+npm run dev:all
+npm run build:backend
+npm run build:frontends
+npm run build:all
 ```
 
 URLs locales:
@@ -50,81 +82,29 @@ URLs locales:
 - Empleadores: `http://127.0.0.1:5171`
 - Administracion: `http://127.0.0.1:5172`
 
-Tambien se pueden correr apps individuales:
+## Apps individuales
 
 ```bash
-bun run dev:candidato
-bun run dev:empleador
-bun run dev:admin
+npm --prefix frontend/frontend-Candidato run dev
+npm --prefix frontend/frontend-Empleador run dev
+npm --prefix frontend/frontend-Admin run dev
 ```
 
-## Correr backend manualmente
-
-```comand prompt
-\GitHub\Proyecto-Plataforma-de-Empleabilidad-para-jovenes-en-Costa-Rica\backend\api>dotnet run
-```
-
-Endpoints principales:
+## Endpoints principales
 
 - `POST /api/candidates/register`
-- `GET /api/employers/candidates`
+- `POST /api/employers/register`
+- `POST /api/auth/login`
+- `GET /api/vacantes`
 - `GET /api/health`
 
-El backend lee variables desde el `.env` más cercano al proyecto.
+## Archivos generados
 
-Para correo real, crear el `.env` con la configuracion SMTP:
+No se versionan dependencias ni salidas de build:
 
-```env
-Smtp__Host=smtp-relay.sendinblue.com
-Smtp__Port=587
-Smtp__Username=TU_USUARIO_SMTP
-Smtp__Password=TU_SMTP_KEY
-Smtp__FromName=Sinergia
-Smtp__FromAddress=tu-correo-verificado@example.com
-```
-
-La aplicacion no guarda correos localmente. SMTP debe estar configurado para completar el registro.
-
-La conexion local a SQL Server queda en:
-
-```env
-ConnectionStrings__DefaultConnection=Server=.;Database=Plataforma_Empleabilidad_BD;Integrated Security=True;TrustServerCertificate=True;Encrypt=False
-```
-
-El script unificado para crear o completar la base de datos SQL Server esta en
-`database/Plataforma_Empleabilidad_BD.sql`. Ese archivo es la unica fuente de
-verdad del esquema y contiene todas las tablas, columnas, vistas, indices y datos
-iniciales necesarios.
-
-
-## Correr frontend manualmente
-
-El frontend esta dividido en 3 aplicaciones independientes segun el rol. Cada una debe levantarse en su propia terminal.
-
-**Terminal 1 — Candidatos** → `http://127.0.0.1:5170`
-```
-cd frontend\frontend-Candidato
-bun install
-bun run dev
-```
-
-**Terminal 2 — Empleadores** → `http://127.0.0.1:5171`
-```
-cd frontend\frontend-Empleador
-bun install
-bun run dev
-```
-
-**Terminal 3 — Administracion** → `http://127.0.0.1:5172`
-```
-cd frontend\frontend-Admin
-bun install
-bun run dev
-```
-
-Cada app espera la API en `http://localhost:5000`. Si cambia, editar el archivo `.env` dentro de la carpeta correspondiente:
-
-```env
-VITE_API_BASE_URL=http://localhost:5000
-```
+- `node_modules`
+- `frontend/**/dist`
+- `backend/**/bin`
+- `backend/**/obj`
+- `backend/**/obj-buildcheck`
 

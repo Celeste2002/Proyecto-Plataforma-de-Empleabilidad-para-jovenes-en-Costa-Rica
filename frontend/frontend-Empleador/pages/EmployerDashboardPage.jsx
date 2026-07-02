@@ -1,4 +1,4 @@
-import { Bell, BriefcaseBusiness, KeyRound, LogOut, Search } from 'lucide-react';
+import { Bell, BriefcaseBusiness, KeyRound, LogOut, Search, UserRoundCheck } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getMyEmployerProfile, getUnreadNotificacionCount } from '../api/employerApi.js';
@@ -52,6 +52,14 @@ export function EmployerDashboardPage() {
         <BrandHomeLink subtitle={companyName} subtitleClassName="brand-subtitle--company" to="/empleador" />
         <nav className="dashboard-nav" aria-label="Navegación del empleador">
           <span className="dashboard-user-email">{user?.email}</span>
+          <Link className="secondary-action" to="/empleador/vacantes">
+            <BriefcaseBusiness aria-hidden="true" size={16} />
+            Mis vacantes
+          </Link>
+          <Link className="secondary-action" to="/empleador/candidatos">
+            <UserRoundCheck aria-hidden="true" size={16} />
+            Candidatos
+          </Link>
           <Link className="secondary-action bell-action" to="/empleador/vacantes">
             <Bell aria-hidden="true" size={16} />
             {unreadCount > 0 && (
@@ -96,6 +104,19 @@ export function EmployerDashboardPage() {
           </Link>
 
           <Link className="dashboard-cta-card" to="/empleador/candidatos">
+            <div className="dashboard-cta-card__icon">
+              <UserRoundCheck aria-hidden="true" size={28} />
+            </div>
+            <div>
+              <h3>Panel de candidatos</h3>
+              <p>
+                Da seguimiento a quienes ya se postularon: cambia el estado de cada postulación y
+                solicita entrevistas.
+              </p>
+            </div>
+          </Link>
+
+          <Link className="dashboard-cta-card" to="/empleador/candidatos/buscar">
             <div className="dashboard-cta-card__icon">
               <Search aria-hidden="true" size={28} />
             </div>

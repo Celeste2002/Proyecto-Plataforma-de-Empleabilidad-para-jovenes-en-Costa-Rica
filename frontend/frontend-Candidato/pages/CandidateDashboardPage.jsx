@@ -1,4 +1,13 @@
-import { BookOpenCheck, BriefcaseBusiness, ClipboardList, KeyRound, LogOut, Send, UserRound, UserCircle } from 'lucide-react';
+import {
+  BookOpenCheck,
+  BriefcaseBusiness,
+  ClipboardList,
+  KeyRound,
+  LogOut,
+  Send,
+  UserCircle,
+  UserRound,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -141,6 +150,20 @@ export function CandidateDashboardPage() {
             </div>
             <h3>Microcursos</h3>
             <p>Explora cursos validados y revisa recomendaciones conectadas con tus habilidades.</p>
+          </Link>
+        </div>
+
+        <div className="dashboard-actions">
+          <Link className="secondary-action" to="/candidato/vacantes">
+            <BriefcaseBusiness aria-hidden="true" size={16} />
+            Ver vacantes
+          </Link>
+          <Link className="secondary-action" to="/candidato/postulaciones">
+            <ClipboardList aria-hidden="true" size={16} />
+            Mis postulaciones
+          </Link>
+          <Link className="secondary-action" to="/candidato/actualizar-registro">
+            Actualizar registro
           </Link>
         </div>
       </section>

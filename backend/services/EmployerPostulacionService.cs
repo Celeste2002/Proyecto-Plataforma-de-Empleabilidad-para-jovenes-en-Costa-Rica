@@ -10,7 +10,8 @@ public sealed class EmployerPostulacionService(
     IEmployerRepository employerRepository,
     IVacanteRepository vacanteRepository,
     IPostulacionRepository postulacionRepository,
-    INotificacionRepository notificacionRepository) : IEmployerPostulacionService
+    INotificacionRepository notificacionRepository,
+    IContactoAccesoRepository contactoAccesoRepository) : IEmployerPostulacionService
 {
     public async Task<IReadOnlyCollection<PostulacionSummaryResponse>> GetPostulacionesByVacanteAsync(
         Guid employerUserId,
@@ -66,6 +67,17 @@ public sealed class EmployerPostulacionService(
             effectiveStatus = PostulacionStatuses.Vista;
             effectiveUpdatedAt = now;
         }
+
+        await contactoAccesoRepository.SaveAsync(
+            new ContactoAcceso
+            {
+                Id = Guid.NewGuid(),
+                EmployerProfileId = employer.Id,
+                PostulacionId = postulacionId,
+                CandidateEmail = postulacion.CandidateEmail,
+                AccessedAtUtc = DateTime.UtcNow,
+            },
+            cancellationToken);
 
         int age = CalculateAge(postulacion.CandidateDateOfBirth);
 

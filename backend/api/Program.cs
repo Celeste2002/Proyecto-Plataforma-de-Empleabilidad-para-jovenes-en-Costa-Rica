@@ -106,6 +106,11 @@ builder.Services.AddSingleton<INotificacionRepository>(_ =>
 
 builder.Services.AddSingleton<IMicroCursoRepository>(_ =>
     new SqlMicroCursoRepository(defaultConnectionString));
+builder.Services.AddSingleton<IContactoAccesoRepository>(_ =>
+    new SqlContactoAccesoRepository(defaultConnectionString));
+
+builder.Services.AddSingleton<IMensajeRepository>(_ =>
+    new SqlMensajeRepository(defaultConnectionString));
 
 builder.Services.AddSingleton<ISugerenciaPostulacionRepository>(_ =>
     new SqlSugerenciaPostulacionRepository(defaultConnectionString));
@@ -234,7 +239,16 @@ builder.Services.AddScoped<IEmployerPostulacionService>(sp =>
         sp.GetRequiredService<IEmployerRepository>(),
         sp.GetRequiredService<IVacanteRepository>(),
         sp.GetRequiredService<IPostulacionRepository>(),
-        sp.GetRequiredService<INotificacionRepository>()));
+        sp.GetRequiredService<INotificacionRepository>(),
+        sp.GetRequiredService<IContactoAccesoRepository>()));
+
+builder.Services.AddScoped<IMensajeService>(sp =>
+    new MensajeService(
+        sp.GetRequiredService<IMensajeRepository>(),
+        sp.GetRequiredService<IPostulacionRepository>(),
+        sp.GetRequiredService<IVacanteRepository>(),
+        sp.GetRequiredService<IEmployerRepository>(),
+        sp.GetRequiredService<ICandidateRepository>()));
 
 builder.Services.AddScoped<IMicroCursoService>(sp =>
     new MicroCursoService(
@@ -929,6 +943,44 @@ microCursoRoutes.MapGet("/{id:guid}", async (
 
     return Results.Ok(microCurso);
 });
+
+// HU7 — Bandeja de entrada de mensajes del candidato
+candidateRoutes.MapGet("/me/mensajes", async (
+    ClaimsPrincipal user,
+    IMensajeService mensajeService,
+    CancellationToken cancellationToken) =>
+{
+    IReadOnlyCollection<MensajeResponse> mensajes =
+        await mensajeService.GetMisBandejaEntradaAsync(GetAuthenticatedUserId(user), cancellationToken);
+
+    return Results.Ok(mensajes);
+}).RequireAuthorization();
+
+// HU7 — Envío de mensajes del empleador al candidato
+app.MapGet("/api/mensajes/postulaciones/{postulacionId:guid}", async (
+    Guid postulacionId,
+    ClaimsPrincipal user,
+    IMensajeService mensajeService,
+    CancellationToken cancellationToken) =>
+{
+    IReadOnlyCollection<MensajeResponse> mensajes =
+        await mensajeService.GetConversacionForEmployerAsync(
+            GetAuthenticatedUserId(user), postulacionId, cancellationToken);
+
+    return Results.Ok(mensajes);
+}).RequireAuthorization("EmployerOnly");
+
+app.MapPost("/api/mensajes", async (
+    ClaimsPrincipal user,
+    SendMensajeRequest request,
+    IMensajeService mensajeService,
+    CancellationToken cancellationToken) =>
+{
+    MensajeResponse response =
+        await mensajeService.SendMensajeAsync(GetAuthenticatedUserId(user), request, cancellationToken);
+
+    return Results.Created($"/api/mensajes/{response.Id}", response);
+}).RequireAuthorization("EmployerOnly");
 
 // -- Health check --
 
