@@ -10,6 +10,7 @@ import { CandidateProfileUpdatePage } from './pages/CandidateProfileUpdatePage.j
 import { CandidateRegistrationPage } from './pages/CandidateRegistrationPage.jsx';
 import { VacantesPage } from './pages/VacantesPage.jsx';
 import { PostulacionesPage } from './pages/PostulacionesPage.jsx';
+import { SugerenciasEmpresasPage } from './pages/SugerenciasEmpresasPage.jsx';
 import { MiPerfilPage } from './pages/MiPerfilPage.jsx';
 import { MicroCursosPage } from './pages/MicroCursosPage.jsx';
 
@@ -52,6 +53,14 @@ export function App() {
             element={
               <ProtectedRoute>
                 <PostulacionesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/candidato/sugerencias-empresas"
+            element={
+              <ProtectedRoute>
+                <SugerenciasEmpresasPage />
               </ProtectedRoute>
             }
           />

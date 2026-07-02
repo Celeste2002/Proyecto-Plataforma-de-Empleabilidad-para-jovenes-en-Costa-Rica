@@ -8,6 +8,7 @@ using infrastructure.auth;
 using infrastructure.email;
 using infrastructure.repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using services;
 using services.dtos;
@@ -106,6 +107,9 @@ builder.Services.AddSingleton<INotificacionRepository>(_ =>
 builder.Services.AddSingleton<IMicroCursoRepository>(_ =>
     new SqlMicroCursoRepository(defaultConnectionString));
 
+builder.Services.AddSingleton<ISugerenciaPostulacionRepository>(_ =>
+    new SqlSugerenciaPostulacionRepository(defaultConnectionString));
+
 builder.Services.AddSingleton<IEmailConfirmationSender>(_ =>
 {
     EmailSettings emailSettings = builder.Configuration
@@ -187,6 +191,22 @@ builder.Services.AddSingleton<IInterviewRequestSender>(_ =>
     return new SmtpInterviewRequestSender(smtpSectionIsConfigured ? smtpSettings : emailSettings);
 });
 
+builder.Services.AddSingleton<ISugerenciaPostulacionSender>(_ =>
+{
+    EmailSettings emailSettings = builder.Configuration
+        .GetSection("Email")
+        .Get<EmailSettings>() ?? new EmailSettings();
+
+    EmailSettings smtpSettings = builder.Configuration
+        .GetSection("Smtp")
+        .Get<EmailSettings>() ?? new EmailSettings();
+
+    bool smtpSectionIsConfigured = !string.IsNullOrWhiteSpace(smtpSettings.Host) ||
+        !string.IsNullOrWhiteSpace(smtpSettings.SmtpHost);
+
+    return new SmtpSugerenciaPostulacionSender(smtpSectionIsConfigured ? smtpSettings : emailSettings);
+});
+
 builder.Services.AddSingleton<ITokenService>(_ => new JwtTokenService(jwtSettings));
 builder.Services.AddSingleton<IPasswordHasher, BcryptPasswordHasher>();
 
@@ -221,10 +241,33 @@ builder.Services.AddScoped<IMicroCursoService>(sp =>
         sp.GetRequiredService<IMicroCursoRepository>(),
         sp.GetRequiredService<ICandidateRepository>()));
 
+builder.Services.AddScoped<ISugerenciaPostulacionService>(sp =>
+    new SugerenciaPostulacionService(
+        sp.GetRequiredService<ISugerenciaPostulacionRepository>(),
+        sp.GetRequiredService<IVacanteRepository>(),
+        sp.GetRequiredService<ICandidateRepository>(),
+        sp.GetRequiredService<IEmployerRepository>(),
+        sp.GetRequiredService<IPostulacionRepository>(),
+        sp.GetRequiredService<ISugerenciaPostulacionSender>(),
+        sp.GetRequiredService<ILogger<SugerenciaPostulacionService>>()));
+
+const string authRateLimitPolicyName = "AuthPolicy";
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddFixedWindowLimiter(authRateLimitPolicyName, policyOptions =>
+    {
+        policyOptions.PermitLimit = 5;
+        policyOptions.Window = TimeSpan.FromMinutes(15);
+        policyOptions.QueueLimit = 0;
+    });
+});
+
 WebApplication app = builder.Build();
 
 app.UseMiddleware<ErrorHandlingMiddleware>();
 app.UseCors(frontendCorsPolicyName);
+app.UseRateLimiter();
 
 // Impide que el navegador almacene en caché las respuestas de la API
 app.Use(async (context, next) =>
@@ -431,6 +474,61 @@ employerRoutes.MapGet("/candidates", async (
     return Results.Ok(visibleCandidateProfiles);
 }).RequireAuthorization("EmployerOnly");
 
+employerRoutes.MapGet("/candidates/search", async (
+    string? skillKeyword,
+    string? province,
+    string? educationLevel,
+    decimal? minExperienceYears,
+    bool? isAvailableForContact,
+    ClaimsPrincipal user,
+    ICandidateRegistrationService candidateRegistrationService,
+    CancellationToken cancellationToken) =>
+{
+    CandidateSearchFilters filters =
+        new(skillKeyword, province, educationLevel, minExperienceYears, isAvailableForContact);
+
+    IReadOnlyCollection<CandidateSearchResultResponse> results =
+        await candidateRegistrationService.SearchProfilesVisibleToPartnerEmployersAsync(
+            GetAuthenticatedUserId(user), filters, cancellationToken);
+
+    return Results.Ok(results);
+}).RequireAuthorization("EmployerOnly");
+
+employerRoutes.MapGet("/candidates/{candidateProfileId:guid}", async (
+    Guid candidateProfileId,
+    ICandidateRegistrationService candidateRegistrationService,
+    CancellationToken cancellationToken) =>
+{
+    CandidatoPerfilCompletoResponse profile =
+        await candidateRegistrationService.GetFullProfileForEmployerAsync(candidateProfileId, cancellationToken);
+
+    return Results.Ok(profile);
+}).RequireAuthorization("EmployerOnly");
+
+employerRoutes.MapGet("/candidates/{candidateProfileId:guid}/postulaciones-vacantes", async (
+    Guid candidateProfileId,
+    ClaimsPrincipal user,
+    ISugerenciaPostulacionService sugerenciaPostulacionService,
+    CancellationToken cancellationToken) =>
+{
+    IReadOnlyCollection<Guid> vacanteIds = await sugerenciaPostulacionService.GetAppliedVacanteIdsAsync(
+        GetAuthenticatedUserId(user), candidateProfileId, cancellationToken);
+
+    return Results.Ok(vacanteIds);
+}).RequireAuthorization("EmployerOnly");
+
+employerRoutes.MapPost("/me/sugerencias-postulacion", async (
+    ClaimsPrincipal user,
+    CreateSugerenciaPostulacionRequest request,
+    ISugerenciaPostulacionService sugerenciaPostulacionService,
+    CancellationToken cancellationToken) =>
+{
+    SugerenciaPostulacionResponse sugerencia =
+        await sugerenciaPostulacionService.CreateAsync(GetAuthenticatedUserId(user), request, cancellationToken);
+
+    return Results.Created($"/api/employers/me/sugerencias-postulacion/{sugerencia.Id}", sugerencia);
+}).RequireAuthorization("EmployerOnly");
+
 employerRoutes.MapGet("/me/vacantes", async (
     ClaimsPrincipal user,
     IVacanteService vacanteService,
@@ -546,6 +644,19 @@ employerRoutes.MapPost("/me/postulaciones/{postulacionId:guid}/solicitar-entrevi
     return Results.Ok(postulacion);
 }).RequireAuthorization("EmployerOnly");
 
+employerRoutes.MapPost("/me/postulaciones/{postulacionId:guid}/declinar", async (
+    Guid postulacionId,
+    ClaimsPrincipal user,
+    IVacanteService vacanteService,
+    CancellationToken cancellationToken) =>
+{
+    EmployerPostulacionResponse postulacion =
+        await vacanteService.DeclinePostulacionAsync(
+            GetAuthenticatedUserId(user), postulacionId, cancellationToken);
+
+    return Results.Ok(postulacion);
+}).RequireAuthorization("EmployerOnly");
+
 employerRoutes.MapPut("/me/postulaciones/{postulacionId:guid}/status", async (
     Guid postulacionId,
     UpdatePostulacionStatusRequest request,
@@ -606,7 +717,7 @@ authRoutes.MapPost("/login", async (
 {
     LoginResponse loginResponse = await authService.LoginAsync(loginRequest, cancellationToken);
     return Results.Ok(loginResponse);
-});
+}).RequireRateLimiting(authRateLimitPolicyName);
 
 authRoutes.MapPost("/forgot-password", async (
     ForgotPasswordRequest forgotPasswordRequest,
@@ -616,7 +727,7 @@ authRoutes.MapPost("/forgot-password", async (
     await authService.RequestPasswordResetAsync(forgotPasswordRequest, cancellationToken);
     // Siempre responder 200 para no revelar si el correo existe
     return Results.Ok(new { message = "Si tu correo está registrado, recibirás un enlace seguro para restablecer tu contraseña." });
-});
+}).RequireRateLimiting(authRateLimitPolicyName);
 
 authRoutes.MapPost("/reset-password", async (
     ResetPasswordRequest resetPasswordRequest,
@@ -625,7 +736,7 @@ authRoutes.MapPost("/reset-password", async (
 {
     await authService.ResetPasswordAsync(resetPasswordRequest, cancellationToken);
     return Results.Ok(new { message = "Tu contraseña fue restablecida correctamente." });
-});
+}).RequireRateLimiting(authRateLimitPolicyName);
 
 // -- Rutas de administrador --
 
@@ -725,6 +836,61 @@ candidateRoutes.MapGet("/me/postulaciones", async (
         await vacanteService.GetMyPostulacionesAsync(GetAuthenticatedUserId(user), cancellationToken);
 
     return Results.Ok(postulaciones);
+}).RequireAuthorization("CandidateOnly");
+
+candidateRoutes.MapDelete("/me/postulaciones/{postulacionId:guid}", async (
+    Guid postulacionId,
+    ClaimsPrincipal user,
+    IVacanteService vacanteService,
+    CancellationToken cancellationToken) =>
+{
+    await vacanteService.DeleteMyPostulacionAsync(GetAuthenticatedUserId(user), postulacionId, cancellationToken);
+
+    return Results.NoContent();
+}).RequireAuthorization("CandidateOnly");
+
+candidateRoutes.MapGet("/me/notificaciones", async (
+    ClaimsPrincipal user,
+    IVacanteService vacanteService,
+    CancellationToken cancellationToken) =>
+{
+    IReadOnlyCollection<NotificacionResponse> notificaciones =
+        await vacanteService.GetMyNotificacionesAsync(GetAuthenticatedUserId(user), cancellationToken);
+
+    return Results.Ok(notificaciones);
+}).RequireAuthorization("CandidateOnly");
+
+candidateRoutes.MapGet("/me/notificaciones/unread-count", async (
+    ClaimsPrincipal user,
+    IVacanteService vacanteService,
+    CancellationToken cancellationToken) =>
+{
+    int count = await vacanteService.GetMyUnreadNotificacionCountAsync(
+        GetAuthenticatedUserId(user), cancellationToken);
+
+    return Results.Ok(new { count });
+}).RequireAuthorization("CandidateOnly");
+
+candidateRoutes.MapPut("/me/notificaciones/postulaciones/read", async (
+    ClaimsPrincipal user,
+    IVacanteService vacanteService,
+    CancellationToken cancellationToken) =>
+{
+    await vacanteService.MarkMyPostulacionNotificationsReadAsync(
+        GetAuthenticatedUserId(user), cancellationToken);
+
+    return Results.Ok(new { message = "Notificaciones marcadas como leídas." });
+}).RequireAuthorization("CandidateOnly");
+
+candidateRoutes.MapGet("/me/sugerencias-postulacion", async (
+    ClaimsPrincipal user,
+    ISugerenciaPostulacionService sugerenciaPostulacionService,
+    CancellationToken cancellationToken) =>
+{
+    IReadOnlyCollection<SugerenciaRecibidaResponse> sugerencias =
+        await sugerenciaPostulacionService.GetRecibidasByCandidateAsync(GetAuthenticatedUserId(user), cancellationToken);
+
+    return Results.Ok(sugerencias);
 }).RequireAuthorization("CandidateOnly");
 
 // -- Rutas de microcursos --

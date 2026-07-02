@@ -5,6 +5,7 @@ import { ForgotPasswordPage } from '../shared/pages/ForgotPasswordPage.jsx';
 import { ResetPasswordPage } from '../shared/pages/ResetPasswordPage.jsx';
 import { ProtectedRoute } from './components/ProtectedRoute.jsx';
 import { LoginPage } from './pages/LoginPage.jsx';
+import { CandidatosDisponiblesPage } from './pages/CandidatosDisponiblesPage.jsx';
 import { EmployerDashboardPage } from './pages/EmployerDashboardPage.jsx';
 import { MisVacantesPage } from './pages/MisVacantesPage.jsx';
 import { PublicarVacantePage } from './pages/PublicarVacantePage.jsx';
@@ -35,6 +36,14 @@ export function App() {
             element={
               <ProtectedRoute>
                 <MisVacantesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/empleador/candidatos"
+            element={
+              <ProtectedRoute>
+                <CandidatosDisponiblesPage />
               </ProtectedRoute>
             }
           />

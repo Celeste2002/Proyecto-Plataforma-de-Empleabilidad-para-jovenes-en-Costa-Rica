@@ -1,7 +1,7 @@
-import { Bell, BriefcaseBusiness, KeyRound, LogOut, RefreshCw, UserRoundCheck } from 'lucide-react';
+import { Bell, BriefcaseBusiness, KeyRound, LogOut, Search } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { getUnreadNotificacionCount, getVisibleCandidateProfiles } from '../api/employerApi.js';
+import { getMyEmployerProfile, getUnreadNotificacionCount } from '../api/employerApi.js';
 import { BrandHomeLink } from '../../shared/components/BrandHomeLink.jsx';
 import { StatusMessage } from '../../shared/components/StatusMessage.jsx';
 import { AUTH_ROUTES } from '../../shared/constants/authRoutes.js';
@@ -11,42 +11,35 @@ export function EmployerDashboardPage() {
   const { user, logout, token } = useAuth();
   const navigate = useNavigate();
 
-  const [candidateProfiles, setCandidateProfiles] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
   const [unreadCount, setUnreadCount] = useState(0);
+  const [companyName, setCompanyName] = useState('');
 
-  const loadDashboardData = useCallback(async (showLoading = false) => {
-    if (showLoading) {
-      setIsLoading(true);
-    }
-
+  const loadDashboardData = useCallback(async () => {
     setErrorMessage('');
 
     try {
-      const [profiles, unread] = await Promise.all([
-        getVisibleCandidateProfiles(token),
-        getUnreadNotificacionCount(token).catch(() => ({ count: 0 })),
-      ]);
-      setCandidateProfiles(profiles);
+      const unread = await getUnreadNotificacionCount(token).catch(() => ({ count: 0 }));
       setUnreadCount(unread.count ?? 0);
     } catch (error) {
       setErrorMessage(error.message);
-    } finally {
-      if (showLoading) {
-        setIsLoading(false);
-      }
     }
   }, [token]);
 
   useEffect(() => {
-    loadDashboardData(true);
+    loadDashboardData();
     const intervalId = setInterval(() => {
-      loadDashboardData(false);
+      loadDashboardData();
     }, 15000);
 
     return () => clearInterval(intervalId);
   }, [loadDashboardData]);
+
+  useEffect(() => {
+    getMyEmployerProfile(token)
+      .then((profile) => setCompanyName(profile.companyName))
+      .catch(() => {});
+  }, [token]);
 
   function handleLogout() {
     logout();
@@ -56,13 +49,9 @@ export function EmployerDashboardPage() {
   return (
     <main className="application-shell">
       <header className="top-bar">
-        <BrandHomeLink to="/empleador" />
+        <BrandHomeLink subtitle={companyName} subtitleClassName="brand-subtitle--company" to="/empleador" />
         <nav className="dashboard-nav" aria-label="Navegación del empleador">
           <span className="dashboard-user-email">{user?.email}</span>
-          <Link className="secondary-action" to="/empleador/vacantes">
-            <BriefcaseBusiness aria-hidden="true" size={16} />
-            Mis vacantes
-          </Link>
           <Link className="secondary-action bell-action" to="/empleador/vacantes">
             <Bell aria-hidden="true" size={16} />
             {unreadCount > 0 && (
@@ -87,53 +76,38 @@ export function EmployerDashboardPage() {
         <div className="section-heading horizontal-heading">
           <div>
             <p className="eyebrow">Empleadores aliados</p>
-            <h2>Candidatos visibles</h2>
+            <h2>Panel principal</h2>
           </div>
-          <button className="secondary-action" onClick={() => loadDashboardData(true)} type="button">
-            <RefreshCw aria-hidden="true" size={18} />
-            Actualizar
-          </button>
         </div>
 
         <StatusMessage message={errorMessage} tone="error" />
 
-        {isLoading ? (
-          <p className="empty-state">Cargando perfiles...</p>
-        ) : candidateProfiles.length === 0 ? (
-          <p className="empty-state">Aún no hay perfiles registrados.</p>
-        ) : (
-          <div className="candidate-list">
-            {candidateProfiles.map((candidateProfile) => (
-              <article className="candidate-card" key={candidateProfile.id}>
-                <div className="candidate-avatar" aria-hidden="true">
-                  <UserRoundCheck size={24} />
-                </div>
-                <div>
-                  <h3>{candidateProfile.fullName}</h3>
-                  <p>{candidateProfile.educationLevel}</p>
-                </div>
-                <dl>
-                  <div>
-                    <dt>Edad</dt>
-                    <dd>{candidateProfile.age}</dd>
-                  </div>
-                  <div>
-                    <dt>Provincia</dt>
-                    <dd>{candidateProfile.province}</dd>
-                  </div>
-                  <div>
-                    <dt>Correo</dt>
-                    <dd>{candidateProfile.email}</dd>
-                  </div>
-                  <div>
-                    <dt>Confirmación</dt>
-                    <dd>{candidateProfile.emailConfirmationSent ? 'Enviada' : 'Pendiente'}</dd>
-                  </div>
-                </dl>
-              </article>
-            ))}
-          </div>
-        )}
+        <div className="dashboard-cta-grid">
+          <Link className="dashboard-cta-card" to="/empleador/vacantes">
+            <div className="dashboard-cta-card__icon">
+              <BriefcaseBusiness aria-hidden="true" size={28} />
+            </div>
+            <div>
+              <h3>Mis vacantes</h3>
+              <p>
+                Publica nuevas vacantes y revisa las postulaciones que has recibido en cada una de ellas.
+              </p>
+            </div>
+          </Link>
+
+          <Link className="dashboard-cta-card" to="/empleador/candidatos">
+            <div className="dashboard-cta-card__icon">
+              <Search aria-hidden="true" size={28} />
+            </div>
+            <div>
+              <h3>Ver candidatos disponibles</h3>
+              <p>
+                Filtra por habilidad, provincia, nivel educativo y experiencia. Envía sugerencias de
+                postulación directamente desde el perfil del candidato.
+              </p>
+            </div>
+          </Link>
+        </div>
       </section>
     </main>
   );

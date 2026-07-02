@@ -90,6 +90,32 @@ export async function getMyPostulaciones(token) {
   });
 }
 
+export async function deleteMyPostulacion(token, postulacionId) {
+  return sendApiRequest(`${apiBaseUrl}/api/candidates/me/postulaciones/${postulacionId}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function getMyUnreadNotificacionCount(token) {
+  return sendApiRequest(`${apiBaseUrl}/api/candidates/me/notificaciones/unread-count`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function markMyPostulacionNotificationsRead(token) {
+  return sendApiRequest(`${apiBaseUrl}/api/candidates/me/notificaciones/postulaciones/read`, {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function getSugerenciasRecibidas(token) {
+  return sendApiRequest(`${apiBaseUrl}/api/candidates/me/sugerencias-postulacion`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
 export async function getMicroCursos(token, area = '') {
   const query = area ? `?area=${encodeURIComponent(area)}` : '';
   return sendApiRequest(`${apiBaseUrl}/api/microcursos${query}`, {

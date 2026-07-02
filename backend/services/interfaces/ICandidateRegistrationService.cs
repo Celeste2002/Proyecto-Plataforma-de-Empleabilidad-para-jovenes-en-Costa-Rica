@@ -19,6 +19,15 @@ public interface ICandidateRegistrationService
         Guid userId,
         CancellationToken cancellationToken);
 
+    Task<IReadOnlyCollection<CandidateSearchResultResponse>> SearchProfilesVisibleToPartnerEmployersAsync(
+        Guid employerUserId,
+        CandidateSearchFilters filters,
+        CancellationToken cancellationToken);
+
+    Task<CandidatoPerfilCompletoResponse> GetFullProfileForEmployerAsync(
+        Guid candidateProfileId,
+        CancellationToken cancellationToken);
+
     Task<CandidateProfileResponse> UpdateProfileAsync(
         Guid userId,
         UpdateCandidateProfileRequest updateCandidateProfileRequest,

@@ -36,6 +36,48 @@ export async function getVisibleCandidateProfiles(token) {
   return sendApiRequest(`${apiBaseUrl}/api/employers/candidates`, { headers });
 }
 
+export async function searchCandidates(token, filters) {
+  const params = new URLSearchParams();
+  if (filters.skillKeyword) params.set('skillKeyword', filters.skillKeyword);
+  if (filters.province) params.set('province', filters.province);
+  if (filters.educationLevel) params.set('educationLevel', filters.educationLevel);
+  if (filters.minExperienceYears) params.set('minExperienceYears', filters.minExperienceYears);
+  if (filters.isAvailableForContact !== '' && filters.isAvailableForContact !== undefined) {
+    params.set('isAvailableForContact', filters.isAvailableForContact);
+  }
+
+  return sendApiRequest(`${apiBaseUrl}/api/employers/candidates/search?${params.toString()}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function getCandidateFullProfile(token, candidateProfileId) {
+  return sendApiRequest(`${apiBaseUrl}/api/employers/candidates/${candidateProfileId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function getCandidateAppliedVacanteIds(token, candidateProfileId) {
+  return sendApiRequest(`${apiBaseUrl}/api/employers/candidates/${candidateProfileId}/postulaciones-vacantes`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function sendSugerenciaPostulacion(token, data) {
+  return sendApiRequest(`${apiBaseUrl}/api/employers/me/sugerencias-postulacion`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      candidateProfileId: data.candidateProfileId,
+      vacanteId: data.vacanteId,
+      message: data.message || null,
+    }),
+  });
+}
+
 export async function registerEmployer(data) {
   const response = await fetch(`${apiBaseUrl}/api/employers/register`, {
     method: 'POST',
@@ -127,6 +169,13 @@ export const getPostulacionesByVacante = getVacantePostulaciones;
 
 export async function requestInterview(token, postulacionId) {
   return sendApiRequest(`${apiBaseUrl}/api/employers/me/postulaciones/${postulacionId}/solicitar-entrevista`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function declinePostulacion(token, postulacionId) {
+  return sendApiRequest(`${apiBaseUrl}/api/employers/me/postulaciones/${postulacionId}/declinar`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}` },
   });

@@ -125,6 +125,7 @@ public sealed class MicroCursoService(
             curso.EntidadProveedora,
             curso.TipoProveedor,
             curso.OtorgaCertificacion,
+            curso.EnlaceUrl,
             curso.CantidadValidaciones,
             curso.Habilidades,
             habilidadesCoincidentes.Count,

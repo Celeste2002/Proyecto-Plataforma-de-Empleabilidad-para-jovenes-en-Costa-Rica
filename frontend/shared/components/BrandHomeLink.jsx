@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 export function BrandHomeLink({
   to,
   subtitle,
+  subtitleClassName = 'brand-subtitle',
   className = 'brand-lockup',
   ariaLabel = 'Ir al inicio',
 }) {
@@ -16,7 +17,7 @@ export function BrandHomeLink({
       />
       <div>
         <h1>Sinergia</h1>
-        {subtitle && <p className="brand-subtitle">{subtitle}</p>}
+        {subtitle && <p className={subtitleClassName}>{subtitle}</p>}
       </div>
     </Link>
   );

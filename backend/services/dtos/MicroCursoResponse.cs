@@ -9,6 +9,7 @@ public sealed record MicroCursoResponse(
     string EntidadProveedora,
     string TipoProveedor,
     bool OtorgaCertificacion,
+    string? EnlaceUrl,
     int CantidadValidaciones,
     IReadOnlyCollection<string> Habilidades,
     int Coincidencias,

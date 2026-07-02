@@ -26,6 +26,14 @@ const ROLE_LABELS = {
   ADMINISTRATOR: 'Administrador',
 };
 
+// Candidato y Empleador tienen perfiles con datos distintos (fecha de
+// nacimiento/provincia vs. razón social/cédula jurídica) que no se pueden
+// generar automáticamente, así que no se permite saltar directamente entre
+// ellos. Solo se puede promover/degradar hacia o desde Administrador.
+function getAllowedRolesFor(currentRole) {
+  return ROLES.filter((role) => role === currentRole || role === 'ADMINISTRATOR');
+}
+
 function RoleBadge({ role }) {
   return <span className={`role-badge role-badge--${role.toLowerCase()}`}>{ROLE_LABELS[role] ?? role}</span>;
 }
@@ -321,7 +329,7 @@ export function AdminDashboardPage() {
                             onChange={(e) => handleRoleChange(u.id, e.target.value)}
                             value={selectedRole}
                           >
-                            {ROLES.map((r) => (
+                            {getAllowedRolesFor(u.role).map((r) => (
                               <option key={r} value={r}>{ROLE_LABELS[r]}</option>
                             ))}
                           </select>

@@ -117,6 +117,120 @@ internal static class ProfessionalEmailTemplate
             """);
     }
 
+    public static string BuildPostulacionSuggestion(
+        string candidateFullName,
+        string companyName,
+        string jobTitle,
+        string province,
+        string modality,
+        string experienceLevel,
+        string? message,
+        string employerContactName,
+        string employerEmail,
+        string employerPhone)
+    {
+        string safeCandidateFullName = WebUtility.HtmlEncode(candidateFullName);
+        string safeCompanyName = WebUtility.HtmlEncode(companyName);
+        string safeJobTitle = WebUtility.HtmlEncode(jobTitle);
+        string safeProvince = WebUtility.HtmlEncode(province);
+        string safeModality = WebUtility.HtmlEncode(modality);
+        string safeExperienceLevel = WebUtility.HtmlEncode(experienceLevel);
+        string safeEmployerContactName = WebUtility.HtmlEncode(employerContactName);
+        string safeEmployerEmail = WebUtility.HtmlEncode(employerEmail);
+        string safeEmployerPhone = WebUtility.HtmlEncode(employerPhone);
+        string messageBlock = string.IsNullOrWhiteSpace(message)
+            ? string.Empty
+            : $"""<p style="margin:16px 0 0 0;color:{MutedTextColor};"><strong>Mensaje de la empresa:</strong> {WebUtility.HtmlEncode(message)}</p>""";
+
+        return BuildLayout(
+            $"Sugerencia de postulación | {BrandName}",
+            $"""
+            <p style="margin:0 0 16px 0;">Hola <strong>{safeCandidateFullName}</strong>,</p>
+            <p style="margin:0 0 16px 0;">
+                <strong>{safeCompanyName}</strong> revisó tu perfil y te sugiere postularte a la vacante
+                <strong>{safeJobTitle}</strong>.
+            </p>
+            <div style="margin:24px 0;padding:16px;border-radius:14px;background:#F1F5F9;border:1px solid #E2E8F0;">
+                <p style="margin:0 0 8px 0;"><strong>Detalles de la vacante</strong></p>
+                <p style="margin:0;color:{MutedTextColor};">Provincia: {safeProvince}</p>
+                <p style="margin:6px 0 0 0;color:{MutedTextColor};">Modalidad: {safeModality}</p>
+                <p style="margin:6px 0 0 0;color:{MutedTextColor};">Experiencia requerida: {safeExperienceLevel}</p>
+                {messageBlock}
+            </div>
+            <p style="margin:0 0 16px 0;">
+                Ingresa a la plataforma y ve a la sección "Postulaciones enviadas por empresas" para postularte
+                con un solo clic.
+            </p>
+            <div style="margin:24px 0;padding:16px;border-radius:14px;background:#F1F5F9;border:1px solid #E2E8F0;">
+                <p style="margin:0 0 8px 0;"><strong>Contacto del empleador</strong></p>
+                <p style="margin:0;color:{MutedTextColor};">Persona de contacto: {safeEmployerContactName}</p>
+                <p style="margin:6px 0 0 0;color:{MutedTextColor};">Correo: {safeEmployerEmail}</p>
+                <p style="margin:6px 0 0 0;color:{MutedTextColor};">Teléfono: {safeEmployerPhone}</p>
+            </div>
+            <p style="margin:0;">
+                Equipo de <strong>{BrandName}</strong>
+            </p>
+            """);
+    }
+
+    public static string BuildPostulacionDeclined(
+        string candidateFullName,
+        string companyName,
+        string jobTitle)
+    {
+        string safeCandidateFullName = WebUtility.HtmlEncode(candidateFullName);
+        string safeCompanyName = WebUtility.HtmlEncode(companyName);
+        string safeJobTitle = WebUtility.HtmlEncode(jobTitle);
+
+        return BuildLayout(
+            $"Actualizacion de postulacion | {BrandName}",
+            $"""
+            <p style="margin:0 0 16px 0;">Hola <strong>{safeCandidateFullName}</strong>,</p>
+            <p style="margin:0 0 16px 0;">
+                Gracias por tu interes en la vacante <strong>{safeJobTitle}</strong> de
+                <strong>{safeCompanyName}</strong>.
+            </p>
+            <p style="margin:0 0 16px 0;">
+                Despues de revisar la informacion de tu postulacion, la empresa ha decidido continuar
+                el proceso con perfiles que se ajustan mejor a los requerimientos actuales del puesto.
+            </p>
+            <p style="margin:0 0 16px 0;">
+                Agradecemos el tiempo que dedicaste a postularte y te animamos a seguir explorando
+                nuevas oportunidades dentro de la plataforma.
+            </p>
+            <p style="margin:0;">
+                Equipo de <strong>{BrandName}</strong>
+            </p>
+            """);
+    }
+
+    public static string BuildVacanteFilled(
+        string candidateFullName,
+        string companyName,
+        string jobTitle)
+    {
+        string safeCandidateFullName = WebUtility.HtmlEncode(candidateFullName);
+        string safeCompanyName = WebUtility.HtmlEncode(companyName);
+        string safeJobTitle = WebUtility.HtmlEncode(jobTitle);
+
+        return BuildLayout(
+            $"Vacante cubierta | {BrandName}",
+            $"""
+            <p style="margin:0 0 16px 0;">Hola <strong>{safeCandidateFullName}</strong>,</p>
+            <p style="margin:0 0 16px 0;">
+                Te informamos que la vacante <strong>{safeJobTitle}</strong> de
+                <strong>{safeCompanyName}</strong> fue desactivada porque ya fue llenada.
+            </p>
+            <p style="margin:0 0 16px 0;">
+                Gracias por haber participado en el proceso. Tu postulacion queda cerrada para esta
+                oportunidad, pero puedes continuar revisando nuevas vacantes disponibles en la plataforma.
+            </p>
+            <p style="margin:0;">
+                Equipo de <strong>{BrandName}</strong>
+            </p>
+            """);
+    }
+
     private static string BuildLayout(string subject, string content)
     {
         return $"""

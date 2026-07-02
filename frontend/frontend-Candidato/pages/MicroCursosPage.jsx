@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { ArrowLeft, Award, BookOpenCheck, Building2, Clock3, Filter, RefreshCw, Search, Sparkles } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { ArrowLeft, Award, BookOpenCheck, Building2, Clock3, ExternalLink, Filter, RefreshCw, Search, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { BrandHomeLink } from '../../shared/components/BrandHomeLink.jsx';
 import { StatusMessage } from '../../shared/components/StatusMessage.jsx';
@@ -100,6 +100,7 @@ export function MicroCursosPage() {
   const [isLoadingRecomendados, setIsLoadingRecomendados] = useState(true);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const detailSectionRef = useRef(null);
 
   async function loadCatalogo(selectedArea = areaFilter) {
     setIsLoadingCatalogo(true);
@@ -136,6 +137,12 @@ export function MicroCursosPage() {
     loadCatalogo('');
     loadRecomendados();
   }, [token]);
+
+  useEffect(() => {
+    if (selectedCurso && !isLoadingDetail) {
+      detailSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [selectedCurso, isLoadingDetail]);
 
   async function handleAreaChange(event) {
     const nextArea = event.target.value;
@@ -275,7 +282,7 @@ export function MicroCursosPage() {
         )}
 
         {selectedCurso && !isLoadingDetail && (
-          <section className="microcurso-detail" aria-label="Detalle del microcurso">
+          <section className="microcurso-detail" aria-label="Detalle del microcurso" ref={detailSectionRef}>
             <div className="microcurso-detail__header">
               <div>
                 <p className="eyebrow">{selectedCurso.area}</p>
@@ -304,6 +311,17 @@ export function MicroCursosPage() {
                 <dd>{selectedCurso.otorgaCertificacion ? 'Si otorga certificacion' : 'No otorga certificacion'}</dd>
               </div>
             </dl>
+            {selectedCurso.enlaceUrl && (
+              <a
+                className="primary-action microcurso-detail__link"
+                href={selectedCurso.enlaceUrl}
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                <ExternalLink aria-hidden="true" size={16} />
+                Ir al curso
+              </a>
+            )}
             {selectedCurso.habilidades?.length > 0 && (
               <div className="microcurso-skill-block">
                 <p className="cursos-plataforma-label">Habilidades relacionadas</p>

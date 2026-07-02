@@ -114,7 +114,9 @@ export function PostulacionesVacanteEmpleadorPage() {
             <ul className="notificaciones-list">
               {unreadNotificaciones.map((n) => (
                 <li key={n.id} className="notificacion-item">
-                  <span className="notificacion-item__message">{n.message}</span>
+                  <span className="notificacion-item__message">
+                    <strong>{n.jobTitle}</strong>: {n.message}
+                  </span>
                   <span className="notificacion-item__time">{formatDateTime(n.createdAtUtc)}</span>
                   <button
                     className="secondary-action notificacion-item__read-btn"

@@ -18,6 +18,14 @@ export const experienceLevels = [
   'Más de 5 años',
 ];
 
+export const educationLevels = [
+  'Secundaria incompleta',
+  'Secundaria completa',
+  'Tecnico',
+  'Universidad incompleta',
+  'Universidad completa',
+];
+
 export const employerSectors = [
   'Tecnología',
   'Manufactura',

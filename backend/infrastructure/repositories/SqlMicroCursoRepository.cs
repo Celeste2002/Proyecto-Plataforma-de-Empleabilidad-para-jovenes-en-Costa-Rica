@@ -116,6 +116,7 @@ public sealed class SqlMicroCursoRepository(string connectionString) : IMicroCur
             EntidadProveedora = reader.GetString(reader.GetOrdinal("EntidadProveedora")),
             TipoProveedor = reader.GetString(reader.GetOrdinal("TipoProveedor")),
             OtorgaCertificacion = reader.GetBoolean(reader.GetOrdinal("OtorgaCertificacion")),
+            EnlaceUrl = reader.IsDBNull(reader.GetOrdinal("EnlaceUrl")) ? null : reader.GetString(reader.GetOrdinal("EnlaceUrl")),
             CantidadValidaciones = reader.GetInt32(reader.GetOrdinal("CantidadValidaciones")),
             IsActive = reader.GetBoolean(reader.GetOrdinal("IsActive")),
             CreatedAtUtc = reader.GetDateTime(reader.GetOrdinal("CreatedAtUtc"))

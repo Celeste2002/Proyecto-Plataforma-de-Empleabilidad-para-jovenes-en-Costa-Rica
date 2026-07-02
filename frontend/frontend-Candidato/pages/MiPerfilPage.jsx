@@ -36,6 +36,10 @@ const emptyExperiencia = {
   descripcion: '',
 };
 
+function getTodayDateString() {
+  return new Date().toISOString().slice(0, 10);
+}
+
 const emptyCurso = {
   nombreCurso: '',
   institucion: '',
@@ -283,6 +287,10 @@ function ExperienciasSection({ experiencias, onAdd, onDelete }) {
     if (!form.empresa.trim()) validationErrors.push('La empresa es obligatoria.');
     if (!form.cargo.trim()) validationErrors.push('El cargo es obligatorio.');
     if (!form.fechaInicio) validationErrors.push('La fecha de inicio es obligatoria.');
+    if (form.fechaInicio > getTodayDateString()) validationErrors.push('La fecha de inicio no puede ser una fecha futura.');
+    if (!form.esTrabajoActual && form.fechaFin && form.fechaFin > getTodayDateString()) {
+      validationErrors.push('La fecha de fin no puede ser una fecha futura.');
+    }
     if (validationErrors.length > 0) { setErrors(validationErrors); return; }
 
     setIsSaving(true);
@@ -346,6 +354,7 @@ function ExperienciasSection({ experiencias, onAdd, onDelete }) {
             <label>
               Fecha de inicio
               <input
+                max={getTodayDateString()}
                 onChange={(e) => updateField('fechaInicio', e.target.value)}
                 type="date"
                 value={form.fechaInicio}
@@ -355,6 +364,7 @@ function ExperienciasSection({ experiencias, onAdd, onDelete }) {
               <label>
                 Fecha de fin
                 <input
+                  max={getTodayDateString()}
                   onChange={(e) => updateField('fechaFin', e.target.value)}
                   type="date"
                   value={form.fechaFin}
@@ -547,6 +557,7 @@ function CursosSection({ cursos, onAdd, onDelete }) {
     if (!form.nombreCurso.trim()) validationErrors.push('El nombre del curso es obligatorio.');
     if (!form.institucion.trim()) validationErrors.push('La institución es obligatoria.');
     if (!form.fechaCompletado) validationErrors.push('La fecha de completado es obligatoria.');
+    if (form.fechaCompletado > getTodayDateString()) validationErrors.push('La fecha de completado no puede ser una fecha futura.');
     if (validationErrors.length > 0) { setErrors(validationErrors); return; }
 
     setIsSaving(true);
@@ -626,6 +637,7 @@ function CursosSection({ cursos, onAdd, onDelete }) {
             <label>
               Fecha de completado
               <input
+                max={getTodayDateString()}
                 onChange={(e) => updateField('fechaCompletado', e.target.value)}
                 type="date"
                 value={form.fechaCompletado}

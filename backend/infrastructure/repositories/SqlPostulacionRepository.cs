@@ -88,6 +88,31 @@ public sealed class SqlPostulacionRepository(string connectionString) : IPostula
         return postulaciones;
     }
 
+    public async Task<IReadOnlyCollection<Postulacion>> GetByVacanteForClosureAsync(
+        Guid vacanteId,
+        Guid employerProfileId,
+        CancellationToken cancellationToken)
+    {
+        List<Postulacion> postulaciones = [];
+
+        await using SqlConnection connection =
+            await SqlStoredProcedure.OpenConnectionAsync(connectionString, cancellationToken);
+
+        await using SqlCommand command =
+            connection.CreateStoredProcedureCommand(StoredProcedures.Postulaciones.GetByVacanteForClosure);
+        command.Parameters.AddWithValue("@VacanteId", vacanteId);
+        command.Parameters.AddWithValue("@EmployerProfileId", employerProfileId);
+
+        await using SqlDataReader reader = await command.ExecuteReaderAsync(cancellationToken);
+
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            postulaciones.Add(MapEmployerPostulacion(reader));
+        }
+
+        return postulaciones;
+    }
+
     public async Task<Postulacion?> FindByIdForEmployerAsync(
         Guid id,
         Guid employerProfileId,
@@ -125,6 +150,48 @@ public sealed class SqlPostulacionRepository(string connectionString) : IPostula
 
         object? affectedRows = await command.ExecuteScalarAsync(cancellationToken);
         return Convert.ToInt32(affectedRows) > 0;
+    }
+
+    public async Task<bool> DeleteForCandidateAsync(
+        Guid id,
+        Guid candidateProfileId,
+        CancellationToken cancellationToken)
+    {
+        await using SqlConnection connection =
+            await SqlStoredProcedure.OpenConnectionAsync(connectionString, cancellationToken);
+
+        await using SqlCommand command =
+            connection.CreateStoredProcedureCommand(StoredProcedures.Postulaciones.DeleteForCandidate);
+        command.Parameters.AddWithValue("@Id", id);
+        command.Parameters.AddWithValue("@CandidateProfileId", candidateProfileId);
+
+        object? affectedRows = await command.ExecuteScalarAsync(cancellationToken);
+        return Convert.ToInt32(affectedRows) > 0;
+    }
+
+    public async Task<IReadOnlyCollection<Guid>> GetAppliedVacanteIdsForEmployerAsync(
+        Guid candidateProfileId,
+        Guid employerProfileId,
+        CancellationToken cancellationToken)
+    {
+        List<Guid> vacanteIds = [];
+
+        await using SqlConnection connection =
+            await SqlStoredProcedure.OpenConnectionAsync(connectionString, cancellationToken);
+
+        await using SqlCommand command =
+            connection.CreateStoredProcedureCommand(StoredProcedures.Postulaciones.GetAppliedVacanteIdsForEmployer);
+        command.Parameters.AddWithValue("@CandidateProfileId", candidateProfileId);
+        command.Parameters.AddWithValue("@EmployerProfileId", employerProfileId);
+
+        await using SqlDataReader reader = await command.ExecuteReaderAsync(cancellationToken);
+
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            vacanteIds.Add(reader.GetGuid(reader.GetOrdinal("VacanteId")));
+        }
+
+        return vacanteIds;
     }
 
     private static Postulacion MapPostulacion(SqlDataReader reader) =>

@@ -1,5 +1,6 @@
 using domain.entities;
 using Microsoft.Data.SqlClient;
+using services.dtos;
 using services.interfaces;
 
 namespace infrastructure.repositories;
@@ -36,6 +37,49 @@ public sealed class SqlCandidateRepository(string connectionString) : ICandidate
         }
 
         return candidateProfiles;
+    }
+
+    public async Task<CandidateProfile?> FindVisibleByIdAsync(Guid candidateProfileId, CancellationToken cancellationToken)
+    {
+        await using SqlConnection connection =
+            await SqlStoredProcedure.OpenConnectionAsync(connectionString, cancellationToken);
+
+        await using SqlCommand command =
+            connection.CreateStoredProcedureCommand(StoredProcedures.Candidates.FindVisibleById);
+        command.Parameters.AddWithValue("@Id", candidateProfileId);
+
+        await using SqlDataReader reader = await command.ExecuteReaderAsync(cancellationToken);
+
+        return await reader.ReadAsync(cancellationToken) ? MapCandidateProfileFromView(reader) : null;
+    }
+
+    public async Task<IReadOnlyCollection<CandidateSearchResult>> SearchVisibleToPartnerEmployersAsync(
+        Guid employerProfileId,
+        CandidateSearchFilters filters,
+        CancellationToken cancellationToken)
+    {
+        List<CandidateSearchResult> results = [];
+
+        await using SqlConnection connection =
+            await SqlStoredProcedure.OpenConnectionAsync(connectionString, cancellationToken);
+
+        await using SqlCommand command =
+            connection.CreateStoredProcedureCommand(StoredProcedures.Candidates.SearchForEmployer);
+        command.Parameters.AddWithValue("@EmployerProfileId", employerProfileId);
+        command.Parameters.AddNullableWithValue("@SkillKeyword", filters.SkillKeyword);
+        command.Parameters.AddNullableWithValue("@Province", filters.Province);
+        command.Parameters.AddNullableWithValue("@EducationLevel", filters.EducationLevel);
+        command.Parameters.AddNullableWithValue("@MinExperienceYears", filters.MinExperienceYears);
+        command.Parameters.AddNullableWithValue("@IsAvailableForContact", filters.IsAvailableForContact);
+
+        await using SqlDataReader reader = await command.ExecuteReaderAsync(cancellationToken);
+
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            results.Add(MapCandidateSearchResult(reader));
+        }
+
+        return results;
     }
 
     public async Task SaveAsync(CandidateProfile candidateProfile, CancellationToken cancellationToken)
@@ -378,6 +422,23 @@ public sealed class SqlCandidateRepository(string connectionString) : ICandidate
             CreatedAtUtc = reader.GetDateTime(reader.GetOrdinal("CreatedAtUtc")),
             Email = reader.GetString(reader.GetOrdinal("Email")),
             EmailConfirmationSent = reader.GetBoolean(reader.GetOrdinal("EmailConfirmed"))
+        };
+    }
+
+    private static CandidateSearchResult MapCandidateSearchResult(SqlDataReader reader)
+    {
+        return new CandidateSearchResult
+        {
+            Id = reader.GetGuid(reader.GetOrdinal("Id")),
+            FullName = reader.GetString(reader.GetOrdinal("FullName")),
+            DateOfBirth = DateOnly.FromDateTime(reader.GetDateTime(reader.GetOrdinal("DateOfBirth"))),
+            Province = reader.GetString(reader.GetOrdinal("Province")),
+            EducationLevel = reader.GetString(reader.GetOrdinal("EducationLevel")),
+            Email = reader.GetString(reader.GetOrdinal("Email")),
+            IsAvailableForContact = reader.GetBoolean(reader.GetOrdinal("IsAvailableForContact")),
+            PhotoUrl = reader.IsDBNull(reader.GetOrdinal("PhotoUrl")) ? null : reader.GetString(reader.GetOrdinal("PhotoUrl")),
+            ExperienceYears = reader.GetDecimal(reader.GetOrdinal("ExperienceYears")),
+            HasAppliedToYourVacantes = reader.GetBoolean(reader.GetOrdinal("HasAppliedToYourVacantes"))
         };
     }
 }

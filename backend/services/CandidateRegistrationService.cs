@@ -11,6 +11,7 @@ namespace services;
 public sealed class CandidateRegistrationService(
     ICandidateRepository candidateRepository,
     IUserRepository userRepository,
+    IEmployerRepository employerRepository,
     IEmailConfirmationSender emailConfirmationSender,
     IPasswordHasher passwordHasher,
     ILogger<CandidateRegistrationService> logger) : ICandidateRegistrationService
@@ -137,6 +138,75 @@ public sealed class CandidateRegistrationService(
         return MapCandidateProfileResponse(candidateProfile);
     }
 
+    public async Task<IReadOnlyCollection<CandidateSearchResultResponse>> SearchProfilesVisibleToPartnerEmployersAsync(
+        Guid employerUserId,
+        CandidateSearchFilters filters,
+        CancellationToken cancellationToken)
+    {
+        EmployerProfile? employer = await employerRepository.FindByUserIdAsync(employerUserId, cancellationToken);
+
+        if (employer is null)
+        {
+            throw new NotFoundException("No se encontro el perfil del empleador.");
+        }
+
+        IReadOnlyCollection<CandidateSearchResult> results =
+            await candidateRepository.SearchVisibleToPartnerEmployersAsync(employer.Id, filters, cancellationToken);
+
+        return results
+            .Select(result => new CandidateSearchResultResponse(
+                result.Id,
+                result.FullName,
+                CalculateAge(result.DateOfBirth, DateOnly.FromDateTime(DateTime.UtcNow)),
+                result.Province,
+                result.EducationLevel,
+                result.Email,
+                result.IsAvailableForContact,
+                result.PhotoUrl,
+                result.ExperienceYears,
+                result.HasAppliedToYourVacantes))
+            .ToArray();
+    }
+
+    public async Task<CandidatoPerfilCompletoResponse> GetFullProfileForEmployerAsync(
+        Guid candidateProfileId,
+        CancellationToken cancellationToken)
+    {
+        CandidateProfile? profile =
+            await candidateRepository.FindVisibleByIdAsync(candidateProfileId, cancellationToken);
+
+        if (profile is null)
+        {
+            throw new NotFoundException("El perfil del candidato no existe o no esta disponible para empleadores.");
+        }
+
+        IReadOnlyCollection<domain.entities.ExperienciaLaboral> experiencias =
+            await candidateRepository.GetExperienciasAsync(profile.Id, cancellationToken);
+
+        IReadOnlyCollection<domain.entities.Habilidad> habilidades =
+            await candidateRepository.GetHabilidadesAsync(profile.Id, cancellationToken);
+
+        IReadOnlyCollection<domain.entities.CursoCompletado> cursos =
+            await candidateRepository.GetCursosAsync(profile.Id, cancellationToken);
+
+        return new CandidatoPerfilCompletoResponse(
+            profile.Id,
+            profile.FullName,
+            profile.DateOfBirth,
+            CalculateAge(profile.DateOfBirth, DateOnly.FromDateTime(DateTime.UtcNow)),
+            profile.Province,
+            profile.EducationLevel,
+            profile.Email,
+            profile.IsAvailableForContact,
+            profile.IsVisibleToPartnerEmployers,
+            profile.PhotoUrl,
+            experiencias.Select(e => new ExperienciaLaboralResponse(
+                e.Id, e.Empresa, e.Cargo, e.FechaInicio, e.FechaFin, e.EsTrabajoActual, e.Descripcion)).ToArray(),
+            habilidades.Select(h => new HabilidadResponse(h.Id, h.Nombre)).ToArray(),
+            cursos.Select(c => new CursoCompletadoResponse(
+                c.Id, c.NombreCurso, c.Institucion, c.FechaCompletado, c.EsDePlataforma)).ToArray());
+    }
+
     public async Task<CandidatoPerfilCompletoResponse> GetFullProfileAsync(
         Guid userId,
         CancellationToken cancellationToken)
@@ -201,6 +271,10 @@ public sealed class CandidateRegistrationService(
             errors.Add("El nombre de la empresa es obligatorio.");
         if (string.IsNullOrWhiteSpace(request.Cargo))
             errors.Add("El cargo es obligatorio.");
+        if (request.FechaInicio > DateOnly.FromDateTime(DateTime.UtcNow))
+            errors.Add("La fecha de inicio no puede ser una fecha futura.");
+        if (!request.EsTrabajoActual && request.FechaFin.HasValue && request.FechaFin > DateOnly.FromDateTime(DateTime.UtcNow))
+            errors.Add("La fecha de fin no puede ser una fecha futura.");
         if (!request.EsTrabajoActual && request.FechaFin.HasValue && request.FechaFin < request.FechaInicio)
             errors.Add("La fecha de fin no puede ser anterior a la fecha de inicio.");
 
@@ -303,6 +377,8 @@ public sealed class CandidateRegistrationService(
             errors.Add("El nombre del curso es obligatorio.");
         if (string.IsNullOrWhiteSpace(request.Institucion))
             errors.Add("La institución es obligatoria.");
+        if (request.FechaCompletado > DateOnly.FromDateTime(DateTime.UtcNow))
+            errors.Add("La fecha de completado no puede ser una fecha futura.");
 
         if (errors.Count > 0)
             throw new RequestValidationException(errors);

@@ -1,9 +1,14 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, ClipboardList, MapPin } from 'lucide-react';
+import { ArrowLeft, ClipboardList, MapPin, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { BrandHomeLink } from '../../shared/components/BrandHomeLink.jsx';
+import { ConfirmDialog } from '../../shared/components/ConfirmDialog.jsx';
 import { useAuth } from '../../shared/context/AuthContext.jsx';
-import { getMyPostulaciones } from '../api/candidatesApi.js';
+import {
+  deleteMyPostulacion,
+  getMyPostulaciones,
+  markMyPostulacionNotificationsRead,
+} from '../api/candidatesApi.js';
 
 const STATUS_CONFIG = {
   'Enviada': { className: 'postulacion-status--enviada', label: 'Enviada' },
@@ -28,13 +33,45 @@ export function PostulacionesPage() {
   const [postulaciones, setPostulaciones] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
+  const [deletingId, setDeletingId] = useState(null);
+  const [actionMessage, setActionMessage] = useState('');
+  const [pendingDeleteId, setPendingDeleteId] = useState(null);
 
   useEffect(() => {
     getMyPostulaciones(token)
-      .then((data) => setPostulaciones(data))
+      .then((data) => {
+        setPostulaciones(data);
+        return markMyPostulacionNotificationsRead(token);
+      })
       .catch((err) => setErrorMsg(err.message))
       .finally(() => setLoading(false));
   }, [token]);
+
+  function handleRequestDelete(postulacionId) {
+    setPendingDeleteId(postulacionId);
+  }
+
+  function handleCancelDelete() {
+    setPendingDeleteId(null);
+  }
+
+  async function handleConfirmDelete() {
+    const postulacionId = pendingDeleteId;
+    setPendingDeleteId(null);
+    setDeletingId(postulacionId);
+    setErrorMsg('');
+    setActionMessage('');
+
+    try {
+      await deleteMyPostulacion(token, postulacionId);
+      setPostulaciones((current) => current.filter((p) => p.id !== postulacionId));
+      setActionMessage('Postulación eliminada correctamente.');
+    } catch (err) {
+      setErrorMsg(err.message);
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   return (
     <main className="application-shell">
@@ -80,6 +117,12 @@ export function PostulacionesPage() {
           </div>
         )}
 
+        {actionMessage && (
+          <p className="vacante-card__result vacante-card__result--success" role="status">
+            {actionMessage}
+          </p>
+        )}
+
         {!loading && !errorMsg && postulaciones.length === 0 && (
           <p className="empty-state">
             Aún no tienes postulaciones. Explora las{' '}
@@ -123,12 +166,34 @@ export function PostulacionesPage() {
                       <dd>{formatDate(p.updatedAtUtc)}</dd>
                     </div>
                   </dl>
+                  <div className="postulante-card__actions">
+                    <button
+                      className="danger-action vacante-card__apply-btn"
+                      disabled={deletingId === p.id}
+                      onClick={() => handleRequestDelete(p.id)}
+                      type="button"
+                    >
+                      <Trash2 aria-hidden="true" size={16} />
+                      {deletingId === p.id ? 'Eliminando...' : 'Eliminar postulación'}
+                    </button>
+                  </div>
                 </article>
               );
             })}
           </div>
         )}
       </section>
+
+      <ConfirmDialog
+        cancelLabel="Cancelar"
+        confirmLabel="Eliminar"
+        message="Esta acción no se puede deshacer. ¿Deseas eliminar esta postulación?"
+        onCancel={handleCancelDelete}
+        onConfirm={handleConfirmDelete}
+        open={pendingDeleteId !== null}
+        title="Eliminar postulación"
+        tone="danger"
+      />
     </main>
   );
 }

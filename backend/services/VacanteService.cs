@@ -233,6 +233,11 @@ public sealed class VacanteService(
         if (vacante.IsActive != isActive)
         {
             await vacanteRepository.UpdateStatusAsync(vacanteId, isActive, cancellationToken);
+
+            if (!isActive)
+            {
+                await NotifyVacanteFilledAsync(employer, vacante, cancellationToken);
+            }
         }
 
         return MapVacanteResponse(CopyWithStatus(vacante, isActive));
@@ -304,12 +309,84 @@ public sealed class VacanteService(
             throw new RequestValidationException(["No se pudo actualizar el estado de la postulación."]);
         }
 
+        await SaveCandidateNotificationAsync(
+            postulacion,
+            $"La empresa {employer.CompanyName} solicito una entrevista para la vacante {postulacion.JobTitle}.",
+            cancellationToken);
+
         Postulacion updatedPostulacion = new()
         {
             Id = postulacion.Id,
             VacanteId = postulacion.VacanteId,
             CandidateProfileId = postulacion.CandidateProfileId,
             Status = PostulacionStatuses.EntrevistaSolicitada,
+            AppliedAt = postulacion.AppliedAt,
+            UpdatedAtUtc = updatedAtUtc,
+            JobTitle = postulacion.JobTitle,
+            CompanyName = postulacion.CompanyName,
+            Province = postulacion.Province,
+            CandidateFullName = postulacion.CandidateFullName,
+            CandidateEmail = postulacion.CandidateEmail,
+            CandidateProvince = postulacion.CandidateProvince,
+            CandidateEducationLevel = postulacion.CandidateEducationLevel
+        };
+
+        return MapEmployerPostulacionResponse(updatedPostulacion);
+    }
+
+    public async Task<EmployerPostulacionResponse> DeclinePostulacionAsync(
+        Guid employerUserId,
+        Guid postulacionId,
+        CancellationToken cancellationToken)
+    {
+        EmployerProfile employer = await GetEmployerProfileAsync(employerUserId, cancellationToken);
+
+        Postulacion? postulacion =
+            await postulacionRepository.FindByIdForEmployerAsync(
+                postulacionId,
+                employer.Id,
+                cancellationToken);
+
+        if (postulacion is null)
+        {
+            throw new NotFoundException("No se encontró la postulación solicitada.");
+        }
+
+        if (postulacion.Status == PostulacionStatuses.Finalizada)
+        {
+            throw new RequestValidationException(["La postulación ya se encuentra finalizada."]);
+        }
+
+        await interviewRequestSender.SendPostulacionDeclinedAsync(
+            employer,
+            postulacion,
+            cancellationToken);
+
+        DateTime updatedAtUtc = DateTime.UtcNow;
+
+        bool updated = await postulacionRepository.UpdateStatusForEmployerAsync(
+            postulacion.Id,
+            employer.Id,
+            PostulacionStatuses.Finalizada,
+            updatedAtUtc,
+            cancellationToken);
+
+        if (!updated)
+        {
+            throw new RequestValidationException(["No se pudo actualizar el estado de la postulación."]);
+        }
+
+        await SaveCandidateNotificationAsync(
+            postulacion,
+            $"La empresa {employer.CompanyName} finalizo tu postulacion a la vacante {postulacion.JobTitle}.",
+            cancellationToken);
+
+        Postulacion updatedPostulacion = new()
+        {
+            Id = postulacion.Id,
+            VacanteId = postulacion.VacanteId,
+            CandidateProfileId = postulacion.CandidateProfileId,
+            Status = PostulacionStatuses.Finalizada,
             AppliedAt = postulacion.AppliedAt,
             UpdatedAtUtc = updatedAtUtc,
             JobTitle = postulacion.JobTitle,
@@ -400,6 +477,88 @@ public sealed class VacanteService(
         return postulaciones
             .Select(MapPostulacionResponse)
             .ToArray();
+    }
+
+    public async Task DeleteMyPostulacionAsync(
+        Guid candidateUserId,
+        Guid postulacionId,
+        CancellationToken cancellationToken)
+    {
+        CandidateProfile? candidateProfile =
+            await candidateRepository.FindByUserIdAsync(candidateUserId, cancellationToken);
+
+        if (candidateProfile is null)
+        {
+            throw new NotFoundException("No se encontró el perfil del candidato.");
+        }
+
+        bool deleted = await postulacionRepository.DeleteForCandidateAsync(
+            postulacionId,
+            candidateProfile.Id,
+            cancellationToken);
+
+        if (!deleted)
+        {
+            throw new RequestValidationException(
+                ["No se pudo eliminar la postulación. Verifica que exista y que aún esté en estado 'Enviada'."]);
+        }
+    }
+
+    public async Task<IReadOnlyCollection<NotificacionResponse>> GetMyNotificacionesAsync(
+        Guid candidateUserId,
+        CancellationToken cancellationToken)
+    {
+        CandidateProfile? candidateProfile =
+            await candidateRepository.FindByUserIdAsync(candidateUserId, cancellationToken);
+
+        if (candidateProfile is null)
+        {
+            throw new NotFoundException("No se encontró el perfil del candidato.");
+        }
+
+        IReadOnlyCollection<Notificacion> notificaciones =
+            await notificacionRepository.GetByCandidateProfileIdAsync(candidateProfile.Id, cancellationToken);
+
+        return notificaciones
+            .Select(n => new NotificacionResponse(
+                n.Id,
+                n.PostulacionId,
+                n.VacanteId,
+                n.JobTitle,
+                n.Message,
+                n.IsRead,
+                n.CreatedAtUtc))
+            .ToArray();
+    }
+
+    public async Task<int> GetMyUnreadNotificacionCountAsync(
+        Guid candidateUserId,
+        CancellationToken cancellationToken)
+    {
+        CandidateProfile? candidateProfile =
+            await candidateRepository.FindByUserIdAsync(candidateUserId, cancellationToken);
+
+        if (candidateProfile is null)
+        {
+            throw new NotFoundException("No se encontró el perfil del candidato.");
+        }
+
+        return await notificacionRepository.GetCandidateUnreadCountAsync(candidateProfile.Id, cancellationToken);
+    }
+
+    public async Task MarkMyPostulacionNotificationsReadAsync(
+        Guid candidateUserId,
+        CancellationToken cancellationToken)
+    {
+        CandidateProfile? candidateProfile =
+            await candidateRepository.FindByUserIdAsync(candidateUserId, cancellationToken);
+
+        if (candidateProfile is null)
+        {
+            throw new NotFoundException("No se encontró el perfil del candidato.");
+        }
+
+        await notificacionRepository.MarkCandidateNotificationsAsReadAsync(candidateProfile.Id, cancellationToken);
     }
 
     public async Task<VacanteResponse> UpdateMyVacanteStatusAsync(
@@ -502,4 +661,51 @@ public sealed class VacanteService(
 
     private static string? NormalizeOptionalText(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private async Task NotifyVacanteFilledAsync(
+        EmployerProfile employer,
+        Vacante vacante,
+        CancellationToken cancellationToken)
+    {
+        IReadOnlyCollection<Postulacion> postulaciones =
+            await postulacionRepository.GetByVacanteForClosureAsync(vacante.Id, employer.Id, cancellationToken);
+
+        foreach (Postulacion postulacion in postulaciones.Where(p => p.Status != PostulacionStatuses.Finalizada))
+        {
+            await interviewRequestSender.SendVacanteFilledAsync(employer, postulacion, cancellationToken);
+
+            DateTime updatedAtUtc = DateTime.UtcNow;
+            await postulacionRepository.UpdateStatusForEmployerAsync(
+                postulacion.Id,
+                employer.Id,
+                PostulacionStatuses.Finalizada,
+                updatedAtUtc,
+                cancellationToken);
+
+            await SaveCandidateNotificationAsync(
+                postulacion,
+                $"La vacante {vacante.JobTitle} de {employer.CompanyName} fue desactivada porque ya fue llenada.",
+                cancellationToken);
+        }
+    }
+
+    private async Task SaveCandidateNotificationAsync(
+        Postulacion postulacion,
+        string message,
+        CancellationToken cancellationToken)
+    {
+        Notificacion notificacion = new()
+        {
+            Id = Guid.NewGuid(),
+            EmployerProfileId = null,
+            CandidateProfileId = postulacion.CandidateProfileId,
+            PostulacionId = postulacion.Id,
+            VacanteId = postulacion.VacanteId,
+            Message = message,
+            IsRead = false,
+            CreatedAtUtc = DateTime.UtcNow
+        };
+
+        await notificacionRepository.SaveAsync(notificacion, cancellationToken);
+    }
 }

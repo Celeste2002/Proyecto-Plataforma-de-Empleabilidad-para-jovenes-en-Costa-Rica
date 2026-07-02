@@ -7,68 +7,13 @@ using services.interfaces;
 
 namespace infrastructure.email;
 
-public sealed class SmtpInterviewRequestSender(EmailSettings emailSettings) : IInterviewRequestSender
+public sealed class SmtpSugerenciaPostulacionSender(EmailSettings emailSettings) : ISugerenciaPostulacionSender
 {
-    public async Task SendInterviewRequestAsync(
+    public async Task SendSugerenciaAsync(
         EmployerProfile employerProfile,
-        Postulacion postulacion,
-        CancellationToken cancellationToken)
-    {
-        await SendCandidateMessageAsync(
-            employerProfile,
-            postulacion,
-            $"Solicitud de entrevista: {postulacion.JobTitle}",
-            ProfessionalEmailTemplate.BuildInterviewRequest(
-                postulacion.CandidateFullName,
-                employerProfile.CompanyName,
-                postulacion.JobTitle,
-                employerProfile.ContactName,
-                employerProfile.Email,
-                employerProfile.ContactPhone),
-            "No se pudo enviar el correo de solicitud de entrevista.",
-            cancellationToken);
-    }
-
-    public async Task SendPostulacionDeclinedAsync(
-        EmployerProfile employerProfile,
-        Postulacion postulacion,
-        CancellationToken cancellationToken)
-    {
-        await SendCandidateMessageAsync(
-            employerProfile,
-            postulacion,
-            $"Actualizacion de postulacion: {postulacion.JobTitle}",
-            ProfessionalEmailTemplate.BuildPostulacionDeclined(
-                postulacion.CandidateFullName,
-                employerProfile.CompanyName,
-                postulacion.JobTitle),
-            "No se pudo enviar el correo de declinacion de postulacion.",
-            cancellationToken);
-    }
-
-    public async Task SendVacanteFilledAsync(
-        EmployerProfile employerProfile,
-        Postulacion postulacion,
-        CancellationToken cancellationToken)
-    {
-        await SendCandidateMessageAsync(
-            employerProfile,
-            postulacion,
-            $"Vacante cubierta: {postulacion.JobTitle}",
-            ProfessionalEmailTemplate.BuildVacanteFilled(
-                postulacion.CandidateFullName,
-                employerProfile.CompanyName,
-                postulacion.JobTitle),
-            "No se pudo enviar el correo de cierre de vacante.",
-            cancellationToken);
-    }
-
-    private async Task SendCandidateMessageAsync(
-        EmployerProfile employerProfile,
-        Postulacion postulacion,
-        string subject,
-        string body,
-        string errorMessage,
+        CandidateProfile candidateProfile,
+        Vacante vacante,
+        string? message,
         CancellationToken cancellationToken)
     {
         string senderAddress = GetFirstConfiguredValue(emailSettings.SenderAddress, emailSettings.FromAddress);
@@ -83,14 +28,24 @@ public sealed class SmtpInterviewRequestSender(EmailSettings emailSettings) : II
         using MailMessage mailMessage = new()
         {
             From = new MailAddress(senderAddress, senderName),
-            Subject = subject,
-            Body = body,
+            Subject = $"{employerProfile.CompanyName} te sugiere postularte a: {vacante.JobTitle}",
+            Body = ProfessionalEmailTemplate.BuildPostulacionSuggestion(
+                candidateProfile.FullName,
+                employerProfile.CompanyName,
+                vacante.JobTitle,
+                vacante.Province,
+                vacante.Modality,
+                vacante.ExperienceLevel,
+                message,
+                employerProfile.ContactName,
+                employerProfile.Email,
+                employerProfile.ContactPhone),
             IsBodyHtml = true,
             BodyEncoding = Encoding.UTF8,
             SubjectEncoding = Encoding.UTF8
         };
 
-        mailMessage.To.Add(postulacion.CandidateEmail);
+        mailMessage.To.Add(candidateProfile.Email);
         mailMessage.ReplyToList.Add(new MailAddress(employerProfile.Email, employerProfile.ContactName));
 
         using SmtpClient smtpClient = new(smtpHost, smtpPort)
@@ -106,7 +61,7 @@ public sealed class SmtpInterviewRequestSender(EmailSettings emailSettings) : II
         catch (SmtpException smtpException)
         {
             throw new EmailDeliveryException(
-                errorMessage,
+                "No se pudo enviar el correo de sugerencia de postulación.",
                 smtpException);
         }
     }

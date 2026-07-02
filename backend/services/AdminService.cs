@@ -45,7 +45,20 @@ public sealed class AdminService(
             throw new NotFoundException($"No se encontro un usuario con el Id '{userId}'.");
         }
 
-        await userRepository.UpdateRoleAsync(userId, newRole.ToUpperInvariant(), cancellationToken);
+        string normalizedNewRole = newRole.ToUpperInvariant();
+
+        bool isDirectCandidateEmployerSwap =
+            (user.Role == UserRoles.Candidate && normalizedNewRole == UserRoles.Employer) ||
+            (user.Role == UserRoles.Employer && normalizedNewRole == UserRoles.Candidate);
+
+        if (isDirectCandidateEmployerSwap)
+        {
+            throw new RequestValidationException(
+                ["No se puede cambiar directamente entre Candidato y Empleador: son perfiles con datos distintos. " +
+                 "Solo se permite promover/degradar hacia o desde Administrador."]);
+        }
+
+        await userRepository.UpdateRoleAsync(userId, normalizedNewRole, cancellationToken);
     }
 
     public Task<AdminReportResponse> GetReportDataAsync(CancellationToken cancellationToken)

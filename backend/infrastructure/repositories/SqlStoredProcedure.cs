@@ -68,6 +68,8 @@ internal static class StoredProcedures
         public const string GetCursos = "dbo.usp_Candidate_GetCursos";
         public const string SaveCurso = "dbo.usp_Candidate_SaveCurso";
         public const string DeleteCurso = "dbo.usp_Candidate_DeleteCurso";
+        public const string FindVisibleById = "dbo.usp_Candidate_FindVisibleById";
+        public const string SearchForEmployer = "dbo.usp_Candidate_SearchForEmployer";
     }
 
     internal static class Employers
@@ -103,21 +105,35 @@ internal static class StoredProcedures
         public const string Save = "dbo.usp_Postulacion_Save";
         public const string ExistsByVacanteAndCandidate = "dbo.usp_Postulacion_ExistsByVacanteAndCandidate";
         public const string GetByCandidateProfileId = "dbo.usp_Postulacion_GetByCandidateProfileId";
+        public const string GetByVacanteForClosure = "dbo.usp_Postulacion_GetByVacanteForClosure";
         public const string GetByVacanteForEmployer = "dbo.usp_Postulacion_GetByVacanteForEmployer";
         public const string FindByIdForEmployer = "dbo.usp_Postulacion_FindByIdForEmployer";
         public const string UpdateStatusForEmployer = "dbo.usp_Postulacion_UpdateStatusForEmployer";
+        public const string DeleteForCandidate = "dbo.usp_Postulacion_DeleteForCandidate";
+        public const string GetAppliedVacanteIdsForEmployer = "dbo.usp_Postulacion_GetAppliedVacanteIdsForEmployer";
     }
 
     internal static class Notificaciones
     {
         public const string Save = "dbo.usp_Notificacion_Save";
         public const string GetByEmployerProfileId = "dbo.usp_Notificacion_GetByEmployerProfileId";
+        public const string GetByCandidateProfileId = "dbo.usp_Notificacion_GetByCandidateProfileId";
         public const string MarkAsRead = "dbo.usp_Notificacion_MarkAsRead";
+        public const string MarkEmployerVacanteAsRead = "dbo.usp_Notificacion_MarkEmployerVacanteAsRead";
+        public const string MarkCandidateAsRead = "dbo.usp_Notificacion_MarkCandidateAsRead";
         public const string GetUnreadCount = "dbo.usp_Notificacion_GetUnreadCount";
+        public const string GetCandidateUnreadCount = "dbo.usp_Notificacion_GetCandidateUnreadCount";
     }
 
     internal static class AdminReports
     {
         public const string GetReportData = "dbo.usp_AdminReport_GetReportData";
+    }
+
+    internal static class SugerenciasPostulacion
+    {
+        public const string Save = "dbo.usp_SugerenciaPostulacion_Save";
+        public const string ExistsByVacanteAndCandidate = "dbo.usp_SugerenciaPostulacion_ExistsByVacanteAndCandidate";
+        public const string GetByCandidateProfileId = "dbo.usp_SugerenciaPostulacion_GetByCandidateProfileId";
     }
 }

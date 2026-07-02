@@ -44,6 +44,7 @@ export function VacantesPage() {
         getMyPostulaciones(token),
       ]);
       setVacantes(vacantesData);
+      window.localStorage.setItem('candidate:vacantes:lastSeen', String(Date.now()));
       const existing = {};
       postulacionesData.forEach((p) => {
         existing[p.vacanteId] = { success: true, message: 'Ya te postulaste a esta vacante.' };

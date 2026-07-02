@@ -14,7 +14,8 @@ public sealed class SqlNotificacionRepository(string connectionString) : INotifi
         await using SqlCommand command =
             connection.CreateStoredProcedureCommand(StoredProcedures.Notificaciones.Save);
         command.Parameters.AddWithValue("@Id", notificacion.Id);
-        command.Parameters.AddWithValue("@EmployerProfileId", notificacion.EmployerProfileId);
+        command.Parameters.AddNullableWithValue("@EmployerProfileId", notificacion.EmployerProfileId);
+        command.Parameters.AddNullableWithValue("@CandidateProfileId", notificacion.CandidateProfileId);
         command.Parameters.AddWithValue("@PostulacionId", notificacion.PostulacionId);
         command.Parameters.AddWithValue("@VacanteId", notificacion.VacanteId);
         command.Parameters.AddWithValue("@Message", notificacion.Message);
@@ -49,6 +50,29 @@ public sealed class SqlNotificacionRepository(string connectionString) : INotifi
         return notificaciones;
     }
 
+    public async Task<IReadOnlyCollection<Notificacion>> GetByCandidateProfileIdAsync(
+        Guid candidateProfileId,
+        CancellationToken cancellationToken)
+    {
+        List<Notificacion> notificaciones = [];
+
+        await using SqlConnection connection =
+            await SqlStoredProcedure.OpenConnectionAsync(connectionString, cancellationToken);
+
+        await using SqlCommand command =
+            connection.CreateStoredProcedureCommand(StoredProcedures.Notificaciones.GetByCandidateProfileId);
+        command.Parameters.AddWithValue("@CandidateProfileId", candidateProfileId);
+
+        await using SqlDataReader reader = await command.ExecuteReaderAsync(cancellationToken);
+
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            notificaciones.Add(MapNotificacion(reader));
+        }
+
+        return notificaciones;
+    }
+
     public async Task MarkAsReadAsync(
         Guid notificacionId,
         Guid employerProfileId,
@@ -61,6 +85,36 @@ public sealed class SqlNotificacionRepository(string connectionString) : INotifi
             connection.CreateStoredProcedureCommand(StoredProcedures.Notificaciones.MarkAsRead);
         command.Parameters.AddWithValue("@Id", notificacionId);
         command.Parameters.AddWithValue("@EmployerProfileId", employerProfileId);
+
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    public async Task MarkEmployerVacanteAsReadAsync(
+        Guid employerProfileId,
+        Guid? vacanteId,
+        CancellationToken cancellationToken)
+    {
+        await using SqlConnection connection =
+            await SqlStoredProcedure.OpenConnectionAsync(connectionString, cancellationToken);
+
+        await using SqlCommand command =
+            connection.CreateStoredProcedureCommand(StoredProcedures.Notificaciones.MarkEmployerVacanteAsRead);
+        command.Parameters.AddWithValue("@EmployerProfileId", employerProfileId);
+        command.Parameters.AddNullableWithValue("@VacanteId", vacanteId);
+
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    public async Task MarkCandidateNotificationsAsReadAsync(
+        Guid candidateProfileId,
+        CancellationToken cancellationToken)
+    {
+        await using SqlConnection connection =
+            await SqlStoredProcedure.OpenConnectionAsync(connectionString, cancellationToken);
+
+        await using SqlCommand command =
+            connection.CreateStoredProcedureCommand(StoredProcedures.Notificaciones.MarkCandidateAsRead);
+        command.Parameters.AddWithValue("@CandidateProfileId", candidateProfileId);
 
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
@@ -80,13 +134,34 @@ public sealed class SqlNotificacionRepository(string connectionString) : INotifi
         return Convert.ToInt32(count);
     }
 
+    public async Task<int> GetCandidateUnreadCountAsync(
+        Guid candidateProfileId,
+        CancellationToken cancellationToken)
+    {
+        await using SqlConnection connection =
+            await SqlStoredProcedure.OpenConnectionAsync(connectionString, cancellationToken);
+
+        await using SqlCommand command =
+            connection.CreateStoredProcedureCommand(StoredProcedures.Notificaciones.GetCandidateUnreadCount);
+        command.Parameters.AddWithValue("@CandidateProfileId", candidateProfileId);
+
+        object? count = await command.ExecuteScalarAsync(cancellationToken);
+        return Convert.ToInt32(count);
+    }
+
     private static Notificacion MapNotificacion(SqlDataReader reader) =>
         new()
         {
             Id = reader.GetGuid(reader.GetOrdinal("Id")),
-            EmployerProfileId = reader.GetGuid(reader.GetOrdinal("EmployerProfileId")),
+            EmployerProfileId = reader.IsDBNull(reader.GetOrdinal("EmployerProfileId"))
+                ? null
+                : reader.GetGuid(reader.GetOrdinal("EmployerProfileId")),
+            CandidateProfileId = reader.IsDBNull(reader.GetOrdinal("CandidateProfileId"))
+                ? null
+                : reader.GetGuid(reader.GetOrdinal("CandidateProfileId")),
             PostulacionId = reader.GetGuid(reader.GetOrdinal("PostulacionId")),
             VacanteId = reader.GetGuid(reader.GetOrdinal("VacanteId")),
+            JobTitle = reader.GetString(reader.GetOrdinal("JobTitle")),
             Message = reader.GetString(reader.GetOrdinal("Message")),
             IsRead = reader.GetBoolean(reader.GetOrdinal("IsRead")),
             CreatedAtUtc = reader.GetDateTime(reader.GetOrdinal("CreatedAtUtc"))

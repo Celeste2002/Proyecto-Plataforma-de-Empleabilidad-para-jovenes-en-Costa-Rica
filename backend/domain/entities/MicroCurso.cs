@@ -10,6 +10,7 @@ public sealed record MicroCurso
     public required string EntidadProveedora { get; init; }
     public required string TipoProveedor { get; init; }
     public required bool OtorgaCertificacion { get; init; }
+    public string? EnlaceUrl { get; init; }
     public required int CantidadValidaciones { get; init; }
     public required bool IsActive { get; init; }
     public required DateTime CreatedAtUtc { get; init; }

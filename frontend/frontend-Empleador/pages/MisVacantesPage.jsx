@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   ArrowLeft,
+  Bell,
   BriefcaseBusiness,
   MailPlus,
   MapPin,
@@ -12,10 +13,13 @@ import {
   Save,
   UsersRound,
   X,
+  XCircle,
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import {
+  declinePostulacion,
   getMyVacantes,
+  getNotificaciones,
   getVacantePostulaciones,
   requestInterview,
   updateVacante,
@@ -40,11 +44,22 @@ function formatDate(dateString) {
   });
 }
 
+function formatDateTime(dateString) {
+  return new Date(dateString).toLocaleString('es-CR', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
 export function MisVacantesPage() {
   const { token } = useAuth();
   const location = useLocation();
 
   const [vacantes, setVacantes] = useState([]);
+  const [notificaciones, setNotificaciones] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [updatingStatusId, setUpdatingStatusId] = useState(null);
   const [errorMessage, setErrorMessage] = useState('');
@@ -64,6 +79,7 @@ export function MisVacantesPage() {
   const [loadingPostulacionesId, setLoadingPostulacionesId] = useState(null);
   const [postulacionesErrors, setPostulacionesErrors] = useState({});
   const [requestingInterviewId, setRequestingInterviewId] = useState(null);
+  const [decliningPostulacionId, setDecliningPostulacionId] = useState(null);
   const [interviewMessages, setInterviewMessages] = useState({});
 
   async function loadVacantes() {
@@ -73,6 +89,9 @@ export function MisVacantesPage() {
     try {
       const data = await getMyVacantes(token);
       setVacantes(data);
+
+      const notifs = await getNotificaciones(token).catch(() => []);
+      setNotificaciones(notifs);
     } catch (error) {
       setErrorMessage(error.message);
     } finally {
@@ -216,6 +235,40 @@ export function MisVacantesPage() {
     }
   }
 
+  async function handleDeclinePostulacion(postulacionId) {
+    setDecliningPostulacionId(postulacionId);
+    setInterviewMessages((prev) => ({ ...prev, [postulacionId]: null }));
+
+    try {
+      const updatedPostulacion = await declinePostulacion(token, postulacionId);
+      setPostulacionesByVacante((prev) => ({
+        ...prev,
+        [updatedPostulacion.vacanteId]: (prev[updatedPostulacion.vacanteId] ?? []).map((postulacion) => (
+          postulacion.id === updatedPostulacion.id ? updatedPostulacion : postulacion
+        )),
+      }));
+      setInterviewMessages((prev) => ({
+        ...prev,
+        [updatedPostulacion.id]: {
+          success: true,
+          message: 'Solicitud declinada y correo enviado.',
+        },
+      }));
+    } catch (error) {
+      setInterviewMessages((prev) => ({
+        ...prev,
+        [postulacionId]: {
+          success: false,
+          message: error.validationErrors?.[0] ?? error.message,
+        },
+      }));
+    } finally {
+      setDecliningPostulacionId(null);
+    }
+  }
+
+  const unreadNotificaciones = notificaciones.filter((n) => !n.isRead);
+
   return (
     <main className="application-shell">
       <header className="top-bar">
@@ -248,6 +301,28 @@ export function MisVacantesPage() {
 
         <StatusMessage message={successMessage} tone="success" />
         <StatusMessage message={errorMessage} tone="error" />
+
+        {unreadNotificaciones.length > 0 && (
+          <div className="notificaciones-panel" role="region" aria-label="Notificaciones nuevas">
+            <div className="notificaciones-panel__header">
+              <Bell aria-hidden="true" size={18} />
+              <span>
+                {unreadNotificaciones.length}{' '}
+                {unreadNotificaciones.length === 1 ? 'notificación nueva' : 'notificaciones nuevas'}
+              </span>
+            </div>
+            <ul className="notificaciones-list">
+              {unreadNotificaciones.map((n) => (
+                <li key={n.id} className="notificacion-item">
+                  <span className="notificacion-item__message">
+                    <strong>{n.jobTitle}</strong>: {n.message}
+                  </span>
+                  <span className="notificacion-item__time">{formatDateTime(n.createdAtUtc)}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {isLoading ? (
           <p className="empty-state">Cargando vacantes...</p>
@@ -498,6 +573,7 @@ export function MisVacantesPage() {
                                         className="primary-action vacante-card__apply-btn"
                                         disabled={
                                           requestingInterviewId === postulacion.id
+                                          || decliningPostulacionId === postulacion.id
                                           || interviewAlreadyRequested
                                           || isFinalized
                                         }
@@ -510,6 +586,21 @@ export function MisVacantesPage() {
                                           : interviewAlreadyRequested
                                             ? 'Entrevista solicitada'
                                             : 'Solicitar entrevista'}
+                                      </button>
+                                      <button
+                                        className="secondary-action vacante-card__apply-btn"
+                                        disabled={
+                                          decliningPostulacionId === postulacion.id
+                                          || requestingInterviewId === postulacion.id
+                                          || isFinalized
+                                        }
+                                        onClick={() => handleDeclinePostulacion(postulacion.id)}
+                                        type="button"
+                                      >
+                                        <XCircle aria-hidden="true" size={16} />
+                                        {decliningPostulacionId === postulacion.id
+                                          ? 'Enviando...'
+                                          : 'Declinar solicitud'}
                                       </button>
                                     </div>
                                   </article>

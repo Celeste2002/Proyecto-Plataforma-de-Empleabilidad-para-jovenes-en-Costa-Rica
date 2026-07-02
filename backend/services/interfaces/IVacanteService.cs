@@ -12,8 +12,13 @@ public interface IVacanteService
     Task<VacanteResponse> UpdateVacanteAsync(Guid employerUserId, Guid vacanteId, UpdateVacanteRequest request, CancellationToken cancellationToken);
     Task<IReadOnlyCollection<EmployerPostulacionResponse>> GetPostulacionesByVacanteAsync(Guid employerUserId, Guid vacanteId, CancellationToken cancellationToken);
     Task<EmployerPostulacionResponse> RequestInterviewAsync(Guid employerUserId, Guid postulacionId, CancellationToken cancellationToken);
+    Task<EmployerPostulacionResponse> DeclinePostulacionAsync(Guid employerUserId, Guid postulacionId, CancellationToken cancellationToken);
     Task ApplyAsync(Guid candidateUserId, ApplyToVacanteRequest request, CancellationToken cancellationToken);
     Task<IReadOnlyCollection<PostulacionResponse>> GetMyPostulacionesAsync(Guid candidateUserId, CancellationToken cancellationToken);
+    Task DeleteMyPostulacionAsync(Guid candidateUserId, Guid postulacionId, CancellationToken cancellationToken);
+    Task<IReadOnlyCollection<NotificacionResponse>> GetMyNotificacionesAsync(Guid candidateUserId, CancellationToken cancellationToken);
+    Task<int> GetMyUnreadNotificacionCountAsync(Guid candidateUserId, CancellationToken cancellationToken);
+    Task MarkMyPostulacionNotificationsReadAsync(Guid candidateUserId, CancellationToken cancellationToken);
     Task<VacanteResponse> UpdateMyVacanteStatusAsync(
         Guid employerUserId,
         Guid vacanteId,

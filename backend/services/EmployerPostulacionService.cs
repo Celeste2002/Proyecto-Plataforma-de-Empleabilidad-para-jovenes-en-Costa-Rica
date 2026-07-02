@@ -136,11 +136,14 @@ public sealed class EmployerPostulacionService(
         IReadOnlyCollection<Notificacion> notificaciones =
             await notificacionRepository.GetByEmployerProfileIdAsync(employer.Id, vacanteId, cancellationToken);
 
+        await notificacionRepository.MarkEmployerVacanteAsReadAsync(employer.Id, vacanteId, cancellationToken);
+
         return notificaciones
             .Select(n => new NotificacionResponse(
                 n.Id,
                 n.PostulacionId,
                 n.VacanteId,
+                n.JobTitle,
                 n.Message,
                 n.IsRead,
                 n.CreatedAtUtc))

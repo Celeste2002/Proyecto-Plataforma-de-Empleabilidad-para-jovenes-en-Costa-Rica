@@ -53,6 +53,26 @@ export function AuthProvider({ children }) {
     return () => window.removeEventListener('auth:unauthorized', handleUnauthorized);
   }, [logout]);
 
+  // Si el navegador restaura la página desde el bfcache (botón "atrás" tras
+  // cerrar sesión), React no se vuelve a montar, así que ProtectedRoute nunca
+  // se re-evalúa por sí solo. Al detectar la restauración, se revalida la
+  // sesión contra localStorage y se cierra si ya no es válida.
+  useEffect(() => {
+    function handlePageShow(event) {
+      if (!event.persisted) {
+        return;
+      }
+
+      const storedToken = localStorage.getItem(TOKEN_KEY);
+      if (!storedToken || isTokenExpired(storedToken)) {
+        logout();
+      }
+    }
+
+    window.addEventListener('pageshow', handlePageShow);
+    return () => window.removeEventListener('pageshow', handlePageShow);
+  }, [logout]);
+
   const login = useCallback((newToken, newUser) => {
     localStorage.setItem(TOKEN_KEY, newToken);
     localStorage.setItem(USER_KEY, JSON.stringify(newUser));

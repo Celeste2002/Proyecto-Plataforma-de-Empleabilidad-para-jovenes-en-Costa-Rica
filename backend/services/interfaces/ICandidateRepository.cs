@@ -1,4 +1,5 @@
 using domain.entities;
+using services.dtos;
 
 namespace services.interfaces;
 
@@ -9,6 +10,11 @@ public interface ICandidateRepository
     Task<CandidateProfile?> FindByUserIdAsync(Guid userId, CancellationToken cancellationToken);
 
     Task<IReadOnlyCollection<CandidateProfile>> GetVisibleToPartnerEmployersAsync(CancellationToken cancellationToken);
+
+    Task<CandidateProfile?> FindVisibleByIdAsync(Guid candidateProfileId, CancellationToken cancellationToken);
+
+    Task<IReadOnlyCollection<CandidateSearchResult>> SearchVisibleToPartnerEmployersAsync(
+        Guid employerProfileId, CandidateSearchFilters filters, CancellationToken cancellationToken);
 
     Task SaveAsync(CandidateProfile candidateProfile, CancellationToken cancellationToken);
 
