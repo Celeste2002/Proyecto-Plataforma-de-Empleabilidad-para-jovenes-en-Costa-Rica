@@ -778,6 +778,121 @@ END;
 GO
 
 /* =============================================================
+   TABLA: ContactoAccesos (auditoria de acceso al correo del candidato)
+   ============================================================= */
+
+IF OBJECT_ID(N'dbo.ContactoAccesos', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.ContactoAccesos
+    (
+        Id UNIQUEIDENTIFIER NOT NULL
+            CONSTRAINT PK_ContactoAccesos PRIMARY KEY
+            DEFAULT NEWID(),
+
+        EmployerProfileId UNIQUEIDENTIFIER NOT NULL
+            CONSTRAINT FK_ContactoAccesos_EmployerProfiles
+                FOREIGN KEY REFERENCES dbo.EmployerProfiles (Id),
+
+        PostulacionId UNIQUEIDENTIFIER NOT NULL
+            CONSTRAINT FK_ContactoAccesos_Postulaciones
+                FOREIGN KEY REFERENCES dbo.Postulaciones (Id),
+
+        CandidateEmail NVARCHAR(200) NOT NULL,
+
+        AccessedAtUtc DATETIME2(0) NOT NULL
+            CONSTRAINT DF_ContactoAccesos_AccessedAtUtc DEFAULT SYSUTCDATETIME()
+    );
+END;
+GO
+
+IF NOT EXISTS
+(
+    SELECT 1
+    FROM sys.indexes
+    WHERE name = N'IX_ContactoAccesos_EmployerProfileId'
+        AND object_id = OBJECT_ID(N'dbo.ContactoAccesos')
+)
+BEGIN
+    CREATE NONCLUSTERED INDEX IX_ContactoAccesos_EmployerProfileId
+        ON dbo.ContactoAccesos (EmployerProfileId);
+END;
+GO
+
+IF NOT EXISTS
+(
+    SELECT 1
+    FROM sys.indexes
+    WHERE name = N'IX_ContactoAccesos_PostulacionId'
+        AND object_id = OBJECT_ID(N'dbo.ContactoAccesos')
+)
+BEGIN
+    CREATE NONCLUSTERED INDEX IX_ContactoAccesos_PostulacionId
+        ON dbo.ContactoAccesos (PostulacionId);
+END;
+GO
+
+/* =============================================================
+   TABLA: Mensajes (mensajeria directa empleador -> candidato)
+   ============================================================= */
+
+IF OBJECT_ID(N'dbo.Mensajes', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.Mensajes
+    (
+        Id UNIQUEIDENTIFIER NOT NULL
+            CONSTRAINT PK_Mensajes PRIMARY KEY
+            DEFAULT NEWID(),
+
+        PostulacionId UNIQUEIDENTIFIER NOT NULL
+            CONSTRAINT FK_Mensajes_Postulaciones
+                FOREIGN KEY REFERENCES dbo.Postulaciones (Id),
+
+        SenderEmployerProfileId UNIQUEIDENTIFIER NOT NULL
+            CONSTRAINT FK_Mensajes_EmployerProfiles
+                FOREIGN KEY REFERENCES dbo.EmployerProfiles (Id),
+
+        RecipientCandidateProfileId UNIQUEIDENTIFIER NOT NULL
+            CONSTRAINT FK_Mensajes_CandidateProfiles
+                FOREIGN KEY REFERENCES dbo.CandidateProfiles (Id),
+
+        Body NVARCHAR(2000) NOT NULL,
+
+        SentAtUtc DATETIME2(0) NOT NULL
+            CONSTRAINT DF_Mensajes_SentAtUtc DEFAULT SYSUTCDATETIME(),
+
+        IsReadByCandidate BIT NOT NULL
+            CONSTRAINT DF_Mensajes_IsReadByCandidate DEFAULT 0
+    );
+END;
+GO
+
+IF NOT EXISTS
+(
+    SELECT 1
+    FROM sys.indexes
+    WHERE name = N'IX_Mensajes_PostulacionId'
+        AND object_id = OBJECT_ID(N'dbo.Mensajes')
+)
+BEGIN
+    CREATE NONCLUSTERED INDEX IX_Mensajes_PostulacionId
+        ON dbo.Mensajes (PostulacionId);
+END;
+GO
+
+IF NOT EXISTS
+(
+    SELECT 1
+    FROM sys.indexes
+    WHERE name = N'IX_Mensajes_RecipientCandidateProfileId'
+        AND object_id = OBJECT_ID(N'dbo.Mensajes')
+)
+BEGIN
+    CREATE NONCLUSTERED INDEX IX_Mensajes_RecipientCandidateProfileId
+        ON dbo.Mensajes (RecipientCandidateProfileId);
+END;
+GO
+
+/* =============================================================
    PROCEDIMIENTOS ALMACENADOS
    ============================================================= */
 
@@ -2685,8 +2800,8 @@ BEGIN TRY
     DECLARE @PruebaAdminUserId UNIQUEIDENTIFIER = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 
     DECLARE @CandidateUserAna UNIQUEIDENTIFIER = '11111111-1111-1111-1111-111111111111';
-    DECLARE @CandidateUserJose UNIQUEIDENTIFIER = '22222222-2222-2222-2222-222222222222';
-    DECLARE @CandidateUserValeria UNIQUEIDENTIFIER = '33333333-3333-3333-3333-333333333333';
+    DECLARE @CandidateUserJose UNIQUEIDENTIFIER = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
+    DECLARE @CandidateUserValeria UNIQUEIDENTIFIER = 'dddddddd-dddd-dddd-dddd-dddddddddddd';
 
     DECLARE @CandidateAna UNIQUEIDENTIFIER = '11111111-aaaa-1111-aaaa-111111111111';
     DECLARE @CandidateJose UNIQUEIDENTIFIER = '22222222-aaaa-2222-aaaa-222222222222';
